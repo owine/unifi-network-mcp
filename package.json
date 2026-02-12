@@ -1,6 +1,6 @@
 {
   "name": "@owine/unifi-network-mcp",
-  "version": "0.0.0",
+  "version": "0.9.0",
   "description": "MCP server for the UniFi Network API",
   "main": "dist/index.js",
   "bin": {
