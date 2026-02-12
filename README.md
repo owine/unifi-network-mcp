@@ -15,15 +15,7 @@ An MCP (Model Context Protocol) server that exposes the UniFi Network Integratio
 Add to Claude Code with a single command — no clone or build needed:
 
 ```bash
-claude mcp add-json unifi-network '{
-  "command": "npx",
-  "args": ["-y", "@owine/unifi-network-mcp@latest"],
-  "env": {
-    "UNIFI_NETWORK_HOST": "192.168.1.1",
-    "UNIFI_NETWORK_API_KEY": "your-api-key",
-    "UNIFI_NETWORK_VERIFY_SSL": "false"
-  }
-}' -s user
+claude mcp add-json unifi-network '{"command":"npx","args":["-y","@owine/unifi-network-mcp@latest"],"env":{"UNIFI_NETWORK_HOST":"192.168.1.1","UNIFI_NETWORK_API_KEY":"your-api-key","UNIFI_NETWORK_VERIFY_SSL":"false"}}' -s user
 ```
 
 Use `-s user` for global availability across all projects, or `-s project` for the current project only.
@@ -42,15 +34,7 @@ npm run build
 Then add to Claude Code:
 
 ```bash
-claude mcp add-json unifi-network '{
-  "command": "node",
-  "args": ["/path/to/unifi-network-mcp/dist/index.js"],
-  "env": {
-    "UNIFI_NETWORK_HOST": "192.168.1.1",
-    "UNIFI_NETWORK_API_KEY": "your-api-key",
-    "UNIFI_NETWORK_VERIFY_SSL": "false"
-  }
-}' -s user
+claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-network-mcp/dist/index.js"],"env":{"UNIFI_NETWORK_HOST":"192.168.1.1","UNIFI_NETWORK_API_KEY":"your-api-key","UNIFI_NETWORK_VERIFY_SSL":"false"}}' -s user
 ```
 
 ### Environment Variables
