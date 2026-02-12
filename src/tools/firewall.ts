@@ -300,6 +300,35 @@ export function registerFirewallTools(
   );
 
   server.tool(
+    "unifi_patch_firewall_policy",
+    "Partially update a firewall policy (e.g. toggle logging)",
+    {
+      siteId: z.string().describe("Site ID"),
+      firewallPolicyId: z.string().describe("Firewall policy ID"),
+      policy: z
+        .record(z.string(), z.unknown())
+        .describe("Partial firewall policy fields to update (e.g. { loggingEnabled: true })"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview this action without executing it"),
+    },
+    WRITE,
+    async ({ siteId, firewallPolicyId, policy, dryRun }) => {
+      try {
+        if (dryRun) return formatDryRun("PATCH", `/sites/${siteId}/firewall/policies/${firewallPolicyId}`, policy);
+        const data = await client.patch(
+          `/sites/${siteId}/firewall/policies/${firewallPolicyId}`,
+          policy
+        );
+        return formatSuccess(data);
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
+  server.tool(
     "unifi_delete_firewall_policy",
     "DESTRUCTIVE: Delete a firewall policy",
     {

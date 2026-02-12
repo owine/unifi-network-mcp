@@ -532,6 +532,50 @@ describe("registerFirewallTools", () => {
       });
     });
 
+    describe("unifi_patch_firewall_policy", () => {
+      it("should register the tool", () => {
+        expect(handlers.has("unifi_patch_firewall_policy")).toBe(true);
+      });
+
+      it("should have correct annotations", () => {
+        const config = configs.get("unifi_patch_firewall_policy");
+        expect(config?.annotations.idempotentHint).toBe(true);
+      });
+
+      it("should return success when client.patch succeeds", async () => {
+        const mockData = { id: "policy1", loggingEnabled: true };
+        mockFn(client, "patch").mockResolvedValue(mockData);
+
+        const handler = handlers.get("unifi_patch_firewall_policy");
+        const policyPatch = { loggingEnabled: true };
+        const result = await handler({
+          siteId: "site123",
+          firewallPolicyId: "policy1",
+          policy: policyPatch,
+        });
+
+        expect(mockFn(client, "patch")).toHaveBeenCalledWith(
+          "/sites/site123/firewall/policies/policy1",
+          policyPatch
+        );
+        expect(result.content).toBeDefined();
+      });
+
+      it("should return dry run preview when dryRun=true", async () => {
+        const handler = handlers.get("unifi_patch_firewall_policy");
+        const policyPatch = { loggingEnabled: true };
+        const result = await handler({
+          siteId: "site123",
+          firewallPolicyId: "policy1",
+          policy: policyPatch,
+          dryRun: true,
+        });
+
+        expect(mockFn(client, "patch")).not.toHaveBeenCalled();
+        expect(result.content[0].text).toContain('"dryRun": true');
+      });
+    });
+
     describe("unifi_delete_firewall_policy", () => {
       it("should register the tool", () => {
         expect(handlers.has("unifi_delete_firewall_policy")).toBe(true);
@@ -670,6 +714,7 @@ describe("registerFirewallTools", () => {
       expect(handlers.has("unifi_delete_firewall_zone")).toBe(false);
       expect(handlers.has("unifi_create_firewall_policy")).toBe(false);
       expect(handlers.has("unifi_update_firewall_policy")).toBe(false);
+      expect(handlers.has("unifi_patch_firewall_policy")).toBe(false);
       expect(handlers.has("unifi_delete_firewall_policy")).toBe(false);
       expect(handlers.has("unifi_reorder_firewall_policies")).toBe(false);
     });
