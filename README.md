@@ -17,7 +17,7 @@ Add to Claude Code with a single command — no clone or build needed:
 ```bash
 claude mcp add-json unifi-network '{
   "command": "npx",
-  "args": ["-y", "@owine/unifi-network-mcp"],
+  "args": ["-y", "@owine/unifi-network-mcp@latest"],
   "env": {
     "UNIFI_NETWORK_HOST": "192.168.1.1",
     "UNIFI_NETWORK_API_KEY": "your-api-key",
@@ -71,7 +71,7 @@ Alternatively, add to your `~/.claude.json` under the top-level `"mcpServers"` k
   "mcpServers": {
     "unifi-network": {
       "command": "npx",
-      "args": ["-y", "@owine/unifi-network-mcp"],
+      "args": ["-y", "@owine/unifi-network-mcp@latest"],
       "env": {
         "UNIFI_NETWORK_HOST": "192.168.1.1",
         "UNIFI_NETWORK_API_KEY": "your-api-key",
