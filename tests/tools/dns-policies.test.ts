@@ -47,7 +47,7 @@ describe("registerDnsPolicyTools", () => {
         });
 
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
-          "/sites/site123/dns-policies?offset=0&limit=25&filter=name.like%28block*%29"
+          "/sites/site123/dns/policies?offset=0&limit=25&filter=name.like%28block*%29"
         );
         expect(result.content).toBeDefined();
         expect(result.content[0].text).toContain("Block Ads");
@@ -88,7 +88,7 @@ describe("registerDnsPolicyTools", () => {
         });
 
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
-          "/sites/site123/dns-policies/policy1"
+          "/sites/site123/dns/policies/policy1"
         );
         expect(result.content).toBeDefined();
         expect(result.content[0].text).toContain("Block Ads");
@@ -144,7 +144,7 @@ describe("registerDnsPolicyTools", () => {
         });
 
         expect(mockFn(client, "post")).toHaveBeenCalledWith(
-          "/sites/site123/dns-policies",
+          "/sites/site123/dns/policies",
           policyConfig
         );
         expect(result.content).toBeDefined();
@@ -183,7 +183,7 @@ describe("registerDnsPolicyTools", () => {
         const text = result.content[0].text;
         expect(text).toContain('"dryRun": true');
         expect(text).toContain("POST");
-        expect(text).toContain("/sites/site123/dns-policies");
+        expect(text).toContain("/sites/site123/dns/policies");
       });
     });
 
@@ -216,7 +216,7 @@ describe("registerDnsPolicyTools", () => {
         });
 
         expect(mockFn(client, "put")).toHaveBeenCalledWith(
-          "/sites/site123/dns-policies/policy1",
+          "/sites/site123/dns/policies/policy1",
           policyConfig
         );
         expect(result.content).toBeDefined();
@@ -256,7 +256,7 @@ describe("registerDnsPolicyTools", () => {
         const text = result.content[0].text;
         expect(text).toContain('"dryRun": true');
         expect(text).toContain("PUT");
-        expect(text).toContain("/sites/site123/dns-policies/policy1");
+        expect(text).toContain("/sites/site123/dns/policies/policy1");
       });
     });
 
@@ -284,7 +284,7 @@ describe("registerDnsPolicyTools", () => {
         });
 
         expect(mockFn(client, "delete")).toHaveBeenCalledWith(
-          "/sites/site123/dns-policies/policy1"
+          "/sites/site123/dns/policies/policy1"
         );
         expect(result.content).toBeDefined();
         expect(result.isError).toBeUndefined();
@@ -318,7 +318,7 @@ describe("registerDnsPolicyTools", () => {
         const text = result.content[0].text;
         expect(text).toContain('"dryRun": true');
         expect(text).toContain("DELETE");
-        expect(text).toContain("/sites/site123/dns-policies/policy1");
+        expect(text).toContain("/sites/site123/dns/policies/policy1");
       });
 
       it("should return error when confirm is not provided", async () => {

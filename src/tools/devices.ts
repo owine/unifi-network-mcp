@@ -71,7 +71,7 @@ export function registerDeviceTools(
     async ({ siteId, deviceId }) => {
       try {
         const data = await client.get(
-          `/sites/${siteId}/devices/${deviceId}/statistics`
+          `/sites/${siteId}/devices/${deviceId}/statistics/latest`
         );
         return formatSuccess(data);
       } catch (err) {
@@ -103,7 +103,7 @@ export function registerDeviceTools(
     async ({ offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
-        const data = await client.get(`/devices/pending${query}`);
+        const data = await client.get(`/pending-devices${query}`);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -205,11 +205,11 @@ export function registerDeviceTools(
     async ({ siteId, deviceId, portIdx, dryRun }) => {
       const body = { action: "POWER_CYCLE" };
 
-      if (dryRun) return formatDryRun("POST", `/sites/${siteId}/devices/${deviceId}/ports/${portIdx}/actions`, body);
+      if (dryRun) return formatDryRun("POST", `/sites/${siteId}/devices/${deviceId}/interfaces/ports/${portIdx}/actions`, body);
 
       try {
         const data = await client.post(
-          `/sites/${siteId}/devices/${deviceId}/ports/${portIdx}/actions`,
+          `/sites/${siteId}/devices/${deviceId}/interfaces/ports/${portIdx}/actions`,
           body
         );
         return formatSuccess(data);

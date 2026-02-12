@@ -32,7 +32,7 @@ export function registerSupportingTools(
     async ({ siteId, offset, limit }) => {
       try {
         const query = buildQuery({ offset, limit });
-        const data = await client.get(`/sites/${siteId}/wan-interfaces${query}`);
+        const data = await client.get(`/sites/${siteId}/wans${query}`);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -67,7 +67,7 @@ export function registerSupportingTools(
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
-        const data = await client.get(`/sites/${siteId}/vpn-tunnels${query}`);
+        const data = await client.get(`/sites/${siteId}/vpn/site-to-site-tunnels${query}`);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -102,7 +102,7 @@ export function registerSupportingTools(
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
-        const data = await client.get(`/sites/${siteId}/vpn-servers${query}`);
+        const data = await client.get(`/sites/${siteId}/vpn/servers${query}`);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -138,7 +138,7 @@ export function registerSupportingTools(
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(
-          `/sites/${siteId}/radius-profiles${query}`
+          `/sites/${siteId}/radius/profiles${query}`
         );
         return formatSuccess(data);
       } catch (err) {

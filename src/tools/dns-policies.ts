@@ -44,7 +44,7 @@ export function registerDnsPolicyTools(
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
-        const data = await client.get(`/sites/${siteId}/dns-policies${query}`);
+        const data = await client.get(`/sites/${siteId}/dns/policies${query}`);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -63,7 +63,7 @@ export function registerDnsPolicyTools(
     async ({ siteId, dnsPolicyId }) => {
       try {
         const data = await client.get(
-          `/sites/${siteId}/dns-policies/${dnsPolicyId}`
+          `/sites/${siteId}/dns/policies/${dnsPolicyId}`
         );
         return formatSuccess(data);
       } catch (err) {
@@ -90,8 +90,8 @@ export function registerDnsPolicyTools(
     WRITE_NOT_IDEMPOTENT,
     async ({ siteId, policy, dryRun }) => {
       try {
-        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/dns-policies`, policy);
-        const data = await client.post(`/sites/${siteId}/dns-policies`, policy);
+        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/dns/policies`, policy);
+        const data = await client.post(`/sites/${siteId}/dns/policies`, policy);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -116,9 +116,9 @@ export function registerDnsPolicyTools(
     WRITE,
     async ({ siteId, dnsPolicyId, policy, dryRun }) => {
       try {
-        if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/dns-policies/${dnsPolicyId}`, policy);
+        if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/dns/policies/${dnsPolicyId}`, policy);
         const data = await client.put(
-          `/sites/${siteId}/dns-policies/${dnsPolicyId}`,
+          `/sites/${siteId}/dns/policies/${dnsPolicyId}`,
           policy
         );
         return formatSuccess(data);
@@ -149,9 +149,9 @@ export function registerDnsPolicyTools(
       if (guard) return guard;
 
       try {
-        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/dns-policies/${dnsPolicyId}`, {});
+        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/dns/policies/${dnsPolicyId}`, {});
         const data = await client.delete(
-          `/sites/${siteId}/dns-policies/${dnsPolicyId}`
+          `/sites/${siteId}/dns/policies/${dnsPolicyId}`
         );
         return formatSuccess(data);
       } catch (err) {

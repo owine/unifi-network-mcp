@@ -137,7 +137,7 @@ describe("registerDeviceTools", () => {
         });
 
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
-          "/sites/site1/devices/dev1/statistics"
+          "/sites/site1/devices/dev1/statistics/latest"
         );
         expect(result).toEqual({
           content: [
@@ -186,7 +186,7 @@ describe("registerDeviceTools", () => {
         const result = await handler({ offset: 0, limit: 25 });
 
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
-          "/devices/pending?offset=0&limit=25"
+          "/pending-devices?offset=0&limit=25"
         );
         expect(result).toEqual({
           content: [
@@ -510,7 +510,7 @@ describe("registerDeviceTools", () => {
         });
 
         expect(mockFn(client, "post")).toHaveBeenCalledWith(
-          "/sites/site1/devices/dev1/ports/1/actions",
+          "/sites/site1/devices/dev1/interfaces/ports/1/actions",
           { action: "POWER_CYCLE" }
         );
         expect(result).toEqual({
@@ -562,7 +562,7 @@ describe("registerDeviceTools", () => {
         expect(text.dryRun).toBe(true);
         expect(text.wouldExecute.method).toBe("POST");
         expect(text.wouldExecute.path).toBe(
-          "/sites/site1/devices/dev1/ports/1/actions"
+          "/sites/site1/devices/dev1/interfaces/ports/1/actions"
         );
         expect(text.wouldExecute.body).toEqual({ action: "POWER_CYCLE" });
       });
@@ -578,7 +578,7 @@ describe("registerDeviceTools", () => {
         });
 
         expect(mockFn(client, "post")).toHaveBeenCalledWith(
-          "/sites/site1/devices/dev1/ports/5/actions",
+          "/sites/site1/devices/dev1/interfaces/ports/5/actions",
           { action: "POWER_CYCLE" }
         );
       });

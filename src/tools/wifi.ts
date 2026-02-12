@@ -44,7 +44,7 @@ export function registerWifiTools(
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
-        const data = await client.get(`/sites/${siteId}/wifi${query}`);
+        const data = await client.get(`/sites/${siteId}/wifi/broadcasts${query}`);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -63,7 +63,7 @@ export function registerWifiTools(
     async ({ siteId, wifiBroadcastId }) => {
       try {
         const data = await client.get(
-          `/sites/${siteId}/wifi/${wifiBroadcastId}`
+          `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`
         );
         return formatSuccess(data);
       } catch (err) {
@@ -106,8 +106,8 @@ export function registerWifiTools(
           type,
           broadcastingFrequenciesGHz: broadcastingFrequenciesGHz.map(Number),
         };
-        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi`, body);
-        const data = await client.post(`/sites/${siteId}/wifi`, body);
+        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi/broadcasts`, body);
+        const data = await client.post(`/sites/${siteId}/wifi/broadcasts`, body);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -137,11 +137,11 @@ export function registerWifiTools(
         if (dryRun)
           return formatDryRun(
             "PUT",
-            `/sites/${siteId}/wifi/${wifiBroadcastId}`,
+            `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`,
             body
           );
         const data = await client.put(
-          `/sites/${siteId}/wifi/${wifiBroadcastId}`,
+          `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`,
           body
         );
         return formatSuccess(data);
@@ -177,7 +177,7 @@ export function registerWifiTools(
       if (guard) return guard;
 
       try {
-        let path = `/sites/${siteId}/wifi/${wifiBroadcastId}`;
+        let path = `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`;
         if (force) {
           path += "?force=true";
         }

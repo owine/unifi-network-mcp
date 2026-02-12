@@ -36,7 +36,7 @@ describe("registerSupportingTools", () => {
       const result = await handler({ siteId: "site-123" });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site-123/wan-interfaces"
+        "/sites/site-123/wans"
       );
       expect(result.content[0].text).toContain("wan1");
       expect(result.isError).toBeUndefined();
@@ -49,7 +49,7 @@ describe("registerSupportingTools", () => {
       await handler({ siteId: "site-123", offset: 10, limit: 50 });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site-123/wan-interfaces?offset=10&limit=50"
+        "/sites/site-123/wans?offset=10&limit=50"
       );
     });
 
@@ -83,7 +83,7 @@ describe("registerSupportingTools", () => {
       const result = await handler({ siteId: "site-123" });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site-123/vpn-tunnels"
+        "/sites/site-123/vpn/site-to-site-tunnels"
       );
       expect(result.content[0].text).toContain("vpn1");
       expect(result.isError).toBeUndefined();
@@ -96,7 +96,7 @@ describe("registerSupportingTools", () => {
       await handler({ siteId: "site-123", filter: "status.eq(active)" });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site-123/vpn-tunnels?filter=status.eq%28active%29"
+        "/sites/site-123/vpn/site-to-site-tunnels?filter=status.eq%28active%29"
       );
     });
 
@@ -130,7 +130,7 @@ describe("registerSupportingTools", () => {
       const result = await handler({ siteId: "site-123" });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site-123/vpn-servers"
+        "/sites/site-123/vpn/servers"
       );
       expect(result.content[0].text).toContain("vpn-server-1");
       expect(result.isError).toBeUndefined();
@@ -148,7 +148,7 @@ describe("registerSupportingTools", () => {
       });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site-123/vpn-servers?offset=0&limit=100&filter=enabled.eq%28true%29"
+        "/sites/site-123/vpn/servers?offset=0&limit=100&filter=enabled.eq%28true%29"
       );
     });
 
@@ -182,7 +182,7 @@ describe("registerSupportingTools", () => {
       const result = await handler({ siteId: "site-123" });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site-123/radius-profiles"
+        "/sites/site-123/radius/profiles"
       );
       expect(result.content[0].text).toContain("radius-1");
       expect(result.isError).toBeUndefined();
@@ -195,7 +195,7 @@ describe("registerSupportingTools", () => {
       await handler({ siteId: "site-123", offset: 5, limit: 25 });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site-123/radius-profiles?offset=5&limit=25"
+        "/sites/site-123/radius/profiles?offset=5&limit=25"
       );
     });
 

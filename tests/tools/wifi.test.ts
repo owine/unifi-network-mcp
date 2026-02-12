@@ -69,7 +69,7 @@ describe("registerWifiTools", () => {
       const handler = handlers.get("unifi_list_wifi");
       const result = await handler({ siteId: "site1" });
 
-      expect(mockFn(client, "get")).toHaveBeenCalledWith("/sites/site1/wifi");
+      expect(mockFn(client, "get")).toHaveBeenCalledWith("/sites/site1/wifi/broadcasts");
       expect(result.content).toBeDefined();
       expect(result.content[0].text).toContain("wifi1");
       expect(result.isError).toBeUndefined();
@@ -83,7 +83,7 @@ describe("registerWifiTools", () => {
       await handler({ siteId: "site1", offset: 5, limit: 25 });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site1/wifi?offset=5&limit=25"
+        "/sites/site1/wifi/broadcasts?offset=5&limit=25"
       );
     });
 
@@ -95,7 +95,7 @@ describe("registerWifiTools", () => {
       await handler({ siteId: "site1", filter: "enabled.eq(true)" });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site1/wifi?filter=enabled.eq%28true%29"
+        "/sites/site1/wifi/broadcasts?filter=enabled.eq%28true%29"
       );
     });
 
@@ -137,7 +137,7 @@ describe("registerWifiTools", () => {
       });
 
       expect(mockFn(client, "get")).toHaveBeenCalledWith(
-        "/sites/site1/wifi/wifi1"
+        "/sites/site1/wifi/broadcasts/wifi1"
       );
       expect(result.content[0].text).toContain("wifi1");
       expect(result.isError).toBeUndefined();
@@ -187,7 +187,7 @@ describe("registerWifiTools", () => {
         broadcastingFrequenciesGHz: ["2.4", "5"],
       });
 
-      expect(mockFn(client, "post")).toHaveBeenCalledWith("/sites/site1/wifi", {
+      expect(mockFn(client, "post")).toHaveBeenCalledWith("/sites/site1/wifi/broadcasts", {
         name: "Guest",
         enabled: true,
         type: "STANDARD",
@@ -210,7 +210,7 @@ describe("registerWifiTools", () => {
       });
 
       expect(mockFn(client, "post")).toHaveBeenCalledWith(
-        "/sites/site1/wifi",
+        "/sites/site1/wifi/broadcasts",
         expect.objectContaining({
           broadcastingFrequenciesGHz: [2.4, 5, 6],
         })
@@ -231,7 +231,7 @@ describe("registerWifiTools", () => {
       expect(mockFn(client, "post")).not.toHaveBeenCalled();
       expect(result.content[0].text).toContain("dryRun");
       expect(result.content[0].text).toContain("POST");
-      expect(result.content[0].text).toContain("/sites/site1/wifi");
+      expect(result.content[0].text).toContain("/sites/site1/wifi/broadcasts");
     });
 
     it("should return error when client fails", async () => {
@@ -280,7 +280,7 @@ describe("registerWifiTools", () => {
       });
 
       expect(mockFn(client, "put")).toHaveBeenCalledWith(
-        "/sites/site1/wifi/wifi1",
+        "/sites/site1/wifi/broadcasts/wifi1",
         { name: "Updated" }
       );
       expect(result.content[0].text).toContain("Updated");
@@ -298,7 +298,7 @@ describe("registerWifiTools", () => {
       });
 
       expect(mockFn(client, "put")).toHaveBeenCalledWith(
-        "/sites/site1/wifi/wifi1",
+        "/sites/site1/wifi/broadcasts/wifi1",
         { enabled: false }
       );
     });
@@ -315,7 +315,7 @@ describe("registerWifiTools", () => {
       });
 
       expect(mockFn(client, "put")).toHaveBeenCalledWith(
-        "/sites/site1/wifi/wifi1",
+        "/sites/site1/wifi/broadcasts/wifi1",
         { name: "New Name", enabled: true }
       );
     });
@@ -332,7 +332,7 @@ describe("registerWifiTools", () => {
       expect(mockFn(client, "put")).not.toHaveBeenCalled();
       expect(result.content[0].text).toContain("dryRun");
       expect(result.content[0].text).toContain("PUT");
-      expect(result.content[0].text).toContain("/sites/site1/wifi/wifi1");
+      expect(result.content[0].text).toContain("/sites/site1/wifi/broadcasts/wifi1");
     });
 
     it("should return error when client fails", async () => {
@@ -378,7 +378,7 @@ describe("registerWifiTools", () => {
       });
 
       expect(mockFn(client, "delete")).toHaveBeenCalledWith(
-        "/sites/site1/wifi/wifi1"
+        "/sites/site1/wifi/broadcasts/wifi1"
       );
       expect(result.isError).toBeUndefined();
     });
@@ -395,7 +395,7 @@ describe("registerWifiTools", () => {
       });
 
       expect(mockFn(client, "delete")).toHaveBeenCalledWith(
-        "/sites/site1/wifi/wifi1?force=true"
+        "/sites/site1/wifi/broadcasts/wifi1?force=true"
       );
     });
 
@@ -411,7 +411,7 @@ describe("registerWifiTools", () => {
       });
 
       expect(mockFn(client, "delete")).toHaveBeenCalledWith(
-        "/sites/site1/wifi/wifi1"
+        "/sites/site1/wifi/broadcasts/wifi1"
       );
     });
 
@@ -427,7 +427,7 @@ describe("registerWifiTools", () => {
       expect(mockFn(client, "delete")).not.toHaveBeenCalled();
       expect(result.content[0].text).toContain("dryRun");
       expect(result.content[0].text).toContain("DELETE");
-      expect(result.content[0].text).toContain("/sites/site1/wifi/wifi1");
+      expect(result.content[0].text).toContain("/sites/site1/wifi/broadcasts/wifi1");
     });
 
     it("should return dryRun with force in path when force=true and dryRun=true", async () => {
