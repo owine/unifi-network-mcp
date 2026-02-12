@@ -9,7 +9,7 @@ const configSchema = z.object({
     .describe("Verify SSL certificates"),
   readOnly: z
     .boolean()
-    .default(false)
+    .default(true)
     .describe("When true, only read-only tools are registered"),
 });
 
@@ -22,7 +22,7 @@ export function loadConfig(): Config {
     verifySsl:
       process.env.UNIFI_NETWORK_VERIFY_SSL?.toLowerCase() !== "false",
     readOnly:
-      process.env.UNIFI_NETWORK_READ_ONLY?.toLowerCase() === "true",
+      process.env.UNIFI_NETWORK_READ_ONLY?.toLowerCase() !== "false",
   });
 
   if (!result.success) {
