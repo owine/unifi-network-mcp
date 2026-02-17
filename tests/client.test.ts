@@ -166,4 +166,39 @@ describe("NetworkClient", () => {
       );
     });
   });
+
+  // ── Network failures ──────────────────────────────────────────────
+
+  describe("network failures", () => {
+    let client: NetworkClient;
+
+    beforeEach(() => {
+      client = new NetworkClient(makeConfig());
+    });
+
+    it("propagates fetch TypeError for get()", async () => {
+      fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+      await expect(client.get("/test")).rejects.toThrow("fetch failed");
+    });
+
+    it("propagates fetch TypeError for post()", async () => {
+      fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+      await expect(client.post("/test", {})).rejects.toThrow("fetch failed");
+    });
+
+    it("propagates fetch TypeError for put()", async () => {
+      fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+      await expect(client.put("/test", {})).rejects.toThrow("fetch failed");
+    });
+
+    it("propagates fetch TypeError for patch()", async () => {
+      fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+      await expect(client.patch("/test", {})).rejects.toThrow("fetch failed");
+    });
+
+    it("propagates fetch TypeError for delete()", async () => {
+      fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+      await expect(client.delete("/test")).rejects.toThrow("fetch failed");
+    });
+  });
 });
