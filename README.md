@@ -1,6 +1,6 @@
 # UniFi Network MCP Server
 
-An MCP (Model Context Protocol) server that exposes the UniFi Network Integration API as tools for Claude Code and other MCP clients. Provides 67 tools for managing sites, devices, clients, networks, WiFi, firewalls, ACLs, DNS policies, hotspot vouchers, VPNs, and more.
+An MCP (Model Context Protocol) server that exposes the UniFi Network Integration API as tools for Claude Code and other MCP clients. Provides 68 tools for managing sites, devices, clients, networks, WiFi, firewalls, ACLs, DNS policies, hotspot vouchers, VPNs, and more.
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-net
 | `UNIFI_NETWORK_HOST` | Yes | — | IP or hostname of your UniFi Network console |
 | `UNIFI_NETWORK_API_KEY` | Yes | — | API key from Network integration settings |
 | `UNIFI_NETWORK_VERIFY_SSL` | No | `true` | Set to `false` to skip TLS certificate verification (needed for self-signed certs) |
-| `UNIFI_NETWORK_READ_ONLY` | No | `false` | Set to `true` to disable all write/mutating tools (monitoring-only mode) |
+| `UNIFI_NETWORK_READ_ONLY` | No | `true` | Set to `false` to enable write/mutating tools (read-only by default) |
 
 ### Manual Configuration
 
@@ -71,7 +71,7 @@ Alternatively, add to your `~/.claude.json` under the top-level `"mcpServers"` k
 This server provides layered safety controls for responsible operation:
 
 - **Tool annotations** — Every tool declares `readOnlyHint`, `destructiveHint`, and `idempotentHint` so MCP clients (like Claude Code) can make informed confirmation decisions
-- **Read-only mode** — Set `UNIFI_NETWORK_READ_ONLY=true` to completely hide all write/mutating tools. Only read operations (list, get) are registered. Ideal for monitoring-only deployments
+- **Read-only mode** — Enabled by default. Only read operations (list, get) are registered. Set `UNIFI_NETWORK_READ_ONLY=false` to enable write/mutating tools
 - **Destructive tool warnings** — Tools that delete or irreversibly modify resources have descriptions prefixed with `DESTRUCTIVE:` to clearly signal risk
 - **Confirmation parameter** — The most dangerous tools (e.g., `unifi_remove_device`, `unifi_bulk_delete_vouchers`) require an explicit `confirm: true` parameter that must be present for the call to succeed
 - **Dry-run support** — All write tools accept an optional `dryRun: true` parameter that returns a preview of the HTTP request (method, path, body) without making any changes
@@ -148,6 +148,7 @@ This server provides layered safety controls for responsible operation:
 | `unifi_get_firewall_policy` | Get a specific firewall policy by ID |
 | `unifi_create_firewall_policy` | Create a new firewall policy |
 | `unifi_update_firewall_policy` | Update a firewall policy |
+| `unifi_patch_firewall_policy` | Partially update a firewall policy (e.g. toggle logging) |
 | `unifi_delete_firewall_policy` | **DESTRUCTIVE:** Delete a firewall policy |
 | `unifi_get_firewall_policy_ordering` | Get user-defined firewall policy ordering for a zone pair |
 | `unifi_reorder_firewall_policies` | Reorder user-defined firewall policies for a zone pair |

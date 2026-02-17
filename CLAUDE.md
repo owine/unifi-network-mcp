@@ -2,7 +2,7 @@
 
 ## Project overview
 
-MCP server exposing UniFi Network's Integration API as tool calls. Built with the MCP SDK, TypeScript, and Zod for input validation. Runs on Node.js via stdio transport. Provides 67 tools across 12 domains.
+MCP server exposing UniFi Network's Integration API as tool calls. Built with the MCP SDK, TypeScript, and Zod for input validation. Runs on Node.js via stdio transport. Provides 68 tools across 12 domains.
 
 ## Commands
 
@@ -31,7 +31,7 @@ src/
     networks.ts       # Network configuration (6 tools)
     wifi.ts           # WiFi/SSID configuration (5 tools)
     hotspot.ts        # Hotspot vouchers (5 tools)
-    firewall.ts       # Firewall zones & policies (12 tools)
+    firewall.ts       # Firewall zones & policies (13 tools)
     acl.ts            # ACL rules (7 tools)
     dns-policies.ts   # DNS policies (5 tools)
     traffic-matching.ts # Traffic matching lists (5 tools)
