@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/owine/unifi-network-mcp/compare/v2.0.0...v2.0.1) (2026-02-17)
+
+
+### Miscellaneous Chores
+
+* release 2.0.1 ([8e2384d](https://github.com/owine/unifi-network-mcp/commit/8e2384d094f12132dd6a22480aa03e33bc681d3d))
+
 ## [2.0.0](https://github.com/owine/unifi-network-mcp/compare/v1.0.0...v2.0.0) (2026-02-12)
 
 
