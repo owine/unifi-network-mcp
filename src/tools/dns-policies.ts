@@ -17,30 +17,32 @@ export function registerDnsPolicyTools(
   client: NetworkClient,
   readOnly = false
 ) {
-  server.tool(
+  server.registerTool(
     "unifi_list_dns_policies",
-    "List all DNS policies at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all DNS policies at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -52,14 +54,16 @@ export function registerDnsPolicyTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_dns_policy",
-    "Get a specific DNS policy by ID",
     {
-      siteId: z.string().describe("Site ID"),
-      dnsPolicyId: z.string().describe("DNS policy ID"),
+      description: "Get a specific DNS policy by ID",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        dnsPolicyId: z.string().describe("DNS policy ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, dnsPolicyId }) => {
       try {
         const data = await client.get(
@@ -74,20 +78,22 @@ export function registerDnsPolicyTools(
 
   if (readOnly) return;
 
-  server.tool(
+  server.registerTool(
     "unifi_create_dns_policy",
-    "Create a new DNS policy",
     {
-      siteId: z.string().describe("Site ID"),
-      policy: z
-        .record(z.string(), z.unknown())
-        .describe("DNS policy configuration (JSON object)"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Create a new DNS policy",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        policy: z
+          .record(z.string(), z.unknown())
+          .describe("DNS policy configuration (JSON object)"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE_NOT_IDEMPOTENT,
     },
-    WRITE_NOT_IDEMPOTENT,
     async ({ siteId, policy, dryRun }) => {
       try {
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/dns/policies`, policy);
@@ -99,21 +105,23 @@ export function registerDnsPolicyTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_update_dns_policy",
-    "Update a DNS policy",
     {
-      siteId: z.string().describe("Site ID"),
-      dnsPolicyId: z.string().describe("DNS policy ID"),
-      policy: z
-        .record(z.string(), z.unknown())
-        .describe("DNS policy configuration (JSON object)"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Update a DNS policy",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        dnsPolicyId: z.string().describe("DNS policy ID"),
+        policy: z
+          .record(z.string(), z.unknown())
+          .describe("DNS policy configuration (JSON object)"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, dnsPolicyId, policy, dryRun }) => {
       try {
         if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/dns/policies/${dnsPolicyId}`, policy);
@@ -128,22 +136,24 @@ export function registerDnsPolicyTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_delete_dns_policy",
-    "DESTRUCTIVE: Delete a DNS policy",
     {
-      siteId: z.string().describe("Site ID"),
-      dnsPolicyId: z.string().describe("DNS policy ID"),
-      confirm: z
-        .boolean()
-        .optional()
-        .describe("Must be true to execute this destructive action"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "DESTRUCTIVE: Delete a DNS policy",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        dnsPolicyId: z.string().describe("DNS policy ID"),
+        confirm: z
+          .boolean()
+          .optional()
+          .describe("Must be true to execute this destructive action"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: DESTRUCTIVE,
     },
-    DESTRUCTIVE,
     async ({ siteId, dnsPolicyId, confirm, dryRun }) => {
       const guard = requireConfirmation(confirm, "This will delete the DNS policy");
       if (guard) return guard;

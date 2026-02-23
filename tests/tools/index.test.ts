@@ -17,10 +17,10 @@ describe("registerAllTools", () => {
     expect(handlers.size).toBe(35);
   });
 
-  it("should call server.tool once per registered tool", () => {
+  it("should call server.registerTool once per registered tool", () => {
     const { server, handlers } = createMockServer();
     const client = createMockClient();
     registerAllTools(server, client, false);
-    expect(server.tool).toHaveBeenCalledTimes(handlers.size);
+    expect(server.registerTool).toHaveBeenCalledTimes(handlers.size);
   });
 });

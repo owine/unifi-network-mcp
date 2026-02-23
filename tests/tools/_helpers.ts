@@ -10,26 +10,34 @@ interface ToolConfig {
 }
 
 /**
- * Captures tool handlers registered via server.tool().
+ * Captures tool handlers registered via server.registerTool().
  * Returns maps from tool name → handler function and tool name → config.
  *
- * server.tool() is called as:
- *   server.tool(name, description, schema, annotations, handler)
+ * server.registerTool() is called as:
+ *   server.registerTool(name, { description, inputSchema, annotations }, handler)
  */
 export function createMockServer() {
   const handlers = new Map<string, (...args: any[]) => any>();
   const configs = new Map<string, ToolConfig>();
   const server = {
-    tool: vi.fn((...args: any[]) => {
-      const name = args[0] as string;
-      const description = args[1] as string;
-      // args[2] = schema, args[3] = annotations, args[4] = handler
-      const schema = args[2] as Record<string, unknown>;
-      const annotations = args[3] as Record<string, unknown>;
-      const handler = args[args.length - 1] as (...a: any[]) => any;
-      configs.set(name, { description, annotations, schema });
-      handlers.set(name, handler);
-    }),
+    registerTool: vi.fn(
+      (
+        name: string,
+        config: {
+          description?: string;
+          inputSchema?: Record<string, unknown>;
+          annotations?: Record<string, unknown>;
+        },
+        handler: (...a: any[]) => any,
+      ) => {
+        configs.set(name, {
+          description: config.description ?? "",
+          annotations: config.annotations ?? {},
+          schema: config.inputSchema ?? {},
+        });
+        handlers.set(name, handler);
+      },
+    ),
   } as unknown as McpServer;
   return { server, handlers, configs };
 }

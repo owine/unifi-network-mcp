@@ -17,30 +17,32 @@ export function registerNetworkTools(
   client: NetworkClient,
   readOnly = false
 ) {
-  server.tool(
+  server.registerTool(
     "unifi_list_networks",
-    "List all networks at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all networks at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -52,14 +54,16 @@ export function registerNetworkTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_network",
-    "Get a specific network by ID",
     {
-      siteId: z.string().describe("Site ID"),
-      networkId: z.string().describe("Network ID"),
+      description: "Get a specific network by ID",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        networkId: z.string().describe("Network ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, networkId }) => {
       try {
         const data = await client.get(`/sites/${siteId}/networks/${networkId}`);
@@ -70,14 +74,16 @@ export function registerNetworkTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_network_references",
-    "Get references to a network (what WiFi broadcasts, firewall zones, etc. use this network)",
     {
-      siteId: z.string().describe("Site ID"),
-      networkId: z.string().describe("Network ID"),
+      description: "Get references to a network (what WiFi broadcasts, firewall zones, etc. use this network)",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        networkId: z.string().describe("Network ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, networkId }) => {
       try {
         const data = await client.get(
@@ -92,28 +98,30 @@ export function registerNetworkTools(
 
   if (readOnly) return;
 
-  server.tool(
+  server.registerTool(
     "unifi_create_network",
-    "Create a new network",
     {
-      siteId: z.string().describe("Site ID"),
-      name: z.string().describe("Network name"),
-      management: z
-        .enum(["UNMANAGED", "GATEWAY", "SWITCH"])
-        .describe("Network management type"),
-      enabled: z.boolean().describe("Enable the network"),
-      vlanId: z
-        .number()
-        .int()
-        .min(1)
-        .max(4009)
-        .describe("VLAN ID (1 for default, 2+ for additional)"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Create a new network",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        name: z.string().describe("Network name"),
+        management: z
+          .enum(["UNMANAGED", "GATEWAY", "SWITCH"])
+          .describe("Network management type"),
+        enabled: z.boolean().describe("Enable the network"),
+        vlanId: z
+          .number()
+          .int()
+          .min(1)
+          .max(4009)
+          .describe("VLAN ID (1 for default, 2+ for additional)"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE_NOT_IDEMPOTENT,
     },
-    WRITE_NOT_IDEMPOTENT,
     async ({ siteId, name, management, enabled, vlanId, dryRun }) => {
       try {
         const body = { name, management, enabled, vlanId };
@@ -126,29 +134,31 @@ export function registerNetworkTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_update_network",
-    "Update an existing network",
     {
-      siteId: z.string().describe("Site ID"),
-      networkId: z.string().describe("Network ID"),
-      name: z.string().describe("Network name"),
-      management: z
-        .enum(["UNMANAGED", "GATEWAY", "SWITCH"])
-        .describe("Network management type"),
-      enabled: z.boolean().describe("Enable the network"),
-      vlanId: z
-        .number()
-        .int()
-        .min(1)
-        .max(4009)
-        .describe("VLAN ID (1-4009)"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Update an existing network",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        networkId: z.string().describe("Network ID"),
+        name: z.string().describe("Network name"),
+        management: z
+          .enum(["UNMANAGED", "GATEWAY", "SWITCH"])
+          .describe("Network management type"),
+        enabled: z.boolean().describe("Enable the network"),
+        vlanId: z
+          .number()
+          .int()
+          .min(1)
+          .max(4009)
+          .describe("VLAN ID (1-4009)"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, networkId, name, management, enabled, vlanId, dryRun }) => {
       try {
         const body = { name, management, enabled, vlanId };
@@ -169,27 +179,29 @@ export function registerNetworkTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_delete_network",
-    "DESTRUCTIVE: Delete a network — all clients on this network will be disconnected",
     {
-      siteId: z.string().describe("Site ID"),
-      networkId: z.string().describe("Network ID"),
-      force: z
-        .boolean()
-        .optional()
-        .default(false)
-        .describe("Force delete (default: false)"),
-      confirm: z
-        .boolean()
-        .optional()
-        .describe("Must be true to execute this destructive action"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "DESTRUCTIVE: Delete a network — all clients on this network will be disconnected",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        networkId: z.string().describe("Network ID"),
+        force: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe("Force delete (default: false)"),
+        confirm: z
+          .boolean()
+          .optional()
+          .describe("Must be true to execute this destructive action"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: DESTRUCTIVE,
     },
-    DESTRUCTIVE,
     async ({ siteId, networkId, force, confirm, dryRun }) => {
       const guard = requireConfirmation(confirm, "This will delete the network and disconnect all clients on it");
       if (guard) return guard;

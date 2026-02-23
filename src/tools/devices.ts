@@ -10,27 +10,29 @@ export function registerDeviceTools(
   client: NetworkClient,
   readOnly = false
 ) {
-  server.tool(
+  server.registerTool(
     "unifi_list_devices",
-    "List all adopted devices at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z.string().optional().describe("Filter expression"),
+      description: "List all adopted devices at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z.string().optional().describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -42,14 +44,16 @@ export function registerDeviceTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_device",
-    "Get a specific device by ID",
     {
-      siteId: z.string().describe("Site ID"),
-      deviceId: z.string().describe("Device ID"),
+      description: "Get a specific device by ID",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        deviceId: z.string().describe("Device ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, deviceId }) => {
       try {
         const data = await client.get(`/sites/${siteId}/devices/${deviceId}`);
@@ -60,14 +64,16 @@ export function registerDeviceTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_device_statistics",
-    "Get latest statistics for a device",
     {
-      siteId: z.string().describe("Site ID"),
-      deviceId: z.string().describe("Device ID"),
+      description: "Get latest statistics for a device",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        deviceId: z.string().describe("Device ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, deviceId }) => {
       try {
         const data = await client.get(
@@ -80,26 +86,28 @@ export function registerDeviceTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_pending_devices",
-    "List devices pending adoption (global, not site-specific)",
     {
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z.string().optional().describe("Filter expression"),
+      description: "List devices pending adoption (global, not site-specific)",
+      inputSchema: {
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z.string().optional().describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -113,15 +121,17 @@ export function registerDeviceTools(
 
   if (readOnly) return;
 
-  server.tool(
+  server.registerTool(
     "unifi_adopt_device",
-    "Adopt a pending device",
     {
-      siteId: z.string().describe("Site ID"),
-      macAddress: z.string().describe("MAC address of the device"),
-      dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      description: "Adopt a pending device",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        macAddress: z.string().describe("MAC address of the device"),
+        dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      },
+      annotations: WRITE_NOT_IDEMPOTENT,
     },
-    WRITE_NOT_IDEMPOTENT,
     async ({ siteId, macAddress, dryRun }) => {
       const body = {
         macAddress,
@@ -139,16 +149,18 @@ export function registerDeviceTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_remove_device",
-    "DESTRUCTIVE: Remove (unadopt) a device from a site. If the device is online, it will be reset to factory defaults",
     {
-      siteId: z.string().describe("Site ID"),
-      deviceId: z.string().describe("Device ID"),
-      confirm: z.boolean().optional().describe("Must be true to execute this destructive action"),
-      dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      description: "DESTRUCTIVE: Remove (unadopt) a device from a site. If the device is online, it will be reset to factory defaults",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        deviceId: z.string().describe("Device ID"),
+        confirm: z.boolean().optional().describe("Must be true to execute this destructive action"),
+        dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      },
+      annotations: DESTRUCTIVE,
     },
-    DESTRUCTIVE,
     async ({ siteId, deviceId, confirm, dryRun }) => {
       const guard = requireConfirmation(confirm, "This will remove the device from the site. If the device is online, it will be reset to factory defaults");
       if (guard) return guard;
@@ -166,15 +178,17 @@ export function registerDeviceTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_restart_device",
-    "Restart a device",
     {
-      siteId: z.string().describe("Site ID"),
-      deviceId: z.string().describe("Device ID"),
-      dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      description: "Restart a device",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        deviceId: z.string().describe("Device ID"),
+        dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, deviceId, dryRun }) => {
       const body = { action: "RESTART" };
 
@@ -192,16 +206,18 @@ export function registerDeviceTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_power_cycle_port",
-    "Power cycle a specific port on a device (PoE restart)",
     {
-      siteId: z.string().describe("Site ID"),
-      deviceId: z.string().describe("Device ID"),
-      portIdx: z.number().int().describe("Port index number"),
-      dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      description: "Power cycle a specific port on a device (PoE restart)",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        deviceId: z.string().describe("Device ID"),
+        portIdx: z.number().int().describe("Port index number"),
+        dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, deviceId, portIdx, dryRun }) => {
       const body = { action: "POWER_CYCLE" };
 

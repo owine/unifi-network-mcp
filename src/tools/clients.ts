@@ -10,27 +10,29 @@ export function registerClientTools(
   client: NetworkClient,
   readOnly = false
 ) {
-  server.tool(
+  server.registerTool(
     "unifi_list_clients",
-    "List all connected clients (wired, wireless, VPN) at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z.string().optional().describe("Filter expression"),
+      description: "List all connected clients (wired, wireless, VPN) at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z.string().optional().describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -42,14 +44,16 @@ export function registerClientTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_client",
-    "Get a specific client by ID",
     {
-      siteId: z.string().describe("Site ID"),
-      clientId: z.string().describe("Client ID"),
+      description: "Get a specific client by ID",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        clientId: z.string().describe("Client ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, clientId }) => {
       try {
         const data = await client.get(`/sites/${siteId}/clients/${clientId}`);
@@ -62,43 +66,45 @@ export function registerClientTools(
 
   if (readOnly) return;
 
-  server.tool(
+  server.registerTool(
     "unifi_authorize_guest",
-    "Authorize a guest client on a hotspot network",
     {
-      siteId: z.string().describe("Site ID"),
-      clientId: z.string().describe("Client ID"),
-      timeLimitMinutes: z
-        .number()
-        .int()
-        .min(1)
-        .max(1000000)
-        .optional()
-        .describe("How long (in minutes) the guest will be authorized (1-1000000)"),
-      dataUsageLimitMBytes: z
-        .number()
-        .int()
-        .min(1)
-        .max(1048576)
-        .optional()
-        .describe("Data usage limit in megabytes (1-1048576)"),
-      rxRateLimitKbps: z
-        .number()
-        .int()
-        .min(2)
-        .max(100000)
-        .optional()
-        .describe("Download rate limit in kilobits per second (2-100000)"),
-      txRateLimitKbps: z
-        .number()
-        .int()
-        .min(2)
-        .max(100000)
-        .optional()
-        .describe("Upload rate limit in kilobits per second (2-100000)"),
-      dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      description: "Authorize a guest client on a hotspot network",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        clientId: z.string().describe("Client ID"),
+        timeLimitMinutes: z
+          .number()
+          .int()
+          .min(1)
+          .max(1000000)
+          .optional()
+          .describe("How long (in minutes) the guest will be authorized (1-1000000)"),
+        dataUsageLimitMBytes: z
+          .number()
+          .int()
+          .min(1)
+          .max(1048576)
+          .optional()
+          .describe("Data usage limit in megabytes (1-1048576)"),
+        rxRateLimitKbps: z
+          .number()
+          .int()
+          .min(2)
+          .max(100000)
+          .optional()
+          .describe("Download rate limit in kilobits per second (2-100000)"),
+        txRateLimitKbps: z
+          .number()
+          .int()
+          .min(2)
+          .max(100000)
+          .optional()
+          .describe("Upload rate limit in kilobits per second (2-100000)"),
+        dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      },
+      annotations: WRITE_NOT_IDEMPOTENT,
     },
-    WRITE_NOT_IDEMPOTENT,
     async ({
       siteId,
       clientId,
@@ -134,15 +140,17 @@ export function registerClientTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_unauthorize_guest",
-    "Unauthorize a guest client",
     {
-      siteId: z.string().describe("Site ID"),
-      clientId: z.string().describe("Client ID"),
-      dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      description: "Unauthorize a guest client",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        clientId: z.string().describe("Client ID"),
+        dryRun: z.boolean().optional().describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, clientId, dryRun }) => {
       const body = { action: "UNAUTHORIZE_GUEST_ACCESS" };
 

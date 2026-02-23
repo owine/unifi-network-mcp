@@ -45,7 +45,7 @@ src/
 ## Adding a new tool
 
 1. Add a function `registerXTools(server, client, readOnly)` in `src/tools/<domain>.ts`
-2. Use `server.tool(name, description, zodSchema, annotations, handler)` — annotations is the 4th arg before the callback
+2. Use `server.registerTool(name, { description, inputSchema, annotations }, handler)`
 3. Set appropriate annotations from `utils/safety.ts`: `READ_ONLY`, `WRITE`, `WRITE_NOT_IDEMPOTENT`, `DESTRUCTIVE`
 4. For write tools: register them after `if (readOnly) return;` at the function level, add optional `dryRun` parameter
 5. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`

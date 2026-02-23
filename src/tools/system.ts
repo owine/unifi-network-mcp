@@ -7,11 +7,13 @@ export function registerSystemTools(
   server: McpServer,
   client: NetworkClient
 ) {
-  server.tool(
+  server.registerTool(
     "unifi_get_info",
-    "Get application information including version and whether it's a UniFi OS Console",
-    {},
-    READ_ONLY,
+    {
+      description: "Get application information including version and whether it's a UniFi OS Console",
+      inputSchema: {},
+      annotations: READ_ONLY,
+    },
     async () => {
       try {
         const data = await client.get("/info");

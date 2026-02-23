@@ -9,26 +9,28 @@ export function registerSupportingTools(
   server: McpServer,
   client: NetworkClient
 ) {
-  server.tool(
+  server.registerTool(
     "unifi_list_wans",
-    "List all WAN interfaces at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
+      description: "List all WAN interfaces at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit }) => {
       try {
         const query = buildQuery({ offset, limit });
@@ -40,30 +42,32 @@ export function registerSupportingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_vpn_tunnels",
-    "List all site-to-site VPN tunnels at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all site-to-site VPN tunnels at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -75,30 +79,32 @@ export function registerSupportingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_vpn_servers",
-    "List all VPN servers at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all VPN servers at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -110,30 +116,32 @@ export function registerSupportingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_radius_profiles",
-    "List all RADIUS profiles at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all RADIUS profiles at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -147,30 +155,32 @@ export function registerSupportingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_device_tags",
-    "List all device tags at a site (used for WiFi broadcast assignments)",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all device tags at a site (used for WiFi broadcast assignments)",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -182,29 +192,31 @@ export function registerSupportingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_dpi_categories",
-    "List all DPI (Deep Packet Inspection) categories for traffic identification",
     {
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all DPI (Deep Packet Inspection) categories for traffic identification",
+      inputSchema: {
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -216,29 +228,31 @@ export function registerSupportingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_dpi_applications",
-    "List all DPI applications for traffic identification and filtering",
     {
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all DPI applications for traffic identification and filtering",
+      inputSchema: {
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -250,31 +264,33 @@ export function registerSupportingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_countries",
-    "List all countries/regions for geo-based rules (ISO codes and names)",
     {
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe(
-          "Filter expression (e.g., 'name.like(United*)')"
-        ),
+      description: "List all countries/regions for geo-based rules (ISO codes and names)",
+      inputSchema: {
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe(
+            "Filter expression (e.g., 'name.like(United*)')"
+          ),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });

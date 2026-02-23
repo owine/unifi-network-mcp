@@ -17,30 +17,32 @@ export function registerFirewallTools(
   client: NetworkClient,
   readOnly = false
 ) {
-  server.tool(
+  server.registerTool(
     "unifi_list_firewall_zones",
-    "List all firewall zones at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all firewall zones at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -52,14 +54,16 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_firewall_zone",
-    "Get a specific firewall zone by ID",
     {
-      siteId: z.string().describe("Site ID"),
-      firewallZoneId: z.string().describe("Firewall zone ID"),
+      description: "Get a specific firewall zone by ID",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        firewallZoneId: z.string().describe("Firewall zone ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, firewallZoneId }) => {
       try {
         const data = await client.get(
@@ -72,30 +76,32 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_list_firewall_policies",
-    "List all firewall policies at a site",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all firewall policies at a site",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -109,14 +115,16 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_firewall_policy",
-    "Get a specific firewall policy by ID",
     {
-      siteId: z.string().describe("Site ID"),
-      firewallPolicyId: z.string().describe("Firewall policy ID"),
+      description: "Get a specific firewall policy by ID",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        firewallPolicyId: z.string().describe("Firewall policy ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, firewallPolicyId }) => {
       try {
         const data = await client.get(
@@ -129,17 +137,19 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_firewall_policy_ordering",
-    "Get user-defined firewall policy ordering for a zone pair",
     {
-      siteId: z.string().describe("Site ID"),
-      sourceFirewallZoneId: z.string().describe("Source firewall zone ID"),
-      destinationFirewallZoneId: z
-        .string()
-        .describe("Destination firewall zone ID"),
+      description: "Get user-defined firewall policy ordering for a zone pair",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        sourceFirewallZoneId: z.string().describe("Source firewall zone ID"),
+        destinationFirewallZoneId: z
+          .string()
+          .describe("Destination firewall zone ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, sourceFirewallZoneId, destinationFirewallZoneId }) => {
       try {
         const query = `?sourceFirewallZoneId=${encodeURIComponent(sourceFirewallZoneId)}&destinationFirewallZoneId=${encodeURIComponent(destinationFirewallZoneId)}`;
@@ -155,21 +165,23 @@ export function registerFirewallTools(
 
   if (readOnly) return;
 
-  server.tool(
+  server.registerTool(
     "unifi_create_firewall_zone",
-    "Create a new custom firewall zone",
     {
-      siteId: z.string().describe("Site ID"),
-      name: z.string().describe("Zone name"),
-      networkIds: z
-        .array(z.string())
-        .describe("Network IDs to include in this zone"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Create a new custom firewall zone",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        name: z.string().describe("Zone name"),
+        networkIds: z
+          .array(z.string())
+          .describe("Network IDs to include in this zone"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE_NOT_IDEMPOTENT,
     },
-    WRITE_NOT_IDEMPOTENT,
     async ({ siteId, name, networkIds, dryRun }) => {
       try {
         const body = { name, networkIds };
@@ -182,22 +194,24 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_update_firewall_zone",
-    "Update a firewall zone",
     {
-      siteId: z.string().describe("Site ID"),
-      firewallZoneId: z.string().describe("Firewall zone ID"),
-      name: z.string().describe("Zone name"),
-      networkIds: z
-        .array(z.string())
-        .describe("Network IDs to include in this zone"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Update a firewall zone",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        firewallZoneId: z.string().describe("Firewall zone ID"),
+        name: z.string().describe("Zone name"),
+        networkIds: z
+          .array(z.string())
+          .describe("Network IDs to include in this zone"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, firewallZoneId, name, networkIds, dryRun }) => {
       try {
         const body = { name, networkIds };
@@ -213,22 +227,24 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_delete_firewall_zone",
-    "DESTRUCTIVE: Delete a custom firewall zone",
     {
-      siteId: z.string().describe("Site ID"),
-      firewallZoneId: z.string().describe("Firewall zone ID"),
-      confirm: z
-        .boolean()
-        .optional()
-        .describe("Must be true to execute this destructive action"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "DESTRUCTIVE: Delete a custom firewall zone",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        firewallZoneId: z.string().describe("Firewall zone ID"),
+        confirm: z
+          .boolean()
+          .optional()
+          .describe("Must be true to execute this destructive action"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: DESTRUCTIVE,
     },
-    DESTRUCTIVE,
     async ({ siteId, firewallZoneId, confirm, dryRun }) => {
       const guard = requireConfirmation(confirm, "This will delete the firewall zone");
       if (guard) return guard;
@@ -245,20 +261,22 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_create_firewall_policy",
-    "Create a new firewall policy",
     {
-      siteId: z.string().describe("Site ID"),
-      policy: z
-        .record(z.string(), z.unknown())
-        .describe("Firewall policy configuration (JSON object)"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Create a new firewall policy",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        policy: z
+          .record(z.string(), z.unknown())
+          .describe("Firewall policy configuration (JSON object)"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE_NOT_IDEMPOTENT,
     },
-    WRITE_NOT_IDEMPOTENT,
     async ({ siteId, policy, dryRun }) => {
       try {
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/firewall/policies`, policy);
@@ -270,21 +288,23 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_update_firewall_policy",
-    "Update a firewall policy",
     {
-      siteId: z.string().describe("Site ID"),
-      firewallPolicyId: z.string().describe("Firewall policy ID"),
-      policy: z
-        .record(z.string(), z.unknown())
-        .describe("Firewall policy configuration (JSON object)"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Update a firewall policy",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        firewallPolicyId: z.string().describe("Firewall policy ID"),
+        policy: z
+          .record(z.string(), z.unknown())
+          .describe("Firewall policy configuration (JSON object)"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, firewallPolicyId, policy, dryRun }) => {
       try {
         if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/firewall/policies/${firewallPolicyId}`, policy);
@@ -299,21 +319,23 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_patch_firewall_policy",
-    "Partially update a firewall policy (e.g. toggle logging)",
     {
-      siteId: z.string().describe("Site ID"),
-      firewallPolicyId: z.string().describe("Firewall policy ID"),
-      policy: z
-        .record(z.string(), z.unknown())
-        .describe("Partial firewall policy fields to update (e.g. { loggingEnabled: true })"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Partially update a firewall policy (e.g. toggle logging)",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        firewallPolicyId: z.string().describe("Firewall policy ID"),
+        policy: z
+          .record(z.string(), z.unknown())
+          .describe("Partial firewall policy fields to update (e.g. { loggingEnabled: true })"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, firewallPolicyId, policy, dryRun }) => {
       try {
         if (dryRun) return formatDryRun("PATCH", `/sites/${siteId}/firewall/policies/${firewallPolicyId}`, policy);
@@ -328,22 +350,24 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_delete_firewall_policy",
-    "DESTRUCTIVE: Delete a firewall policy",
     {
-      siteId: z.string().describe("Site ID"),
-      firewallPolicyId: z.string().describe("Firewall policy ID"),
-      confirm: z
-        .boolean()
-        .optional()
-        .describe("Must be true to execute this destructive action"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "DESTRUCTIVE: Delete a firewall policy",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        firewallPolicyId: z.string().describe("Firewall policy ID"),
+        confirm: z
+          .boolean()
+          .optional()
+          .describe("Must be true to execute this destructive action"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: DESTRUCTIVE,
     },
-    DESTRUCTIVE,
     async ({ siteId, firewallPolicyId, confirm, dryRun }) => {
       const guard = requireConfirmation(confirm, "This will delete the firewall policy");
       if (guard) return guard;
@@ -360,26 +384,28 @@ export function registerFirewallTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_reorder_firewall_policies",
-    "Reorder user-defined firewall policies for a zone pair",
     {
-      siteId: z.string().describe("Site ID"),
-      sourceFirewallZoneId: z.string().describe("Source firewall zone ID"),
-      destinationFirewallZoneId: z
-        .string()
-        .describe("Destination firewall zone ID"),
-      orderedFirewallPolicyIds: z
-        .record(z.string(), z.unknown())
-        .describe(
-          "Ordered policy IDs object with beforeSystemDefined and afterSystemDefined arrays"
-        ),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Reorder user-defined firewall policies for a zone pair",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        sourceFirewallZoneId: z.string().describe("Source firewall zone ID"),
+        destinationFirewallZoneId: z
+          .string()
+          .describe("Destination firewall zone ID"),
+        orderedFirewallPolicyIds: z
+          .record(z.string(), z.unknown())
+          .describe(
+            "Ordered policy IDs object with beforeSystemDefined and afterSystemDefined arrays"
+          ),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({
       siteId,
       sourceFirewallZoneId,

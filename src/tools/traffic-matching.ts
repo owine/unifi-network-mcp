@@ -17,30 +17,32 @@ export function registerTrafficMatchingTools(
   client: NetworkClient,
   readOnly = false
 ) {
-  server.tool(
+  server.registerTool(
     "unifi_list_traffic_matching_lists",
-    "List all traffic matching lists at a site (port groups, IP groups)",
     {
-      siteId: z.string().describe("Site ID"),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Number of records to skip (default: 0)"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Number of records to return (default: 25, max: 200)"),
-      filter: z
-        .string()
-        .optional()
-        .describe("Filter expression"),
+      description: "List all traffic matching lists at a site (port groups, IP groups)",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Number of records to skip (default: 0)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Number of records to return (default: 25, max: 200)"),
+        filter: z
+          .string()
+          .optional()
+          .describe("Filter expression"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
@@ -54,14 +56,16 @@ export function registerTrafficMatchingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_get_traffic_matching_list",
-    "Get a specific traffic matching list by ID",
     {
-      siteId: z.string().describe("Site ID"),
-      trafficMatchingListId: z.string().describe("Traffic matching list ID"),
+      description: "Get a specific traffic matching list by ID",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        trafficMatchingListId: z.string().describe("Traffic matching list ID"),
+      },
+      annotations: READ_ONLY,
     },
-    READ_ONLY,
     async ({ siteId, trafficMatchingListId }) => {
       try {
         const data = await client.get(
@@ -76,24 +80,26 @@ export function registerTrafficMatchingTools(
 
   if (readOnly) return;
 
-  server.tool(
+  server.registerTool(
     "unifi_create_traffic_matching_list",
-    "Create a new traffic matching list",
     {
-      siteId: z.string().describe("Site ID"),
-      type: z
-        .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
-        .describe("List type"),
-      name: z.string().describe("List name"),
-      items: z
-        .array(z.unknown())
-        .describe("List items (ports or IP addresses)"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Create a new traffic matching list",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        type: z
+          .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
+          .describe("List type"),
+        name: z.string().describe("List name"),
+        items: z
+          .array(z.unknown())
+          .describe("List items (ports or IP addresses)"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE_NOT_IDEMPOTENT,
     },
-    WRITE_NOT_IDEMPOTENT,
     async ({ siteId, type, name, items, dryRun }) => {
       try {
         const body = { type, name, items };
@@ -109,23 +115,25 @@ export function registerTrafficMatchingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_update_traffic_matching_list",
-    "Update a traffic matching list",
     {
-      siteId: z.string().describe("Site ID"),
-      trafficMatchingListId: z.string().describe("Traffic matching list ID"),
-      type: z
-        .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
-        .describe("List type"),
-      name: z.string().describe("List name"),
-      items: z.array(z.unknown()).describe("List items"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "Update a traffic matching list",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        trafficMatchingListId: z.string().describe("Traffic matching list ID"),
+        type: z
+          .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
+          .describe("List type"),
+        name: z.string().describe("List name"),
+        items: z.array(z.unknown()).describe("List items"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: WRITE,
     },
-    WRITE,
     async ({ siteId, trafficMatchingListId, type, name, items, dryRun }) => {
       try {
         const body = { type, name, items };
@@ -141,22 +149,24 @@ export function registerTrafficMatchingTools(
     }
   );
 
-  server.tool(
+  server.registerTool(
     "unifi_delete_traffic_matching_list",
-    "DESTRUCTIVE: Delete a traffic matching list",
     {
-      siteId: z.string().describe("Site ID"),
-      trafficMatchingListId: z.string().describe("Traffic matching list ID"),
-      confirm: z
-        .boolean()
-        .optional()
-        .describe("Must be true to execute this destructive action"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview this action without executing it"),
+      description: "DESTRUCTIVE: Delete a traffic matching list",
+      inputSchema: {
+        siteId: z.string().describe("Site ID"),
+        trafficMatchingListId: z.string().describe("Traffic matching list ID"),
+        confirm: z
+          .boolean()
+          .optional()
+          .describe("Must be true to execute this destructive action"),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe("Preview this action without executing it"),
+      },
+      annotations: DESTRUCTIVE,
     },
-    DESTRUCTIVE,
     async ({ siteId, trafficMatchingListId, confirm, dryRun }) => {
       const guard = requireConfirmation(confirm, "This will delete the traffic matching list");
       if (guard) return guard;
