@@ -2,14 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:best-practices",
-    ":semanticCommits"
+    ":semanticPrefixFixDepsChoreOthers"
   ],
   "timezone": "America/Chicago",
+  "schedule": [
+    "on monday"
+  ],
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
   "lockFileMaintenance": {
     "schedule": [
-      "on sunday"
+      "on monday"
     ],
     "automerge": true
   },
@@ -20,6 +23,19 @@
         "eslint",
         "@eslint/js",
         "typescript-eslint"
+      ]
+    },
+    {
+      "groupName": "vitest",
+      "matchPackageNames": [
+        "vitest",
+        "@vitest/*"
+      ]
+    },
+    {
+      "groupName": "types",
+      "matchPackageNames": [
+        "@types/*"
       ]
     },
     {
