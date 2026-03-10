@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/owine/unifi-network-mcp/compare/v2.0.2...v2.1.0) (2026-03-10)
+
+
+### Features
+
+* **ci:** add dependency security scanning ([#32](https://github.com/owine/unifi-network-mcp/issues/32)) ([0848de0](https://github.com/owine/unifi-network-mcp/commit/0848de0be5cff01c50cb72fa4340232cd9f30c05))
+
 ## [2.0.2](https://github.com/owine/unifi-network-mcp/compare/v2.0.1...v2.0.2) (2026-03-10)
 
 
