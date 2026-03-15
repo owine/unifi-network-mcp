@@ -11,6 +11,7 @@ import { registerFirewallTools } from "./firewall.js";
 import { registerAclTools } from "./acl.js";
 import { registerDnsPolicyTools } from "./dns-policies.js";
 import { registerTrafficMatchingTools } from "./traffic-matching.js";
+import { registerSwitchingTools } from "./switching.js";
 import { registerSupportingTools } from "./supporting.js";
 
 export function registerAllTools(
@@ -29,5 +30,6 @@ export function registerAllTools(
   registerAclTools(server, client, readOnly);
   registerDnsPolicyTools(server, client, readOnly);
   registerTrafficMatchingTools(server, client, readOnly);
+  registerSwitchingTools(server, client);
   registerSupportingTools(server, client);
 }
