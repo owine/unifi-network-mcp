@@ -1,6 +1,6 @@
 # UniFi Network MCP Server
 
-An MCP (Model Context Protocol) server that exposes the UniFi Network Integration API as tools for Claude Code and other MCP clients. Provides 68 tools for managing sites, devices, clients, networks, WiFi, firewalls, ACLs, DNS policies, hotspot vouchers, VPNs, and more.
+An MCP (Model Context Protocol) server that exposes the UniFi Network Integration API as tools for Claude Code and other MCP clients. Provides 74 tools for managing sites, devices, clients, networks, WiFi, firewalls, ACLs, switching, DNS policies, hotspot vouchers, VPNs, and more.
 
 ## Prerequisites
 
@@ -76,7 +76,7 @@ This server provides layered safety controls for responsible operation:
 - **Confirmation parameter** — The most dangerous tools (e.g., `unifi_remove_device`, `unifi_bulk_delete_vouchers`) require an explicit `confirm: true` parameter that must be present for the call to succeed
 - **Dry-run support** — All write tools accept an optional `dryRun: true` parameter that returns a preview of the HTTP request (method, path, body) without making any changes
 
-## Tools (67 total)
+## Tools (74 total)
 
 ### System (1)
 | Tool | Description |
@@ -136,7 +136,7 @@ This server provides layered safety controls for responsible operation:
 | `unifi_delete_voucher` | **DESTRUCTIVE:** Delete a hotspot voucher |
 | `unifi_bulk_delete_vouchers` | **DESTRUCTIVE:** Bulk delete vouchers matching a filter |
 
-### Firewall Zones & Policies (12)
+### Firewall Zones & Policies (13)
 | Tool | Description |
 |---|---|
 | `unifi_list_firewall_zones` | List all firewall zones at a site |
@@ -156,13 +156,23 @@ This server provides layered safety controls for responsible operation:
 ### ACL Rules (7)
 | Tool | Description |
 |---|---|
-| `unifi_list_acl_rules` | List all ACL (firewall) rules at a site |
+| `unifi_list_acl_rules` | List all ACL rules at a site |
 | `unifi_get_acl_rule` | Get a specific ACL rule by ID |
 | `unifi_get_acl_rule_ordering` | Get user-defined ACL rule ordering |
 | `unifi_create_acl_rule` | Create a new ACL rule |
 | `unifi_update_acl_rule` | Update an ACL rule |
 | `unifi_delete_acl_rule` | **DESTRUCTIVE:** Delete an ACL rule |
 | `unifi_reorder_acl_rules` | Reorder user-defined ACL rules |
+
+### Switching (6)
+| Tool | Description |
+|---|---|
+| `unifi_list_switch_stacks` | List all Switch Stacks at a site |
+| `unifi_get_switch_stack` | Get details of a specific Switch Stack |
+| `unifi_list_mc_lag_domains` | List all MC-LAG (Multi-Chassis LAG) Domains at a site |
+| `unifi_get_mc_lag_domain` | Get details of a specific MC-LAG Domain |
+| `unifi_list_lags` | List all LAGs (Link Aggregation Groups) at a site |
+| `unifi_get_lag` | Get details of a specific LAG |
 
 ### DNS Policies (5)
 | Tool | Description |
