@@ -143,16 +143,29 @@ export function registerFirewallTools(
       description: "Get user-defined firewall policy ordering for a zone pair",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
-        sourceFirewallZoneId: z.string().describe("Source firewall zone ID"),
+        sourceFirewallZoneId: z
+          .string()
+          .optional()
+          .describe("Source firewall zone ID"),
         destinationFirewallZoneId: z
           .string()
+          .optional()
           .describe("Destination firewall zone ID"),
       },
       annotations: READ_ONLY,
     },
     async ({ siteId, sourceFirewallZoneId, destinationFirewallZoneId }) => {
       try {
-        const query = `?sourceFirewallZoneId=${encodeURIComponent(sourceFirewallZoneId)}&destinationFirewallZoneId=${encodeURIComponent(destinationFirewallZoneId)}`;
+        let query = "";
+        const params = new URLSearchParams();
+        if (sourceFirewallZoneId !== undefined) {
+          params.set("sourceFirewallZoneId", sourceFirewallZoneId);
+        }
+        if (destinationFirewallZoneId !== undefined) {
+          params.set("destinationFirewallZoneId", destinationFirewallZoneId);
+        }
+        const qs = params.toString();
+        if (qs) query = `?${qs}`;
         const data = await client.get(
           `/sites/${siteId}/firewall/policies/ordering${query}`
         );

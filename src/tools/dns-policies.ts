@@ -84,9 +84,26 @@ export function registerDnsPolicyTools(
       description: "Create a new DNS policy",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
-        policy: z
-          .record(z.string(), z.unknown())
-          .describe("DNS policy configuration (JSON object)"),
+        type: z
+          .enum([
+            "A_RECORD",
+            "AAAA_RECORD",
+            "CNAME_RECORD",
+            "MX_RECORD",
+            "TXT_RECORD",
+            "SRV_RECORD",
+            "FORWARD_DOMAIN",
+          ])
+          .describe("DNS record type"),
+        enabled: z.boolean().describe("Whether the DNS policy is enabled"),
+        domain: z.string().min(1).max(127).describe("Domain name"),
+        ipv4Address: z.string().describe("IPv4 address for the record"),
+        ttlSeconds: z
+          .number()
+          .int()
+          .min(0)
+          .max(86400)
+          .describe("Time to live in seconds"),
         dryRun: z
           .boolean()
           .optional()
@@ -94,10 +111,11 @@ export function registerDnsPolicyTools(
       },
       annotations: WRITE_NOT_IDEMPOTENT,
     },
-    async ({ siteId, policy, dryRun }) => {
+    async ({ siteId, type, enabled, domain, ipv4Address, ttlSeconds, dryRun }) => {
       try {
-        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/dns/policies`, policy);
-        const data = await client.post(`/sites/${siteId}/dns/policies`, policy);
+        const body = { type, enabled, domain, ipv4Address, ttlSeconds };
+        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/dns/policies`, body);
+        const data = await client.post(`/sites/${siteId}/dns/policies`, body);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);
@@ -112,9 +130,26 @@ export function registerDnsPolicyTools(
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         dnsPolicyId: z.string().describe("DNS policy ID"),
-        policy: z
-          .record(z.string(), z.unknown())
-          .describe("DNS policy configuration (JSON object)"),
+        type: z
+          .enum([
+            "A_RECORD",
+            "AAAA_RECORD",
+            "CNAME_RECORD",
+            "MX_RECORD",
+            "TXT_RECORD",
+            "SRV_RECORD",
+            "FORWARD_DOMAIN",
+          ])
+          .describe("DNS record type"),
+        enabled: z.boolean().describe("Whether the DNS policy is enabled"),
+        domain: z.string().min(1).max(127).describe("Domain name"),
+        ipv4Address: z.string().describe("IPv4 address for the record"),
+        ttlSeconds: z
+          .number()
+          .int()
+          .min(0)
+          .max(86400)
+          .describe("Time to live in seconds"),
         dryRun: z
           .boolean()
           .optional()
@@ -122,12 +157,13 @@ export function registerDnsPolicyTools(
       },
       annotations: WRITE,
     },
-    async ({ siteId, dnsPolicyId, policy, dryRun }) => {
+    async ({ siteId, dnsPolicyId, type, enabled, domain, ipv4Address, ttlSeconds, dryRun }) => {
       try {
-        if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/dns/policies/${dnsPolicyId}`, policy);
+        const body = { type, enabled, domain, ipv4Address, ttlSeconds };
+        if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/dns/policies/${dnsPolicyId}`, body);
         const data = await client.put(
           `/sites/${siteId}/dns/policies/${dnsPolicyId}`,
-          policy
+          body
         );
         return formatSuccess(data);
       } catch (err) {

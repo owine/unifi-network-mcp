@@ -231,6 +231,79 @@ describe("pagination parameters", () => {
   }
 });
 
+describe("traffic matching list name and items validation", () => {
+  describe("unifi_create_traffic_matching_list", () => {
+    const schema = parseInputSchema(configs, "unifi_create_traffic_matching_list");
+
+    it("accepts valid name and non-empty items", () => {
+      const result = schema.safeParse({
+        siteId: "site1",
+        type: "PORTS",
+        name: "Web Ports",
+        items: ["80", "443"],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects empty string name", () => {
+      const result = schema.safeParse({
+        siteId: "site1",
+        type: "PORTS",
+        name: "",
+        items: ["80"],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects empty items array", () => {
+      const result = schema.safeParse({
+        siteId: "site1",
+        type: "PORTS",
+        name: "Web Ports",
+        items: [],
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("unifi_update_traffic_matching_list", () => {
+    const schema = parseInputSchema(configs, "unifi_update_traffic_matching_list");
+
+    it("accepts valid name and non-empty items", () => {
+      const result = schema.safeParse({
+        siteId: "site1",
+        trafficMatchingListId: "tml1",
+        type: "PORTS",
+        name: "Web Ports",
+        items: ["80", "443"],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects empty string name", () => {
+      const result = schema.safeParse({
+        siteId: "site1",
+        trafficMatchingListId: "tml1",
+        type: "PORTS",
+        name: "",
+        items: ["80"],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects empty items array", () => {
+      const result = schema.safeParse({
+        siteId: "site1",
+        trafficMatchingListId: "tml1",
+        type: "PORTS",
+        name: "Web Ports",
+        items: [],
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
 /** Build minimal valid input for a tool (without dryRun/confirm) */
 function buildMinimalInput(toolName: string): Record<string, unknown> {
   const inputs: Record<string, Record<string, unknown>> = {
@@ -260,6 +333,14 @@ function buildMinimalInput(toolName: string): Record<string, unknown> {
       enabled: true,
       type: "STANDARD",
       broadcastingFrequenciesGHz: ["5"],
+      securityConfiguration: { type: "OPEN" },
+      multicastToUnicastConversionEnabled: false,
+      clientIsolationEnabled: false,
+      hideName: false,
+      uapsdEnabled: true,
+      arpProxyEnabled: true,
+      bssTransitionEnabled: true,
+      advertiseDeviceName: false,
     },
     unifi_update_wifi: { siteId: "site1", wifiBroadcastId: "wifi1" },
     unifi_delete_wifi: { siteId: "site1", wifiBroadcastId: "wifi1" },

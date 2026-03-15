@@ -115,6 +115,10 @@ export function registerNetworkTools(
           .min(1)
           .max(4009)
           .describe("VLAN ID (1 for default, 2+ for additional)"),
+        dhcpGuarding: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("DHCP Guarding settings (trustedDhcpServerIpAddresses)"),
         dryRun: z
           .boolean()
           .optional()
@@ -122,9 +126,10 @@ export function registerNetworkTools(
       },
       annotations: WRITE_NOT_IDEMPOTENT,
     },
-    async ({ siteId, name, management, enabled, vlanId, dryRun }) => {
+    async ({ siteId, name, management, enabled, vlanId, dhcpGuarding, dryRun }) => {
       try {
-        const body = { name, management, enabled, vlanId };
+        const body: Record<string, unknown> = { name, management, enabled, vlanId };
+        if (dhcpGuarding !== undefined) body.dhcpGuarding = dhcpGuarding;
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/networks`, body);
         const data = await client.post(`/sites/${siteId}/networks`, body);
         return formatSuccess(data);
@@ -152,6 +157,10 @@ export function registerNetworkTools(
           .min(1)
           .max(4009)
           .describe("VLAN ID (1-4009)"),
+        dhcpGuarding: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("DHCP Guarding settings (trustedDhcpServerIpAddresses)"),
         dryRun: z
           .boolean()
           .optional()
@@ -159,9 +168,10 @@ export function registerNetworkTools(
       },
       annotations: WRITE,
     },
-    async ({ siteId, networkId, name, management, enabled, vlanId, dryRun }) => {
+    async ({ siteId, networkId, name, management, enabled, vlanId, dhcpGuarding, dryRun }) => {
       try {
-        const body = { name, management, enabled, vlanId };
+        const body: Record<string, unknown> = { name, management, enabled, vlanId };
+        if (dhcpGuarding !== undefined) body.dhcpGuarding = dhcpGuarding;
         if (dryRun)
           return formatDryRun(
             "PUT",

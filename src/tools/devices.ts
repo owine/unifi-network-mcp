@@ -128,14 +128,15 @@ export function registerDeviceTools(
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         macAddress: z.string().describe("MAC address of the device"),
+        ignoreDeviceLimit: z.boolean().optional().describe("Ignore device limit when adopting (default: false)"),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },
       annotations: WRITE_NOT_IDEMPOTENT,
     },
-    async ({ siteId, macAddress, dryRun }) => {
+    async ({ siteId, macAddress, ignoreDeviceLimit, dryRun }) => {
       const body = {
         macAddress,
-        ignoreDeviceLimit: false,
+        ignoreDeviceLimit: ignoreDeviceLimit ?? false,
       };
 
       if (dryRun) return formatDryRun("POST", `/sites/${siteId}/devices`, body);

@@ -265,6 +265,28 @@ describe("registerNetworkTools", () => {
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Create failed");
     });
+
+    it("should pass dhcpGuarding when provided", async () => {
+      const mockData = { id: "net-new", name: "Guest", vlanId: 10 };
+      mockFn(client, "post").mockResolvedValue(mockData);
+
+      const dhcpSettings = { trustedDhcpServerIpAddresses: ["192.168.1.1"] };
+      const handler = handlers.get("unifi_create_network");
+      const result = await handler({
+        siteId: "site1",
+        name: "Guest",
+        management: "GATEWAY",
+        enabled: true,
+        vlanId: 10,
+        dhcpGuarding: dhcpSettings,
+      });
+
+      expect(mockFn(client, "post")).toHaveBeenCalledWith(
+        "/sites/site1/networks",
+        { name: "Guest", management: "GATEWAY", enabled: true, vlanId: 10, dhcpGuarding: dhcpSettings }
+      );
+      expect(result.isError).toBeUndefined();
+    });
   });
 
   describe("unifi_update_network", () => {
@@ -339,6 +361,29 @@ describe("registerNetworkTools", () => {
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Update failed");
+    });
+
+    it("should pass dhcpGuarding when provided", async () => {
+      const mockData = { id: "net1", name: "LAN Updated" };
+      mockFn(client, "put").mockResolvedValue(mockData);
+
+      const dhcpSettings = { trustedDhcpServerIpAddresses: ["10.0.0.1"] };
+      const handler = handlers.get("unifi_update_network");
+      const result = await handler({
+        siteId: "site1",
+        networkId: "net1",
+        name: "LAN Updated",
+        management: "GATEWAY",
+        enabled: true,
+        vlanId: 1,
+        dhcpGuarding: dhcpSettings,
+      });
+
+      expect(mockFn(client, "put")).toHaveBeenCalledWith(
+        "/sites/site1/networks/net1",
+        { name: "LAN Updated", management: "GATEWAY", enabled: true, vlanId: 1, dhcpGuarding: dhcpSettings }
+      );
+      expect(result.isError).toBeUndefined();
     });
   });
 

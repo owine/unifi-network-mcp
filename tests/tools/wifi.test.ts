@@ -185,14 +185,33 @@ describe("registerWifiTools", () => {
         enabled: true,
         type: "STANDARD",
         broadcastingFrequenciesGHz: ["2.4", "5"],
+        securityConfiguration: {},
+        multicastToUnicastConversionEnabled: false,
+        clientIsolationEnabled: false,
+        hideName: false,
+        uapsdEnabled: false,
+        arpProxyEnabled: false,
+        bssTransitionEnabled: false,
+        advertiseDeviceName: false,
       });
 
-      expect(mockFn(client, "post")).toHaveBeenCalledWith("/sites/site1/wifi/broadcasts", {
-        name: "Guest",
-        enabled: true,
-        type: "STANDARD",
-        broadcastingFrequenciesGHz: [2.4, 5],
-      });
+      expect(mockFn(client, "post")).toHaveBeenCalledWith(
+        "/sites/site1/wifi/broadcasts",
+        expect.objectContaining({
+          name: "Guest",
+          enabled: true,
+          type: "STANDARD",
+          broadcastingFrequenciesGHz: [2.4, 5],
+          securityConfiguration: {},
+          multicastToUnicastConversionEnabled: false,
+          clientIsolationEnabled: false,
+          hideName: false,
+          uapsdEnabled: false,
+          arpProxyEnabled: false,
+          bssTransitionEnabled: false,
+          advertiseDeviceName: false,
+        })
+      );
       expect(result.content[0].text).toContain("wifi-new");
       expect(result.isError).toBeUndefined();
     });
@@ -207,6 +226,14 @@ describe("registerWifiTools", () => {
         enabled: true,
         type: "STANDARD",
         broadcastingFrequenciesGHz: ["2.4", "5", "6"],
+        securityConfiguration: {},
+        multicastToUnicastConversionEnabled: false,
+        clientIsolationEnabled: false,
+        hideName: false,
+        uapsdEnabled: false,
+        arpProxyEnabled: false,
+        bssTransitionEnabled: false,
+        advertiseDeviceName: false,
       });
 
       expect(mockFn(client, "post")).toHaveBeenCalledWith(
@@ -225,6 +252,14 @@ describe("registerWifiTools", () => {
         enabled: true,
         type: "STANDARD",
         broadcastingFrequenciesGHz: ["2.4", "5"],
+        securityConfiguration: {},
+        multicastToUnicastConversionEnabled: false,
+        clientIsolationEnabled: false,
+        hideName: false,
+        uapsdEnabled: false,
+        arpProxyEnabled: false,
+        bssTransitionEnabled: false,
+        advertiseDeviceName: false,
         dryRun: true,
       });
 
@@ -245,6 +280,14 @@ describe("registerWifiTools", () => {
         enabled: true,
         type: "STANDARD",
         broadcastingFrequenciesGHz: ["2.4"],
+        securityConfiguration: {},
+        multicastToUnicastConversionEnabled: false,
+        clientIsolationEnabled: false,
+        hideName: false,
+        uapsdEnabled: false,
+        arpProxyEnabled: false,
+        bssTransitionEnabled: false,
+        advertiseDeviceName: false,
       });
 
       expect(result.isError).toBe(true);

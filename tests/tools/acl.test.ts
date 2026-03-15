@@ -267,16 +267,25 @@ describe("registerAclTools", () => {
         mockFn(client, "put").mockResolvedValue(mockData);
 
         const handler = handlers.get("unifi_update_acl_rule");
-        const ruleConfig = { name: "Allow SSH Updated", enabled: true };
         const result = await handler({
           siteId: "site123",
           aclRuleId: "rule1",
-          rule: ruleConfig,
+          type: "IPV4",
+          name: "Allow SSH Updated",
+          enabled: true,
+          action: "ALLOW",
+          description: "Updated SSH rule",
         });
 
         expect(mockFn(client, "put")).toHaveBeenCalledWith(
           "/sites/site123/acl-rules/rule1",
-          ruleConfig
+          {
+            type: "IPV4",
+            name: "Allow SSH Updated",
+            enabled: true,
+            action: "ALLOW",
+            description: "Updated SSH rule",
+          }
         );
         expect(result.content).toBeDefined();
         expect(result.isError).toBeUndefined();
@@ -290,7 +299,10 @@ describe("registerAclTools", () => {
         const result = await handler({
           siteId: "site123",
           aclRuleId: "rule1",
-          rule: { name: "Updated" },
+          type: "IPV4",
+          name: "Updated",
+          enabled: true,
+          action: "ALLOW",
         });
 
         expect(result.isError).toBe(true);
@@ -298,11 +310,13 @@ describe("registerAclTools", () => {
 
       it("should return dry run preview when dryRun=true", async () => {
         const handler = handlers.get("unifi_update_acl_rule");
-        const ruleConfig = { name: "Allow SSH Updated", enabled: true };
         const result = await handler({
           siteId: "site123",
           aclRuleId: "rule1",
-          rule: ruleConfig,
+          type: "IPV4",
+          name: "Allow SSH Updated",
+          enabled: true,
+          action: "ALLOW",
           dryRun: true,
         });
 

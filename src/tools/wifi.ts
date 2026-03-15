@@ -86,10 +86,74 @@ export function registerWifiTools(
         siteId: z.string().describe("Site ID"),
         name: z.string().describe("SSID name"),
         enabled: z.boolean().describe("Enable the WiFi network"),
-        type: z.enum(["STANDARD"]).describe("WiFi type"),
+        type: z.enum(["STANDARD", "IOT_OPTIMIZED"]).describe("WiFi type"),
         broadcastingFrequenciesGHz: z
           .array(z.string())
           .describe("Frequencies: 2.4, 5, 6"),
+        securityConfiguration: z
+          .record(z.string(), z.unknown())
+          .describe("Security configuration object"),
+        multicastToUnicastConversionEnabled: z
+          .boolean()
+          .describe("Enable multicast to unicast conversion"),
+        clientIsolationEnabled: z
+          .boolean()
+          .describe("Enable client isolation"),
+        hideName: z.boolean().describe("Hide SSID name"),
+        uapsdEnabled: z
+          .boolean()
+          .describe("Enable Unscheduled Automatic Power Save Delivery"),
+        arpProxyEnabled: z.boolean().describe("Enable ARP proxy"),
+        bssTransitionEnabled: z
+          .boolean()
+          .describe("Enable BSS transition"),
+        advertiseDeviceName: z
+          .boolean()
+          .describe("Advertise device name in beacon frames"),
+        network: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Network reference"),
+        broadcastingDeviceFilter: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Custom scope of broadcasting devices"),
+        mdnsProxyConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("mDNS proxy configuration"),
+        multicastFilteringPolicy: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Multicast filtering policy"),
+        basicDataRateKbpsByFrequencyGHz: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Basic data rate in kbps by frequency"),
+        clientFilteringPolicy: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Client MAC address filtering policy"),
+        blackoutScheduleConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Blackout schedule configuration"),
+        hotspotConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Hotspot configuration"),
+        mloEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable MLO (Multi-Link Operation)"),
+        bandSteeringEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable band steering"),
+        dtimPeriodByFrequencyGHzOverride: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("DTIM period override by frequency"),
         dryRun: z
           .boolean()
           .optional()
@@ -103,15 +167,62 @@ export function registerWifiTools(
       enabled,
       type,
       broadcastingFrequenciesGHz,
+      securityConfiguration,
+      multicastToUnicastConversionEnabled,
+      clientIsolationEnabled,
+      hideName,
+      uapsdEnabled,
+      arpProxyEnabled,
+      bssTransitionEnabled,
+      advertiseDeviceName,
+      network,
+      broadcastingDeviceFilter,
+      mdnsProxyConfiguration,
+      multicastFilteringPolicy,
+      basicDataRateKbpsByFrequencyGHz,
+      clientFilteringPolicy,
+      blackoutScheduleConfiguration,
+      hotspotConfiguration,
+      mloEnabled,
+      bandSteeringEnabled,
+      dtimPeriodByFrequencyGHzOverride,
       dryRun,
     }) => {
       try {
-        const body = {
+        const body: Record<string, unknown> = {
           name,
           enabled,
           type,
           broadcastingFrequenciesGHz: broadcastingFrequenciesGHz.map(Number),
+          securityConfiguration,
+          multicastToUnicastConversionEnabled,
+          clientIsolationEnabled,
+          hideName,
+          uapsdEnabled,
+          arpProxyEnabled,
+          bssTransitionEnabled,
+          advertiseDeviceName,
         };
+        if (network !== undefined) body.network = network;
+        if (broadcastingDeviceFilter !== undefined)
+          body.broadcastingDeviceFilter = broadcastingDeviceFilter;
+        if (mdnsProxyConfiguration !== undefined)
+          body.mdnsProxyConfiguration = mdnsProxyConfiguration;
+        if (multicastFilteringPolicy !== undefined)
+          body.multicastFilteringPolicy = multicastFilteringPolicy;
+        if (basicDataRateKbpsByFrequencyGHz !== undefined)
+          body.basicDataRateKbpsByFrequencyGHz = basicDataRateKbpsByFrequencyGHz;
+        if (clientFilteringPolicy !== undefined)
+          body.clientFilteringPolicy = clientFilteringPolicy;
+        if (blackoutScheduleConfiguration !== undefined)
+          body.blackoutScheduleConfiguration = blackoutScheduleConfiguration;
+        if (hotspotConfiguration !== undefined)
+          body.hotspotConfiguration = hotspotConfiguration;
+        if (mloEnabled !== undefined) body.mloEnabled = mloEnabled;
+        if (bandSteeringEnabled !== undefined)
+          body.bandSteeringEnabled = bandSteeringEnabled;
+        if (dtimPeriodByFrequencyGHzOverride !== undefined)
+          body.dtimPeriodByFrequencyGHzOverride = dtimPeriodByFrequencyGHzOverride;
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi/broadcasts`, body);
         const data = await client.post(`/sites/${siteId}/wifi/broadcasts`, body);
         return formatSuccess(data);
@@ -130,6 +241,87 @@ export function registerWifiTools(
         wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),
         name: z.string().optional().describe("SSID name"),
         enabled: z.boolean().optional().describe("Enable the WiFi network"),
+        type: z
+          .enum(["STANDARD", "IOT_OPTIMIZED"])
+          .optional()
+          .describe("WiFi type"),
+        broadcastingFrequenciesGHz: z
+          .array(z.string())
+          .optional()
+          .describe("Frequencies: 2.4, 5, 6"),
+        securityConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Security configuration object"),
+        multicastToUnicastConversionEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable multicast to unicast conversion"),
+        clientIsolationEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable client isolation"),
+        hideName: z.boolean().optional().describe("Hide SSID name"),
+        uapsdEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable Unscheduled Automatic Power Save Delivery"),
+        arpProxyEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable ARP proxy"),
+        bssTransitionEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable BSS transition"),
+        advertiseDeviceName: z
+          .boolean()
+          .optional()
+          .describe("Advertise device name in beacon frames"),
+        network: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Network reference"),
+        broadcastingDeviceFilter: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Custom scope of broadcasting devices"),
+        mdnsProxyConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("mDNS proxy configuration"),
+        multicastFilteringPolicy: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Multicast filtering policy"),
+        basicDataRateKbpsByFrequencyGHz: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Basic data rate in kbps by frequency"),
+        clientFilteringPolicy: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Client MAC address filtering policy"),
+        blackoutScheduleConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Blackout schedule configuration"),
+        hotspotConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Hotspot configuration"),
+        mloEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable MLO (Multi-Link Operation)"),
+        bandSteeringEnabled: z
+          .boolean()
+          .optional()
+          .describe("Enable band steering"),
+        dtimPeriodByFrequencyGHzOverride: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("DTIM period override by frequency"),
         dryRun: z
           .boolean()
           .optional()
@@ -137,11 +329,77 @@ export function registerWifiTools(
       },
       annotations: WRITE,
     },
-    async ({ siteId, wifiBroadcastId, name, enabled, dryRun }) => {
+    async ({
+      siteId,
+      wifiBroadcastId,
+      name,
+      enabled,
+      type,
+      broadcastingFrequenciesGHz,
+      securityConfiguration,
+      multicastToUnicastConversionEnabled,
+      clientIsolationEnabled,
+      hideName,
+      uapsdEnabled,
+      arpProxyEnabled,
+      bssTransitionEnabled,
+      advertiseDeviceName,
+      network,
+      broadcastingDeviceFilter,
+      mdnsProxyConfiguration,
+      multicastFilteringPolicy,
+      basicDataRateKbpsByFrequencyGHz,
+      clientFilteringPolicy,
+      blackoutScheduleConfiguration,
+      hotspotConfiguration,
+      mloEnabled,
+      bandSteeringEnabled,
+      dtimPeriodByFrequencyGHzOverride,
+      dryRun,
+    }) => {
       try {
         const body: Record<string, unknown> = {};
         if (name !== undefined) body.name = name;
         if (enabled !== undefined) body.enabled = enabled;
+        if (type !== undefined) body.type = type;
+        if (broadcastingFrequenciesGHz !== undefined)
+          body.broadcastingFrequenciesGHz = broadcastingFrequenciesGHz.map(
+            Number
+          );
+        if (securityConfiguration !== undefined)
+          body.securityConfiguration = securityConfiguration;
+        if (multicastToUnicastConversionEnabled !== undefined)
+          body.multicastToUnicastConversionEnabled =
+            multicastToUnicastConversionEnabled;
+        if (clientIsolationEnabled !== undefined)
+          body.clientIsolationEnabled = clientIsolationEnabled;
+        if (hideName !== undefined) body.hideName = hideName;
+        if (uapsdEnabled !== undefined) body.uapsdEnabled = uapsdEnabled;
+        if (arpProxyEnabled !== undefined) body.arpProxyEnabled = arpProxyEnabled;
+        if (bssTransitionEnabled !== undefined)
+          body.bssTransitionEnabled = bssTransitionEnabled;
+        if (advertiseDeviceName !== undefined)
+          body.advertiseDeviceName = advertiseDeviceName;
+        if (network !== undefined) body.network = network;
+        if (broadcastingDeviceFilter !== undefined)
+          body.broadcastingDeviceFilter = broadcastingDeviceFilter;
+        if (mdnsProxyConfiguration !== undefined)
+          body.mdnsProxyConfiguration = mdnsProxyConfiguration;
+        if (multicastFilteringPolicy !== undefined)
+          body.multicastFilteringPolicy = multicastFilteringPolicy;
+        if (basicDataRateKbpsByFrequencyGHz !== undefined)
+          body.basicDataRateKbpsByFrequencyGHz = basicDataRateKbpsByFrequencyGHz;
+        if (clientFilteringPolicy !== undefined)
+          body.clientFilteringPolicy = clientFilteringPolicy;
+        if (blackoutScheduleConfiguration !== undefined)
+          body.blackoutScheduleConfiguration = blackoutScheduleConfiguration;
+        if (hotspotConfiguration !== undefined)
+          body.hotspotConfiguration = hotspotConfiguration;
+        if (mloEnabled !== undefined) body.mloEnabled = mloEnabled;
+        if (bandSteeringEnabled !== undefined)
+          body.bandSteeringEnabled = bandSteeringEnabled;
+        if (dtimPeriodByFrequencyGHzOverride !== undefined)
+          body.dtimPeriodByFrequencyGHzOverride = dtimPeriodByFrequencyGHzOverride;
         if (dryRun)
           return formatDryRun(
             "PUT",

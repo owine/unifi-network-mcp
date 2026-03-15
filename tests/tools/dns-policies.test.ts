@@ -129,23 +129,28 @@ describe("registerDnsPolicyTools", () => {
       });
 
       it("should return success when client.post succeeds", async () => {
-        const mockData = { id: "policy2", name: "Block Malware" };
+        const mockData = { id: "policy2", type: "A_RECORD" };
         mockFn(client, "post").mockResolvedValue(mockData);
 
         const handler = handlers.get("unifi_create_dns_policy");
-        const policyConfig = {
-          name: "Block Malware",
-          action: "BLOCK",
-          domains: ["malware.com"],
-        };
         const result = await handler({
           siteId: "site123",
-          policy: policyConfig,
+          type: "A_RECORD",
+          enabled: true,
+          domain: "example.com",
+          ipv4Address: "192.168.1.1",
+          ttlSeconds: 3600,
         });
 
         expect(mockFn(client, "post")).toHaveBeenCalledWith(
           "/sites/site123/dns/policies",
-          policyConfig
+          {
+            type: "A_RECORD",
+            enabled: true,
+            domain: "example.com",
+            ipv4Address: "192.168.1.1",
+            ttlSeconds: 3600,
+          }
         );
         expect(result.content).toBeDefined();
         expect(result.isError).toBeUndefined();
@@ -158,7 +163,11 @@ describe("registerDnsPolicyTools", () => {
         const handler = handlers.get("unifi_create_dns_policy");
         const result = await handler({
           siteId: "site123",
-          policy: { name: "Test Policy" },
+          type: "A_RECORD",
+          enabled: true,
+          domain: "example.com",
+          ipv4Address: "192.168.1.1",
+          ttlSeconds: 3600,
         });
 
         expect(result.isError).toBe(true);
@@ -167,14 +176,13 @@ describe("registerDnsPolicyTools", () => {
 
       it("should return dry run preview when dryRun=true", async () => {
         const handler = handlers.get("unifi_create_dns_policy");
-        const policyConfig = {
-          name: "Block Malware",
-          action: "BLOCK",
-          domains: ["malware.com"],
-        };
         const result = await handler({
           siteId: "site123",
-          policy: policyConfig,
+          type: "A_RECORD",
+          enabled: true,
+          domain: "example.com",
+          ipv4Address: "192.168.1.1",
+          ttlSeconds: 3600,
           dryRun: true,
         });
 
@@ -200,24 +208,29 @@ describe("registerDnsPolicyTools", () => {
       });
 
       it("should return success when client.put succeeds", async () => {
-        const mockData = { id: "policy1", name: "Block Ads Updated" };
+        const mockData = { id: "policy1", type: "A_RECORD" };
         mockFn(client, "put").mockResolvedValue(mockData);
 
         const handler = handlers.get("unifi_update_dns_policy");
-        const policyConfig = {
-          name: "Block Ads Updated",
-          action: "BLOCK",
-          domains: ["ads.com", "ads2.com"],
-        };
         const result = await handler({
           siteId: "site123",
           dnsPolicyId: "policy1",
-          policy: policyConfig,
+          type: "A_RECORD",
+          enabled: true,
+          domain: "example.com",
+          ipv4Address: "192.168.1.2",
+          ttlSeconds: 7200,
         });
 
         expect(mockFn(client, "put")).toHaveBeenCalledWith(
           "/sites/site123/dns/policies/policy1",
-          policyConfig
+          {
+            type: "A_RECORD",
+            enabled: true,
+            domain: "example.com",
+            ipv4Address: "192.168.1.2",
+            ttlSeconds: 7200,
+          }
         );
         expect(result.content).toBeDefined();
         expect(result.isError).toBeUndefined();
@@ -231,7 +244,11 @@ describe("registerDnsPolicyTools", () => {
         const result = await handler({
           siteId: "site123",
           dnsPolicyId: "policy1",
-          policy: { name: "Updated" },
+          type: "A_RECORD",
+          enabled: true,
+          domain: "example.com",
+          ipv4Address: "192.168.1.1",
+          ttlSeconds: 3600,
         });
 
         expect(result.isError).toBe(true);
@@ -239,15 +256,14 @@ describe("registerDnsPolicyTools", () => {
 
       it("should return dry run preview when dryRun=true", async () => {
         const handler = handlers.get("unifi_update_dns_policy");
-        const policyConfig = {
-          name: "Block Ads Updated",
-          action: "BLOCK",
-          domains: ["ads.com"],
-        };
         const result = await handler({
           siteId: "site123",
           dnsPolicyId: "policy1",
-          policy: policyConfig,
+          type: "A_RECORD",
+          enabled: true,
+          domain: "example.com",
+          ipv4Address: "192.168.1.1",
+          ttlSeconds: 3600,
           dryRun: true,
         });
 

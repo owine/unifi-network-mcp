@@ -20,7 +20,7 @@ export function registerAclTools(
   server.registerTool(
     "unifi_list_acl_rules",
     {
-      description: "List all ACL (firewall) rules at a site",
+      description: "List all ACL rules at a site",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -100,7 +100,7 @@ export function registerAclTools(
   server.registerTool(
     "unifi_create_acl_rule",
     {
-      description: "Create a new ACL (firewall) rule",
+      description: "Create a new ACL rule",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         type: z.enum(["IPV4", "MAC"]).describe("Rule type"),
@@ -143,9 +143,18 @@ export function registerAclTools(
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         aclRuleId: z.string().describe("ACL rule ID"),
-        rule: z
+        type: z.string().describe("ACL rule type"),
+        name: z.string().describe("ACL rule name"),
+        enabled: z.boolean().describe("Whether the rule is enabled"),
+        action: z.string().describe("Rule action (ALLOW, DENY, etc.)"),
+        description: z
+          .string()
+          .optional()
+          .describe("Rule description"),
+        protocolFilter: z
           .record(z.string(), z.unknown())
-          .describe("ACL rule configuration (JSON object)"),
+          .optional()
+          .describe("Protocol filter configuration"),
         dryRun: z
           .boolean()
           .optional()
@@ -153,12 +162,15 @@ export function registerAclTools(
       },
       annotations: WRITE,
     },
-    async ({ siteId, aclRuleId, rule, dryRun }) => {
+    async ({ siteId, aclRuleId, type, name, enabled, action, description, protocolFilter, dryRun }) => {
       try {
-        if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/acl-rules/${aclRuleId}`, rule);
+        const body: Record<string, unknown> = { type, name, enabled, action };
+        if (description !== undefined) body.description = description;
+        if (protocolFilter !== undefined) body.protocolFilter = protocolFilter;
+        if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/acl-rules/${aclRuleId}`, body);
         const data = await client.put(
           `/sites/${siteId}/acl-rules/${aclRuleId}`,
-          rule
+          body
         );
         return formatSuccess(data);
       } catch (err) {

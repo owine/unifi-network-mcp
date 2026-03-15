@@ -213,6 +213,62 @@ describe("registerFirewallTools", () => {
         expect(result.isError).toBeUndefined();
       });
 
+      it("should include only sourceFirewallZoneId when destinationFirewallZoneId is omitted", async () => {
+        const mockData = {
+          beforeSystemDefined: ["policy1"],
+          afterSystemDefined: ["policy2"],
+        };
+        mockFn(client, "get").mockResolvedValue(mockData);
+
+        const handler = handlers.get("unifi_get_firewall_policy_ordering");
+        const result = await handler({
+          siteId: "site123",
+          sourceFirewallZoneId: "zone1",
+        });
+
+        expect(mockFn(client, "get")).toHaveBeenCalledWith(
+          "/sites/site123/firewall/policies/ordering?sourceFirewallZoneId=zone1"
+        );
+        expect(result.isError).toBeUndefined();
+      });
+
+      it("should include only destinationFirewallZoneId when sourceFirewallZoneId is omitted", async () => {
+        const mockData = {
+          beforeSystemDefined: ["policy1"],
+          afterSystemDefined: ["policy2"],
+        };
+        mockFn(client, "get").mockResolvedValue(mockData);
+
+        const handler = handlers.get("unifi_get_firewall_policy_ordering");
+        const result = await handler({
+          siteId: "site123",
+          destinationFirewallZoneId: "zone2",
+        });
+
+        expect(mockFn(client, "get")).toHaveBeenCalledWith(
+          "/sites/site123/firewall/policies/ordering?destinationFirewallZoneId=zone2"
+        );
+        expect(result.isError).toBeUndefined();
+      });
+
+      it("should call without query params when both zone IDs are omitted", async () => {
+        const mockData = {
+          beforeSystemDefined: [],
+          afterSystemDefined: [],
+        };
+        mockFn(client, "get").mockResolvedValue(mockData);
+
+        const handler = handlers.get("unifi_get_firewall_policy_ordering");
+        const result = await handler({
+          siteId: "site123",
+        });
+
+        expect(mockFn(client, "get")).toHaveBeenCalledWith(
+          "/sites/site123/firewall/policies/ordering"
+        );
+        expect(result.isError).toBeUndefined();
+      });
+
       it("should return error when client.get fails", async () => {
         const testError = new Error("Ordering not found");
         mockFn(client, "get").mockRejectedValue(testError);

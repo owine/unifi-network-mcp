@@ -324,6 +324,34 @@ describe("registerDeviceTools", () => {
         expect(text.wouldExecute.method).toBe("POST");
         expect(text.wouldExecute.path).toBe("/sites/site1/devices");
       });
+
+      it("should pass ignoreDeviceLimit parameter when provided", async () => {
+        const mockData = { id: "dev1", status: "adopted" };
+        mockFn(client, "post").mockResolvedValue(mockData);
+
+        const handler = server.handlers.get("unifi_adopt_device");
+        const result = await handler({
+          siteId: "site1",
+          macAddress: "00:11:22:33:44:55",
+          ignoreDeviceLimit: true,
+        });
+
+        expect(mockFn(client, "post")).toHaveBeenCalledWith(
+          "/sites/site1/devices",
+          {
+            macAddress: "00:11:22:33:44:55",
+            ignoreDeviceLimit: true,
+          }
+        );
+        expect(result).toEqual({
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(mockData, null, 2),
+            },
+          ],
+        });
+      });
     });
 
     describe("unifi_remove_device", () => {

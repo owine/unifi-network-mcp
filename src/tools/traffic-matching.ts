@@ -89,9 +89,10 @@ export function registerTrafficMatchingTools(
         type: z
           .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
           .describe("List type"),
-        name: z.string().describe("List name"),
+        name: z.string().min(1).describe("List name"),
         items: z
           .array(z.unknown())
+          .min(1)
           .describe("List items (ports or IP addresses)"),
         dryRun: z
           .boolean()
@@ -125,8 +126,8 @@ export function registerTrafficMatchingTools(
         type: z
           .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
           .describe("List type"),
-        name: z.string().describe("List name"),
-        items: z.array(z.unknown()).describe("List items"),
+        name: z.string().min(1).describe("List name"),
+        items: z.array(z.unknown()).min(1).describe("List items"),
         dryRun: z
           .boolean()
           .optional()
