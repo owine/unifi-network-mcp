@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/owine/unifi-network-mcp/compare/v2.1.0...v2.2.0) (2026-03-15)
+
+
+### Features
+
+* add switching domain tools for API v10.2.93 ([971873b](https://github.com/owine/unifi-network-mcp/commit/971873b3339e6846d17789b642e40fe93feec8d8))
+
+
+### Bug Fixes
+
+* align tool schemas with API v10.2.93 spec ([c356ff6](https://github.com/owine/unifi-network-mcp/commit/c356ff68b47907e0ce82677fe120761ab6ee6aac))
+
 ## [2.1.0](https://github.com/owine/unifi-network-mcp/compare/v2.0.2...v2.1.0) (2026-03-10)
 
 
