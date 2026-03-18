@@ -6,12 +6,32 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  build-and-test:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "22.22.1"
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
+  test:
+    needs: lint
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        node-version: ["20.20.1", "22.22.1", "24.14.0"]
+        # Full matrix on main pushes and non-Renovate PRs; single LTS for Renovate
+        node-version: ${{ (github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/')) && fromJSON('["22.22.1"]') || fromJSON('["20.20.1", "22.22.1", "24.14.0"]') }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
@@ -19,15 +39,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
-      # Run once per CI invocation (lowest LTS); lockfile is the same across Node versions
-      - run: npm audit --omit=dev --audit-level=high
-        if: startsWith(matrix.node-version, '20.')
-      - run: npm run typecheck
-      - run: npm run lint
       - run: npm run build
       - run: npm test
 
   security:
+    # Skip on Renovate PRs — Renovate runs its own vulnerability checks
+    if: ${{ !(github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
