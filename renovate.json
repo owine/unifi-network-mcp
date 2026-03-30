@@ -1,9 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:best-practices",
-    ":semanticPrefixFixDepsChoreOthers"
+    "config:best-practices"
   ],
+  "semanticCommitType": "chore",
   "timezone": "America/Chicago",
   "schedule": [
     "on monday"
@@ -50,6 +50,15 @@
         "minor"
       ],
       "automerge": true
+    },
+    {
+      "description": "Production deps use deps: prefix for release-please",
+      "matchDepTypes": [
+        "dependencies",
+        "peerDependencies"
+      ],
+      "semanticCommitType": "deps",
+      "semanticCommitScope": ""
     },
     {
       "description": "Group non-major production dependency patches",

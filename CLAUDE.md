@@ -85,8 +85,13 @@ Versioning and npm publishing are automated via [release-please](https://github.
 - Use **conventional commits** — release-please reads these to determine semver bumps and generate changelogs
   - `feat: ...` -> minor bump
   - `fix: ...` -> patch bump
+  - `deps: ...` -> patch bump (production dependency updates)
   - `feat!: ...` or `BREAKING CHANGE:` footer -> major bump
   - `chore:`, `docs:`, `ci:`, `refactor:`, `test:` -> no release
+- Dependency updates (Renovate):
+  - Production deps (`dependencies`, `peerDependencies`) use `deps:` prefix — triggers a patch release
+  - Dev deps use `chore(deps):` prefix — no release
+  - Configured via `renovate.json` `semanticCommitType` rules and `release-please-config.json` changelog sections
 - On push to `main`, release-please opens/updates a "Release PR" that bumps `package.json` version and updates `CHANGELOG.md`
 - Merging the Release PR triggers `npm publish` to `@owine/unifi-network-mcp` with provenance attestation
 - To override the version number, add `Release-As: x.x.x` in the **commit body** (not the title):
