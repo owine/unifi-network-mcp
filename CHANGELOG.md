@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/owine/unifi-network-mcp/compare/v2.2.1...v2.3.0) (2026-04-01)
+
+
+### Features
+
+* upgrade to TypeScript 6 ([7fa66ca](https://github.com/owine/unifi-network-mcp/commit/7fa66ca94ff054e5bff1ace19a40015d9e59eb40))
+
 ## [2.2.1](https://github.com/owine/unifi-network-mcp/compare/v2.2.0...v2.2.1) (2026-03-30)
 
 
