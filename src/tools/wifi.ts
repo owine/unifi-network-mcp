@@ -110,6 +110,12 @@ export function registerWifiTools(
         advertiseDeviceName: z
           .boolean()
           .describe("Advertise device name in beacon frames"),
+        channel2gLockedTo6: z
+          .boolean()
+          .describe("Lock 2.4GHz channel to 6 on all broadcasting devices"),
+        dtimPeriod2gLockedTo3: z
+          .boolean()
+          .describe("Lock 2.4GHz DTIM period to 3"),
         network: z
           .record(z.string(), z.unknown())
           .optional()
@@ -154,6 +160,14 @@ export function registerWifiTools(
           .record(z.string(), z.unknown())
           .optional()
           .describe("DTIM period override by frequency"),
+        dnsAssistanceConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("DNS assistance configuration"),
+        handoffSuggestionsConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Handoff suggestions config (band5GHzRssiThreshold, band6GHzRssiThreshold). Null disables"),
         dryRun: z
           .boolean()
           .optional()
@@ -175,6 +189,8 @@ export function registerWifiTools(
       arpProxyEnabled,
       bssTransitionEnabled,
       advertiseDeviceName,
+      channel2gLockedTo6,
+      dtimPeriod2gLockedTo3,
       network,
       broadcastingDeviceFilter,
       mdnsProxyConfiguration,
@@ -186,6 +202,8 @@ export function registerWifiTools(
       mloEnabled,
       bandSteeringEnabled,
       dtimPeriodByFrequencyGHzOverride,
+      dnsAssistanceConfiguration,
+      handoffSuggestionsConfiguration,
       dryRun,
     }) => {
       try {
@@ -202,6 +220,8 @@ export function registerWifiTools(
           arpProxyEnabled,
           bssTransitionEnabled,
           advertiseDeviceName,
+          channel2gLockedTo6,
+          dtimPeriod2gLockedTo3,
         };
         if (network !== undefined) body.network = network;
         if (broadcastingDeviceFilter !== undefined)
@@ -223,6 +243,10 @@ export function registerWifiTools(
           body.bandSteeringEnabled = bandSteeringEnabled;
         if (dtimPeriodByFrequencyGHzOverride !== undefined)
           body.dtimPeriodByFrequencyGHzOverride = dtimPeriodByFrequencyGHzOverride;
+        if (dnsAssistanceConfiguration !== undefined)
+          body.dnsAssistanceConfiguration = dnsAssistanceConfiguration;
+        if (handoffSuggestionsConfiguration !== undefined)
+          body.handoffSuggestionsConfiguration = handoffSuggestionsConfiguration;
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi/broadcasts`, body);
         const data = await client.post(`/sites/${siteId}/wifi/broadcasts`, body);
         return formatSuccess(data);
@@ -278,6 +302,14 @@ export function registerWifiTools(
           .boolean()
           .optional()
           .describe("Advertise device name in beacon frames"),
+        channel2gLockedTo6: z
+          .boolean()
+          .optional()
+          .describe("Lock 2.4GHz channel to 6 on all broadcasting devices"),
+        dtimPeriod2gLockedTo3: z
+          .boolean()
+          .optional()
+          .describe("Lock 2.4GHz DTIM period to 3"),
         network: z
           .record(z.string(), z.unknown())
           .optional()
@@ -322,6 +354,14 @@ export function registerWifiTools(
           .record(z.string(), z.unknown())
           .optional()
           .describe("DTIM period override by frequency"),
+        dnsAssistanceConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("DNS assistance configuration"),
+        handoffSuggestionsConfiguration: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Handoff suggestions config (band5GHzRssiThreshold, band6GHzRssiThreshold). Null disables"),
         dryRun: z
           .boolean()
           .optional()
@@ -344,6 +384,8 @@ export function registerWifiTools(
       arpProxyEnabled,
       bssTransitionEnabled,
       advertiseDeviceName,
+      channel2gLockedTo6,
+      dtimPeriod2gLockedTo3,
       network,
       broadcastingDeviceFilter,
       mdnsProxyConfiguration,
@@ -355,6 +397,8 @@ export function registerWifiTools(
       mloEnabled,
       bandSteeringEnabled,
       dtimPeriodByFrequencyGHzOverride,
+      dnsAssistanceConfiguration,
+      handoffSuggestionsConfiguration,
       dryRun,
     }) => {
       try {
@@ -380,6 +424,10 @@ export function registerWifiTools(
           body.bssTransitionEnabled = bssTransitionEnabled;
         if (advertiseDeviceName !== undefined)
           body.advertiseDeviceName = advertiseDeviceName;
+        if (channel2gLockedTo6 !== undefined)
+          body.channel2gLockedTo6 = channel2gLockedTo6;
+        if (dtimPeriod2gLockedTo3 !== undefined)
+          body.dtimPeriod2gLockedTo3 = dtimPeriod2gLockedTo3;
         if (network !== undefined) body.network = network;
         if (broadcastingDeviceFilter !== undefined)
           body.broadcastingDeviceFilter = broadcastingDeviceFilter;
@@ -400,6 +448,10 @@ export function registerWifiTools(
           body.bandSteeringEnabled = bandSteeringEnabled;
         if (dtimPeriodByFrequencyGHzOverride !== undefined)
           body.dtimPeriodByFrequencyGHzOverride = dtimPeriodByFrequencyGHzOverride;
+        if (dnsAssistanceConfiguration !== undefined)
+          body.dnsAssistanceConfiguration = dnsAssistanceConfiguration;
+        if (handoffSuggestionsConfiguration !== undefined)
+          body.handoffSuggestionsConfiguration = handoffSuggestionsConfiguration;
         if (dryRun)
           return formatDryRun(
             "PUT",

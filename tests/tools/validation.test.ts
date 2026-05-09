@@ -341,6 +341,8 @@ function buildMinimalInput(toolName: string): Record<string, unknown> {
       arpProxyEnabled: true,
       bssTransitionEnabled: true,
       advertiseDeviceName: false,
+      channel2gLockedTo6: false,
+      dtimPeriod2gLockedTo3: false,
     },
     unifi_update_wifi: { siteId: "site1", wifiBroadcastId: "wifi1" },
     unifi_delete_wifi: { siteId: "site1", wifiBroadcastId: "wifi1" },

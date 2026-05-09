@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createMockServer, createMockClient, mockFn } from "./_helpers.js";
+import { createMockServer, createMockClient, mockFn, parseInputSchema } from "./_helpers.js";
 import { registerWifiTools } from "../../src/tools/wifi.js";
 
 describe("registerWifiTools", () => {
@@ -193,6 +193,8 @@ describe("registerWifiTools", () => {
         arpProxyEnabled: false,
         bssTransitionEnabled: false,
         advertiseDeviceName: false,
+        channel2gLockedTo6: false,
+        dtimPeriod2gLockedTo3: false,
       });
 
       expect(mockFn(client, "post")).toHaveBeenCalledWith(
@@ -210,6 +212,8 @@ describe("registerWifiTools", () => {
           arpProxyEnabled: false,
           bssTransitionEnabled: false,
           advertiseDeviceName: false,
+          channel2gLockedTo6: false,
+          dtimPeriod2gLockedTo3: false,
         })
       );
       expect(result.content[0].text).toContain("wifi-new");
@@ -234,6 +238,8 @@ describe("registerWifiTools", () => {
         arpProxyEnabled: false,
         bssTransitionEnabled: false,
         advertiseDeviceName: false,
+        channel2gLockedTo6: false,
+        dtimPeriod2gLockedTo3: false,
       });
 
       expect(mockFn(client, "post")).toHaveBeenCalledWith(
@@ -260,6 +266,8 @@ describe("registerWifiTools", () => {
         arpProxyEnabled: false,
         bssTransitionEnabled: false,
         advertiseDeviceName: false,
+        channel2gLockedTo6: false,
+        dtimPeriod2gLockedTo3: false,
         dryRun: true,
       });
 
@@ -288,10 +296,95 @@ describe("registerWifiTools", () => {
         arpProxyEnabled: false,
         bssTransitionEnabled: false,
         advertiseDeviceName: false,
+        channel2gLockedTo6: false,
+        dtimPeriod2gLockedTo3: false,
       });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Create failed");
+    });
+
+    it("should reject schema when channel2gLockedTo6 is missing", () => {
+      const schema = parseInputSchema(configs, "unifi_create_wifi");
+      const result = schema.safeParse({
+        siteId: "site1",
+        name: "Guest",
+        enabled: true,
+        type: "STANDARD",
+        broadcastingFrequenciesGHz: ["5"],
+        securityConfiguration: {},
+        multicastToUnicastConversionEnabled: false,
+        clientIsolationEnabled: false,
+        hideName: false,
+        uapsdEnabled: false,
+        arpProxyEnabled: false,
+        bssTransitionEnabled: false,
+        advertiseDeviceName: false,
+        dtimPeriod2gLockedTo3: false,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("should reject schema when dtimPeriod2gLockedTo3 is missing", () => {
+      const schema = parseInputSchema(configs, "unifi_create_wifi");
+      const result = schema.safeParse({
+        siteId: "site1",
+        name: "Guest",
+        enabled: true,
+        type: "STANDARD",
+        broadcastingFrequenciesGHz: ["5"],
+        securityConfiguration: {},
+        multicastToUnicastConversionEnabled: false,
+        clientIsolationEnabled: false,
+        hideName: false,
+        uapsdEnabled: false,
+        arpProxyEnabled: false,
+        bssTransitionEnabled: false,
+        advertiseDeviceName: false,
+        channel2gLockedTo6: false,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("should pass through v10.4.46 fields (channel2gLockedTo6, dtimPeriod2gLockedTo3, dnsAssistanceConfiguration, handoffSuggestionsConfiguration)", async () => {
+      mockFn(client, "post").mockResolvedValue({ id: "wifi-new" });
+
+      const handler = handlers.get("unifi_create_wifi");
+      await handler({
+        siteId: "site1",
+        name: "Guest",
+        enabled: true,
+        type: "STANDARD",
+        broadcastingFrequenciesGHz: ["2.4"],
+        securityConfiguration: {},
+        multicastToUnicastConversionEnabled: false,
+        clientIsolationEnabled: false,
+        hideName: false,
+        uapsdEnabled: false,
+        arpProxyEnabled: false,
+        bssTransitionEnabled: false,
+        advertiseDeviceName: false,
+        channel2gLockedTo6: true,
+        dtimPeriod2gLockedTo3: true,
+        dnsAssistanceConfiguration: { mode: "auto" },
+        handoffSuggestionsConfiguration: {
+          band5GHzRssiThreshold: -80,
+          band6GHzRssiThreshold: -80,
+        },
+      });
+
+      expect(mockFn(client, "post")).toHaveBeenCalledWith(
+        "/sites/site1/wifi/broadcasts",
+        expect.objectContaining({
+          channel2gLockedTo6: true,
+          dtimPeriod2gLockedTo3: true,
+          dnsAssistanceConfiguration: { mode: "auto" },
+          handoffSuggestionsConfiguration: {
+            band5GHzRssiThreshold: -80,
+            band6GHzRssiThreshold: -80,
+          },
+        })
+      );
     });
   });
 
@@ -391,6 +484,52 @@ describe("registerWifiTools", () => {
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Update failed");
+    });
+
+    it("should pass through v10.4.46 fields when provided", async () => {
+      mockFn(client, "put").mockResolvedValue({ id: "wifi1" });
+
+      const handler = handlers.get("unifi_update_wifi");
+      await handler({
+        siteId: "site1",
+        wifiBroadcastId: "wifi1",
+        channel2gLockedTo6: true,
+        dtimPeriod2gLockedTo3: true,
+        dnsAssistanceConfiguration: { mode: "auto" },
+        handoffSuggestionsConfiguration: {
+          band5GHzRssiThreshold: -75,
+          band6GHzRssiThreshold: -75,
+        },
+      });
+
+      expect(mockFn(client, "put")).toHaveBeenCalledWith(
+        "/sites/site1/wifi/broadcasts/wifi1",
+        {
+          channel2gLockedTo6: true,
+          dtimPeriod2gLockedTo3: true,
+          dnsAssistanceConfiguration: { mode: "auto" },
+          handoffSuggestionsConfiguration: {
+            band5GHzRssiThreshold: -75,
+            band6GHzRssiThreshold: -75,
+          },
+        }
+      );
+    });
+
+    it("should omit v10.4.46 fields when not provided", async () => {
+      mockFn(client, "put").mockResolvedValue({ id: "wifi1" });
+
+      const handler = handlers.get("unifi_update_wifi");
+      await handler({
+        siteId: "site1",
+        wifiBroadcastId: "wifi1",
+        name: "Updated",
+      });
+
+      expect(mockFn(client, "put")).toHaveBeenCalledWith(
+        "/sites/site1/wifi/broadcasts/wifi1",
+        { name: "Updated" }
+      );
     });
   });
 
