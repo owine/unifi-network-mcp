@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createMockServer, createMockClient, mockFn } from "./_helpers.js";
+import { createMockServer, createMockClient, mockFn, parseInputSchema } from "./_helpers.js";
 import { registerFirewallTools } from "../../src/tools/firewall.js";
 
 describe("registerFirewallTools", () => {
@@ -213,62 +213,6 @@ describe("registerFirewallTools", () => {
         expect(result.isError).toBeUndefined();
       });
 
-      it("should include only sourceFirewallZoneId when destinationFirewallZoneId is omitted", async () => {
-        const mockData = {
-          beforeSystemDefined: ["policy1"],
-          afterSystemDefined: ["policy2"],
-        };
-        mockFn(client, "get").mockResolvedValue(mockData);
-
-        const handler = handlers.get("unifi_get_firewall_policy_ordering");
-        const result = await handler({
-          siteId: "site123",
-          sourceFirewallZoneId: "zone1",
-        });
-
-        expect(mockFn(client, "get")).toHaveBeenCalledWith(
-          "/sites/site123/firewall/policies/ordering?sourceFirewallZoneId=zone1"
-        );
-        expect(result.isError).toBeUndefined();
-      });
-
-      it("should include only destinationFirewallZoneId when sourceFirewallZoneId is omitted", async () => {
-        const mockData = {
-          beforeSystemDefined: ["policy1"],
-          afterSystemDefined: ["policy2"],
-        };
-        mockFn(client, "get").mockResolvedValue(mockData);
-
-        const handler = handlers.get("unifi_get_firewall_policy_ordering");
-        const result = await handler({
-          siteId: "site123",
-          destinationFirewallZoneId: "zone2",
-        });
-
-        expect(mockFn(client, "get")).toHaveBeenCalledWith(
-          "/sites/site123/firewall/policies/ordering?destinationFirewallZoneId=zone2"
-        );
-        expect(result.isError).toBeUndefined();
-      });
-
-      it("should call without query params when both zone IDs are omitted", async () => {
-        const mockData = {
-          beforeSystemDefined: [],
-          afterSystemDefined: [],
-        };
-        mockFn(client, "get").mockResolvedValue(mockData);
-
-        const handler = handlers.get("unifi_get_firewall_policy_ordering");
-        const result = await handler({
-          siteId: "site123",
-        });
-
-        expect(mockFn(client, "get")).toHaveBeenCalledWith(
-          "/sites/site123/firewall/policies/ordering"
-        );
-        expect(result.isError).toBeUndefined();
-      });
-
       it("should return error when client.get fails", async () => {
         const testError = new Error("Ordering not found");
         mockFn(client, "get").mockRejectedValue(testError);
@@ -281,6 +225,34 @@ describe("registerFirewallTools", () => {
         });
 
         expect(result.isError).toBe(true);
+      });
+
+      it("should reject schema when sourceFirewallZoneId is missing", () => {
+        const schema = parseInputSchema(configs, "unifi_get_firewall_policy_ordering");
+        const result = schema.safeParse({
+          siteId: "site1",
+          destinationFirewallZoneId: "zone2",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("should reject schema when destinationFirewallZoneId is missing", () => {
+        const schema = parseInputSchema(configs, "unifi_get_firewall_policy_ordering");
+        const result = schema.safeParse({
+          siteId: "site1",
+          sourceFirewallZoneId: "zone1",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("should accept schema when both zone IDs are present", () => {
+        const schema = parseInputSchema(configs, "unifi_get_firewall_policy_ordering");
+        const result = schema.safeParse({
+          siteId: "site1",
+          sourceFirewallZoneId: "zone1",
+          destinationFirewallZoneId: "zone2",
+        });
+        expect(result.success).toBe(true);
       });
     });
   });
