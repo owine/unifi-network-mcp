@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createMockServer, createMockClient, mockFn } from "./_helpers.js";
+import { createMockServer, createMockClient, mockFn, parseInputSchema } from "./_helpers.js";
 import { registerAclTools } from "../../src/tools/acl.js";
 
 describe("registerAclTools", () => {
@@ -248,6 +248,56 @@ describe("registerAclTools", () => {
         expect(text).toContain("POST");
         expect(text).toContain("/sites/site123/acl-rules");
       });
+
+      it("should reject invalid type via schema", () => {
+        const schema = parseInputSchema(configs, "unifi_create_acl_rule");
+        const result = schema.safeParse({
+          siteId: "site1",
+          type: "IPV6",
+          name: "rule",
+          enabled: true,
+          action: "ALLOW",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("should reject invalid action via schema", () => {
+        const schema = parseInputSchema(configs, "unifi_create_acl_rule");
+        const result = schema.safeParse({
+          siteId: "site1",
+          type: "IPV4",
+          name: "rule",
+          enabled: true,
+          action: "DENY",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("should reject invalid protocolFilter values via schema", () => {
+        const schema = parseInputSchema(configs, "unifi_create_acl_rule");
+        const result = schema.safeParse({
+          siteId: "site1",
+          type: "IPV4",
+          name: "rule",
+          enabled: true,
+          action: "ALLOW",
+          protocolFilter: ["ICMP"],
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("should accept valid TCP/UDP protocolFilter via schema", () => {
+        const schema = parseInputSchema(configs, "unifi_create_acl_rule");
+        const result = schema.safeParse({
+          siteId: "site1",
+          type: "IPV4",
+          name: "rule",
+          enabled: true,
+          action: "BLOCK",
+          protocolFilter: ["TCP", "UDP"],
+        });
+        expect(result.success).toBe(true);
+      });
     });
 
     describe("unifi_update_acl_rule", () => {
@@ -325,6 +375,46 @@ describe("registerAclTools", () => {
         const text = result.content[0].text;
         expect(text).toContain('"dryRun": true');
         expect(text).toContain("PUT");
+      });
+
+      it("should reject invalid type via schema", () => {
+        const schema = parseInputSchema(configs, "unifi_update_acl_rule");
+        const result = schema.safeParse({
+          siteId: "site1",
+          aclRuleId: "rule1",
+          type: "IPV6",
+          name: "rule",
+          enabled: true,
+          action: "ALLOW",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("should reject invalid action via schema", () => {
+        const schema = parseInputSchema(configs, "unifi_update_acl_rule");
+        const result = schema.safeParse({
+          siteId: "site1",
+          aclRuleId: "rule1",
+          type: "IPV4",
+          name: "rule",
+          enabled: true,
+          action: "DROP",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("should reject non-array protocolFilter via schema", () => {
+        const schema = parseInputSchema(configs, "unifi_update_acl_rule");
+        const result = schema.safeParse({
+          siteId: "site1",
+          aclRuleId: "rule1",
+          type: "IPV4",
+          name: "rule",
+          enabled: true,
+          action: "ALLOW",
+          protocolFilter: { TCP: true },
+        });
+        expect(result.success).toBe(false);
       });
     });
 

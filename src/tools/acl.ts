@@ -112,9 +112,9 @@ export function registerAclTools(
           .optional()
           .describe("Rule description"),
         protocolFilter: z
-          .array(z.string())
+          .array(z.enum(["TCP", "UDP"]))
           .optional()
-          .describe("Protocols: TCP, UDP"),
+          .describe("Protocols this ACL rule will be applied to (TCP, UDP). When null, applies to all protocols"),
         dryRun: z
           .boolean()
           .optional()
@@ -143,18 +143,18 @@ export function registerAclTools(
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         aclRuleId: z.string().describe("ACL rule ID"),
-        type: z.string().describe("ACL rule type"),
+        type: z.enum(["IPV4", "MAC"]).describe("ACL rule type"),
         name: z.string().describe("ACL rule name"),
         enabled: z.boolean().describe("Whether the rule is enabled"),
-        action: z.string().describe("Rule action (ALLOW, DENY, etc.)"),
+        action: z.enum(["ALLOW", "BLOCK"]).describe("Rule action"),
         description: z
           .string()
           .optional()
           .describe("Rule description"),
         protocolFilter: z
-          .record(z.string(), z.unknown())
+          .array(z.enum(["TCP", "UDP"]))
           .optional()
-          .describe("Protocol filter configuration"),
+          .describe("Protocols this ACL rule will be applied to (TCP, UDP). When null, applies to all protocols"),
         dryRun: z
           .boolean()
           .optional()
