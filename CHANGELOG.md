@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.4.0](https://github.com/owine/unifi-network-mcp/compare/2.3.3...2.4.0) (2026-05-11)
+
+
+### Features
+
+* **acl:** tighten rule schema enums to match API v10.4.46 ([a08fb66](https://github.com/owine/unifi-network-mcp/commit/a08fb66a5ad24dd70ff0d8b288ad8d64c1e3306b))
+* **wifi:** add v10.4.46 broadcast fields ([a8c4ebd](https://github.com/owine/unifi-network-mcp/commit/a8c4ebd1a1ebdee38c600e54bfb99511963f164d))
+
+
+### Bug Fixes
+
+* **firewall:** require both zone IDs for policy ordering query ([ab00c43](https://github.com/owine/unifi-network-mcp/commit/ab00c4386c0c4c911cb126922a02c95669febe40))
+
+
+### Dependencies
+
+* lock file maintenance ([#81](https://github.com/owine/unifi-network-mcp/issues/81)) ([13c7172](https://github.com/owine/unifi-network-mcp/commit/13c71724d96d18dd0473f041c113ae204553f1c6))
+* npm audit fix for fast-uri CVE-2026-6322 ([44762e6](https://github.com/owine/unifi-network-mcp/commit/44762e6e464907d3a9080e70429909b4076335d6))
+
 ## [2.3.3](https://github.com/owine/unifi-network-mcp/compare/2.3.2...2.3.3) (2026-05-04)
 
 
