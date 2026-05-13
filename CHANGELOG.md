@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.5.0](https://github.com/owine/unifi-network-mcp/compare/2.4.0...2.5.0) (2026-05-13)
+
+
+### Features
+
+* pin dependency @modelcontextprotocol/sdk to 1.29.0 ([#84](https://github.com/owine/unifi-network-mcp/issues/84)) ([9c569c6](https://github.com/owine/unifi-network-mcp/commit/9c569c690ac5270bb60c084742d33d5ec6cd3926))
+
+
+### Bug Fixes
+
+* pin dependency zod to 4.4.3 ([#85](https://github.com/owine/unifi-network-mcp/issues/85)) ([6210813](https://github.com/owine/unifi-network-mcp/commit/62108137c40e57980437f7e9ac5cfd677652e9dc))
+
+
+### Dependencies
+
+* lock file maintenance ([#89](https://github.com/owine/unifi-network-mcp/issues/89)) ([0a115dd](https://github.com/owine/unifi-network-mcp/commit/0a115dde0e26dba0d9c674964075e93b4d23ff56))
+* lock file maintenance ([#94](https://github.com/owine/unifi-network-mcp/issues/94)) ([8acecea](https://github.com/owine/unifi-network-mcp/commit/8acecea7932d1aa408e0c5a57280563ee23bd0b4))
+
 ## [2.4.0](https://github.com/owine/unifi-network-mcp/compare/2.3.3...2.4.0) (2026-05-11)
 
 
