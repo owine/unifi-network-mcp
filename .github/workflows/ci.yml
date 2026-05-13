@@ -1,5 +1,6 @@
 name: CI
 
+# Force Renovate cache invalidation so the customManager regex re-runs.
 on:
   push:
     branches: [main]
