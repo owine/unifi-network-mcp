@@ -32,14 +32,10 @@ describe("registerDeviceTools", () => {
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
           "/sites/site1/devices?offset=0&limit=25"
         );
-        expect(result).toEqual({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(mockData, null, 2),
-            },
-          ],
-        });
+        expect(result.content).toEqual([
+          { type: "text", text: JSON.stringify(mockData, null, 2) },
+        ]);
+        expect(result.structuredContent).toEqual(mockData);
       });
 
       it("should handle client errors", async () => {
@@ -92,14 +88,10 @@ describe("registerDeviceTools", () => {
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
           "/sites/site1/devices/dev1"
         );
-        expect(result).toEqual({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(mockData, null, 2),
-            },
-          ],
-        });
+        expect(result.content).toEqual([
+          { type: "text", text: JSON.stringify(mockData, null, 2) },
+        ]);
+        expect(result.structuredContent).toEqual(mockData);
       });
 
       it("should handle client errors", async () => {
@@ -139,14 +131,10 @@ describe("registerDeviceTools", () => {
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
           "/sites/site1/devices/dev1/statistics/latest"
         );
-        expect(result).toEqual({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(mockData, null, 2),
-            },
-          ],
-        });
+        expect(result.content).toEqual([
+          { type: "text", text: JSON.stringify(mockData, null, 2) },
+        ]);
+        expect(result.structuredContent).toEqual(mockData);
       });
 
       it("should handle client errors", async () => {
@@ -188,14 +176,10 @@ describe("registerDeviceTools", () => {
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
           "/pending-devices?offset=0&limit=25"
         );
-        expect(result).toEqual({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(mockData, null, 2),
-            },
-          ],
-        });
+        expect(result.content).toEqual([
+          { type: "text", text: JSON.stringify(mockData, null, 2) },
+        ]);
+        expect(result.structuredContent).toEqual(mockData);
       });
 
       it("should handle client errors", async () => {
@@ -276,14 +260,10 @@ describe("registerDeviceTools", () => {
             ignoreDeviceLimit: false,
           }
         );
-        expect(result).toEqual({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(mockData, null, 2),
-            },
-          ],
-        });
+        expect(result.content).toEqual([
+          { type: "text", text: JSON.stringify(mockData, null, 2) },
+        ]);
+        expect(result.structuredContent).toEqual(mockData);
       });
 
       it("should handle client errors", async () => {
@@ -343,14 +323,10 @@ describe("registerDeviceTools", () => {
             ignoreDeviceLimit: true,
           }
         );
-        expect(result).toEqual({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(mockData, null, 2),
-            },
-          ],
-        });
+        expect(result.content).toEqual([
+          { type: "text", text: JSON.stringify(mockData, null, 2) },
+        ]);
+        expect(result.structuredContent).toEqual(mockData);
       });
     });
 

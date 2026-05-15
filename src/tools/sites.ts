@@ -4,6 +4,7 @@ import { NetworkClient } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { buildQuery } from "../utils/query.js";
 import { READ_ONLY } from "../utils/safety.js";
+import { listSitesOutputSchema } from "../utils/output-schemas.js";
 
 export function registerSiteTools(
   server: McpServer,
@@ -32,13 +33,14 @@ export function registerSiteTools(
           .optional()
           .describe("Filter expression (e.g., 'name.like(office*)')"),
       },
+      outputSchema: listSitesOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

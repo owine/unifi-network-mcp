@@ -11,6 +11,11 @@ import {
   formatDryRun,
   requireConfirmation,
 } from "../utils/safety.js";
+import {
+  listNetworksOutputSchema,
+  networkOutputSchema,
+  getNetworkReferencesOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerNetworkTools(
   server: McpServer,
@@ -20,7 +25,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_list_networks",
     {
-      description: "List all networks (VLANs/LAN segments) at a site. Returns: id, name, management (UNMANAGED/GATEWAY/SWITCH), enabled, vlanId, default (true for the default network), dhcpGuarding, metadata.origin. NOTE: the Integration API does NOT expose subnet/DHCP-range/DNS-server settings — only top-level identification and VLAN ID. Use for: VLAN inventory; pair with unifi_get_network_references to find what consumes a network.",
+      description: "List all networks (VLANs/LAN segments) at a site. Returns: id, name, management (UNMANAGED/GATEWAY/SWITCH), enabled, vlanId, default (true for the default network), dhcpGuarding, metadata.origin. NOTE: the list view is sparse — for subnet/DHCP/NTP detail (ipv4Configuration), call unifi_get_network on a specific id. Use for: VLAN inventory; pair with unifi_get_network_references to find what consumes a network.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -41,13 +46,14 @@ export function registerNetworkTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listNetworksOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites/${siteId}/networks${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -57,17 +63,18 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_get_network",
     {
-      description: "Get a network/VLAN by ID. Schema is sparse — only id, name, management, enabled, vlanId, default, dhcpGuarding, metadata. Subnet/DHCP-range/DNS settings are NOT available via the Integration API.",
+      description: "Get a network/VLAN by ID. Returns the list fields PLUS (live-verified) zoneId, isolationEnabled, internetAccessEnabled, mdnsForwardingEnabled, cellularBackupEnabled, and a full ipv4Configuration object (hostIpAddress, prefixLength, dhcpConfiguration with ipAddressRange/leaseTimeSeconds/domainName/ntpServerIpAddresses). NOTE: subnet/DHCP detail appears here at get-by-id but NOT in unifi_list_networks (sparse list view).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         networkId: z.string().describe("Network ID"),
       },
+      outputSchema: networkOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, networkId }) => {
       try {
         const data = await client.get(`/sites/${siteId}/networks/${networkId}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -82,6 +89,7 @@ export function registerNetworkTools(
         siteId: z.string().describe("Site ID"),
         networkId: z.string().describe("Network ID"),
       },
+      outputSchema: getNetworkReferencesOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, networkId }) => {
@@ -89,7 +97,7 @@ export function registerNetworkTools(
         const data = await client.get(
           `/sites/${siteId}/networks/${networkId}/references`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -124,6 +132,7 @@ export function registerNetworkTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: networkOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, name, management, enabled, vlanId, dhcpGuarding, dryRun }) => {
@@ -132,7 +141,7 @@ export function registerNetworkTools(
         if (dhcpGuarding !== undefined) body.dhcpGuarding = dhcpGuarding;
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/networks`, body);
         const data = await client.post(`/sites/${siteId}/networks`, body);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -166,6 +175,7 @@ export function registerNetworkTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: networkOutputSchema,
       annotations: WRITE,
     },
     async ({ siteId, networkId, name, management, enabled, vlanId, dhcpGuarding, dryRun }) => {
@@ -182,7 +192,7 @@ export function registerNetworkTools(
           `/sites/${siteId}/networks/${networkId}`,
           body
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

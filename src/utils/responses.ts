@@ -1,9 +1,21 @@
-export function formatSuccess(data: unknown) {
-  return {
-    content: [
-      { type: "text" as const, text: JSON.stringify(data, null, 2) },
-    ],
+export function formatSuccess(data: unknown, opts?: { structured?: boolean }) {
+  const result: {
+    content: { type: "text"; text: string }[];
+    structuredContent?: Record<string, unknown>;
+  } = {
+    content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
   };
+
+  if (
+    opts?.structured &&
+    data !== null &&
+    typeof data === "object" &&
+    !Array.isArray(data)
+  ) {
+    result.structuredContent = data as Record<string, unknown>;
+  }
+
+  return result;
 }
 
 export function formatError(err: unknown) {

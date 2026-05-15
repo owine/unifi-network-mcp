@@ -11,6 +11,11 @@ import {
   formatDryRun,
   requireConfirmation,
 } from "../utils/safety.js";
+import {
+  listAclRulesOutputSchema,
+  aclRuleOutputSchema,
+  aclRuleOrderingOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerAclTools(
   server: McpServer,
@@ -41,13 +46,14 @@ export function registerAclTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listAclRulesOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites/${siteId}/acl-rules${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -62,6 +68,7 @@ export function registerAclTools(
         siteId: z.string().describe("Site ID"),
         aclRuleId: z.string().describe("ACL rule ID"),
       },
+      outputSchema: aclRuleOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, aclRuleId }) => {
@@ -69,7 +76,7 @@ export function registerAclTools(
         const data = await client.get(
           `/sites/${siteId}/acl-rules/${aclRuleId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -83,12 +90,13 @@ export function registerAclTools(
       inputSchema: {
         siteId: z.string().describe("Site ID"),
       },
+      outputSchema: aclRuleOrderingOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId }) => {
       try {
         const data = await client.get(`/sites/${siteId}/acl-rules/ordering`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -120,6 +128,7 @@ export function registerAclTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: aclRuleOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, type, name, enabled, action, description, protocolFilter, dryRun }) => {
@@ -129,7 +138,7 @@ export function registerAclTools(
         if (protocolFilter !== undefined) body.protocolFilter = protocolFilter;
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/acl-rules`, body);
         const data = await client.post(`/sites/${siteId}/acl-rules`, body);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -160,6 +169,7 @@ export function registerAclTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: aclRuleOutputSchema,
       annotations: WRITE,
     },
     async ({ siteId, aclRuleId, type, name, enabled, action, description, protocolFilter, dryRun }) => {
@@ -172,7 +182,7 @@ export function registerAclTools(
           `/sites/${siteId}/acl-rules/${aclRuleId}`,
           body
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

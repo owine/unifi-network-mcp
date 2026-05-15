@@ -11,6 +11,13 @@ import {
   formatDryRun,
   requireConfirmation,
 } from "../utils/safety.js";
+import {
+  listFirewallZonesOutputSchema,
+  firewallZoneOutputSchema,
+  listFirewallPoliciesOutputSchema,
+  firewallPolicyOutputSchema,
+  firewallPolicyOrderingOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerFirewallTools(
   server: McpServer,
@@ -41,13 +48,14 @@ export function registerFirewallTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listFirewallZonesOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites/${siteId}/firewall/zones${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -62,6 +70,7 @@ export function registerFirewallTools(
         siteId: z.string().describe("Site ID"),
         firewallZoneId: z.string().describe("Firewall zone ID"),
       },
+      outputSchema: firewallZoneOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, firewallZoneId }) => {
@@ -69,7 +78,7 @@ export function registerFirewallTools(
         const data = await client.get(
           `/sites/${siteId}/firewall/zones/${firewallZoneId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -100,6 +109,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listFirewallPoliciesOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
@@ -108,7 +118,7 @@ export function registerFirewallTools(
         const data = await client.get(
           `/sites/${siteId}/firewall/policies${query}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -123,6 +133,7 @@ export function registerFirewallTools(
         siteId: z.string().describe("Site ID"),
         firewallPolicyId: z.string().describe("Firewall policy ID"),
       },
+      outputSchema: firewallPolicyOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, firewallPolicyId }) => {
@@ -130,7 +141,7 @@ export function registerFirewallTools(
         const data = await client.get(
           `/sites/${siteId}/firewall/policies/${firewallPolicyId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -150,6 +161,7 @@ export function registerFirewallTools(
           .string()
           .describe("Destination firewall zone ID"),
       },
+      outputSchema: firewallPolicyOrderingOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, sourceFirewallZoneId, destinationFirewallZoneId }) => {
@@ -158,7 +170,7 @@ export function registerFirewallTools(
         const data = await client.get(
           `/sites/${siteId}/firewall/policies/ordering${query}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -182,6 +194,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: firewallZoneOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, name, networkIds, dryRun }) => {
@@ -189,7 +202,7 @@ export function registerFirewallTools(
         const body = { name, networkIds };
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/firewall/zones`, body);
         const data = await client.post(`/sites/${siteId}/firewall/zones`, body);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -212,6 +225,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: firewallZoneOutputSchema,
       annotations: WRITE,
     },
     async ({ siteId, firewallZoneId, name, networkIds, dryRun }) => {
@@ -222,7 +236,7 @@ export function registerFirewallTools(
           `/sites/${siteId}/firewall/zones/${firewallZoneId}`,
           body
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -277,13 +291,14 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: firewallPolicyOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, policy, dryRun }) => {
       try {
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/firewall/policies`, policy);
         const data = await client.post(`/sites/${siteId}/firewall/policies`, policy);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -305,6 +320,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: firewallPolicyOutputSchema,
       annotations: WRITE,
     },
     async ({ siteId, firewallPolicyId, policy, dryRun }) => {
@@ -314,7 +330,7 @@ export function registerFirewallTools(
           `/sites/${siteId}/firewall/policies/${firewallPolicyId}`,
           policy
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -336,6 +352,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: firewallPolicyOutputSchema,
       annotations: WRITE,
     },
     async ({ siteId, firewallPolicyId, policy, dryRun }) => {
@@ -345,7 +362,7 @@ export function registerFirewallTools(
           `/sites/${siteId}/firewall/policies/${firewallPolicyId}`,
           policy
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

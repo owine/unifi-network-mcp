@@ -10,6 +10,11 @@ import {
   formatDryRun,
   requireConfirmation,
 } from "../utils/safety.js";
+import {
+  listVouchersOutputSchema,
+  voucherOutputSchema,
+  createVouchersOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerHotspotTools(
   server: McpServer,
@@ -42,6 +47,7 @@ export function registerHotspotTools(
           .optional()
           .describe("Filter expression (e.g., 'expired.eq(true)')"),
       },
+      outputSchema: listVouchersOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
@@ -50,7 +56,7 @@ export function registerHotspotTools(
         const data = await client.get(
           `/sites/${siteId}/hotspot/vouchers${query}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -65,6 +71,7 @@ export function registerHotspotTools(
         siteId: z.string().describe("Site ID"),
         voucherId: z.string().describe("Voucher ID"),
       },
+      outputSchema: voucherOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, voucherId }) => {
@@ -72,7 +79,7 @@ export function registerHotspotTools(
         const data = await client.get(
           `/sites/${siteId}/hotspot/vouchers/${voucherId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -136,6 +143,7 @@ export function registerHotspotTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: createVouchersOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({
@@ -168,7 +176,7 @@ export function registerHotspotTools(
           `/sites/${siteId}/hotspot/vouchers`,
           body
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

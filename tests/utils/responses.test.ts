@@ -20,6 +20,17 @@ describe("formatSuccess", () => {
     const result = formatSuccess(null);
     expect(result.content[0].text).toBe("null");
   });
+
+  it("emits structuredContent when opts.structured=true and data is a plain object", () => {
+    const payload = { id: "abc", name: "test" };
+    const result = formatSuccess(payload, { structured: true });
+    expect(result.structuredContent).toEqual(payload);
+  });
+
+  it("does NOT emit structuredContent for arrays or null even when structured=true", () => {
+    expect(formatSuccess([1, 2, 3], { structured: true }).structuredContent).toBeUndefined();
+    expect(formatSuccess(null, { structured: true }).structuredContent).toBeUndefined();
+  });
 });
 
 describe("formatError", () => {

@@ -4,6 +4,14 @@ import { NetworkClient } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { buildQuery } from "../utils/query.js";
 import { READ_ONLY } from "../utils/safety.js";
+import {
+  listSwitchStacksOutputSchema,
+  switchStackOutputSchema,
+  listMcLagDomainsOutputSchema,
+  mcLagDomainOutputSchema,
+  listLagsOutputSchema,
+  lagOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerSwitchingTools(
   server: McpServer,
@@ -33,6 +41,7 @@ export function registerSwitchingTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listSwitchStacksOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
@@ -41,7 +50,7 @@ export function registerSwitchingTools(
         const data = await client.get(
           `/sites/${siteId}/switching/switch-stacks${query}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -56,6 +65,7 @@ export function registerSwitchingTools(
         siteId: z.string().describe("Site ID"),
         switchStackId: z.string().describe("Switch Stack ID"),
       },
+      outputSchema: switchStackOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, switchStackId }) => {
@@ -63,7 +73,7 @@ export function registerSwitchingTools(
         const data = await client.get(
           `/sites/${siteId}/switching/switch-stacks/${switchStackId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -94,6 +104,7 @@ export function registerSwitchingTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listMcLagDomainsOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
@@ -102,7 +113,7 @@ export function registerSwitchingTools(
         const data = await client.get(
           `/sites/${siteId}/switching/mc-lag-domains${query}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -117,6 +128,7 @@ export function registerSwitchingTools(
         siteId: z.string().describe("Site ID"),
         mcLagDomainId: z.string().describe("MC-LAG Domain ID"),
       },
+      outputSchema: mcLagDomainOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, mcLagDomainId }) => {
@@ -124,7 +136,7 @@ export function registerSwitchingTools(
         const data = await client.get(
           `/sites/${siteId}/switching/mc-lag-domains/${mcLagDomainId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -155,6 +167,7 @@ export function registerSwitchingTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listLagsOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
@@ -163,7 +176,7 @@ export function registerSwitchingTools(
         const data = await client.get(
           `/sites/${siteId}/switching/lags${query}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -178,6 +191,7 @@ export function registerSwitchingTools(
         siteId: z.string().describe("Site ID"),
         lagId: z.string().describe("LAG ID"),
       },
+      outputSchema: lagOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, lagId }) => {
@@ -185,7 +199,7 @@ export function registerSwitchingTools(
         const data = await client.get(
           `/sites/${siteId}/switching/lags/${lagId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

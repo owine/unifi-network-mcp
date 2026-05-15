@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { NetworkClient } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { READ_ONLY } from "../utils/safety.js";
+import { getInfoOutputSchema } from "../utils/output-schemas.js";
 
 export function registerSystemTools(
   server: McpServer,
@@ -10,14 +11,15 @@ export function registerSystemTools(
   server.registerTool(
     "unifi_get_info",
     {
-      description: "Get UniFi Network application info. Returns: applicationVersion, isUniFiOSConsole (true on UDM/UDM-Pro/UNVR, false on standalone Network controller). Use for: capability checks before calling version-gated tools.",
+      description: "Get UniFi Network application info. Returns: applicationVersion. NOTE: verified against 10.4.55 on a UniFi OS console — the Integration API returns ONLY applicationVersion here; there is no isUniFiOSConsole or other field. Use for: version checks before calling version-gated tools.",
       inputSchema: {},
+      outputSchema: getInfoOutputSchema,
       annotations: READ_ONLY,
     },
     async () => {
       try {
         const data = await client.get("/info");
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

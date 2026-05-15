@@ -11,6 +11,10 @@ import {
   formatDryRun,
   requireConfirmation,
 } from "../utils/safety.js";
+import {
+  listDnsPoliciesOutputSchema,
+  dnsPolicyOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerDnsPolicyTools(
   server: McpServer,
@@ -41,13 +45,14 @@ export function registerDnsPolicyTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listDnsPoliciesOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites/${siteId}/dns/policies${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -62,6 +67,7 @@ export function registerDnsPolicyTools(
         siteId: z.string().describe("Site ID"),
         dnsPolicyId: z.string().describe("DNS policy ID"),
       },
+      outputSchema: dnsPolicyOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, dnsPolicyId }) => {
@@ -69,7 +75,7 @@ export function registerDnsPolicyTools(
         const data = await client.get(
           `/sites/${siteId}/dns/policies/${dnsPolicyId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -109,6 +115,7 @@ export function registerDnsPolicyTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: dnsPolicyOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, type, enabled, domain, ipv4Address, ttlSeconds, dryRun }) => {
@@ -116,7 +123,7 @@ export function registerDnsPolicyTools(
         const body = { type, enabled, domain, ipv4Address, ttlSeconds };
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/dns/policies`, body);
         const data = await client.post(`/sites/${siteId}/dns/policies`, body);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -155,6 +162,7 @@ export function registerDnsPolicyTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: dnsPolicyOutputSchema,
       annotations: WRITE,
     },
     async ({ siteId, dnsPolicyId, type, enabled, domain, ipv4Address, ttlSeconds, dryRun }) => {
@@ -165,7 +173,7 @@ export function registerDnsPolicyTools(
           `/sites/${siteId}/dns/policies/${dnsPolicyId}`,
           body
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

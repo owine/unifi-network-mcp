@@ -4,6 +4,14 @@ import { NetworkClient } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { buildQuery } from "../utils/query.js";
 import { READ_ONLY, WRITE_NOT_IDEMPOTENT, DESTRUCTIVE, WRITE, formatDryRun, requireConfirmation } from "../utils/safety.js";
+import {
+  listDevicesOutputSchema,
+  getDeviceOutputSchema,
+  getDeviceStatisticsOutputSchema,
+  listPendingDevicesOutputSchema,
+} from "../utils/output-schemas.js";
+// Adopt echoes the adopted device — reuse the device detail schema.
+const adoptDeviceOutputSchema = getDeviceOutputSchema;
 
 export function registerDeviceTools(
   server: McpServer,
@@ -13,7 +21,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_list_devices",
     {
-      description: "List all adopted devices (gateways, switches, APs) at a site. Returns: id, name, model, macAddress, ipAddress, state (ONLINE/OFFLINE/etc), firmwareVersion, firmwareUpdatable, adoptedAt, uplink, features. Use for: device inventory; pair with unifi_get_device for full config (port table, radios) and unifi_get_device_statistics for live metrics.",
+      description: "List all adopted devices (gateways, switches, APs) at a site. Returns: id, name, model, macAddress, ipAddress, state (ONLINE/OFFLINE/etc), supported, firmwareVersion, firmwareUpdatable, features[] (capability tags, e.g. ['switching'] or ['accessPoint']), interfaces[] (e.g. ['ports'] or ['radios']). NOTE: features/interfaces are string arrays here; unifi_get_device expands them into objects. Use for: device inventory; pair with unifi_get_device for full config (port table, radios) and unifi_get_device_statistics for live metrics.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -31,13 +39,14 @@ export function registerDeviceTools(
           .describe("Number of records to return (default: 25, max: 200)"),
         filter: z.string().optional().describe("Filter expression"),
       },
+      outputSchema: listDevicesOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites/${siteId}/devices${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -47,17 +56,18 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_get_device",
     {
-      description: "Get full configuration for a device. Returns (in addition to list fields): supported, firmwareUpdatable, provisionedAt, configurationId, uplink (deviceId), features (switching, accessPoint), interfaces.ports[] for switches (per-port config; nested field names vary by hardware/firmware), interfaces.radios[] for APs (per-radio config: frequency, channel, channel width, transmit power; exact field names vary). Use for: switch port layout/PoE state, AP radio config, uplink topology. For live throughput/CPU/memory, use unifi_get_device_statistics.",
+      description: "Get full configuration for a device. Returns (in addition to list fields): supported, firmwareUpdatable, provisionedAt, configurationId, uplink.deviceId, features (object keyed by capability: switching {lags[]} / accessPoint {}), interfaces.ports[] for switches ({idx, state, connector, maxSpeedMbps, speedMbps, poe:{standard, type, enabled, state}}), interfaces.radios[] for APs ({wlanStandard, frequencyGHz, channelWidthMHz, channel}). NOTE: in the LIST endpoint, features/interfaces are capability-tag string arrays instead. Use for: switch port layout/PoE state, AP radio config, uplink topology. For live throughput/CPU/memory, use unifi_get_device_statistics.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),
       },
+      outputSchema: getDeviceOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, deviceId }) => {
       try {
         const data = await client.get(`/sites/${siteId}/devices/${deviceId}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -67,11 +77,12 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_get_device_statistics",
     {
-      description: "Get latest live statistics for a device. Returns: uptimeSec, lastHeartbeatAt, nextHeartbeatAt, loadAverage1/5/15Min, cpuUtilizationPct, memoryUtilizationPct, uplink (txRateBps, rxRateBps), interfaces.radios[] for APs (per-radio counters). NOTE: the Integration API does NOT expose per-switch-port byte/error/PoE-power counters here — port-level live stats are unavailable. Use for: device health and AP radio metrics. For config (channel, power, port assignment), use unifi_get_device.",
+      description: "Get latest live statistics for a device. Returns: uptimeSec, lastHeartbeatAt, nextHeartbeatAt, loadAverage1/5/15Min, cpuUtilizationPct, memoryUtilizationPct, uplink (txRateBps, rxRateBps), interfaces.radios[] for APs ({frequencyGHz, txRetriesPct}). NOTE: verified against 10.4.55 — the Integration API does NOT expose per-switch-port byte/error/PoE-power counters here; port-level live stats are unavailable. Use for: device health and AP radio metrics. For config (channel, power, port assignment), use unifi_get_device.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),
       },
+      outputSchema: getDeviceStatisticsOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, deviceId }) => {
@@ -79,7 +90,7 @@ export function registerDeviceTools(
         const data = await client.get(
           `/sites/${siteId}/devices/${deviceId}/statistics/latest`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -106,13 +117,14 @@ export function registerDeviceTools(
           .describe("Number of records to return (default: 25, max: 200)"),
         filter: z.string().optional().describe("Filter expression"),
       },
+      outputSchema: listPendingDevicesOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/pending-devices${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -131,6 +143,7 @@ export function registerDeviceTools(
         ignoreDeviceLimit: z.boolean().optional().describe("Ignore device limit when adopting (default: false)"),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },
+      outputSchema: adoptDeviceOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, macAddress, ignoreDeviceLimit, dryRun }) => {
@@ -143,7 +156,7 @@ export function registerDeviceTools(
 
       try {
         const data = await client.post(`/sites/${siteId}/devices`, body);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

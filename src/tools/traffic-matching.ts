@@ -11,6 +11,10 @@ import {
   formatDryRun,
   requireConfirmation,
 } from "../utils/safety.js";
+import {
+  listTrafficMatchingListsOutputSchema,
+  trafficMatchingListOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerTrafficMatchingTools(
   server: McpServer,
@@ -41,6 +45,7 @@ export function registerTrafficMatchingTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listTrafficMatchingListsOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
@@ -49,7 +54,7 @@ export function registerTrafficMatchingTools(
         const data = await client.get(
           `/sites/${siteId}/traffic-matching-lists${query}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -64,6 +69,7 @@ export function registerTrafficMatchingTools(
         siteId: z.string().describe("Site ID"),
         trafficMatchingListId: z.string().describe("Traffic matching list ID"),
       },
+      outputSchema: trafficMatchingListOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, trafficMatchingListId }) => {
@@ -71,7 +77,7 @@ export function registerTrafficMatchingTools(
         const data = await client.get(
           `/sites/${siteId}/traffic-matching-lists/${trafficMatchingListId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -99,6 +105,7 @@ export function registerTrafficMatchingTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: trafficMatchingListOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, type, name, items, dryRun }) => {
@@ -109,7 +116,7 @@ export function registerTrafficMatchingTools(
           `/sites/${siteId}/traffic-matching-lists`,
           body
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -133,6 +140,7 @@ export function registerTrafficMatchingTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: trafficMatchingListOutputSchema,
       annotations: WRITE,
     },
     async ({ siteId, trafficMatchingListId, type, name, items, dryRun }) => {
@@ -143,7 +151,7 @@ export function registerTrafficMatchingTools(
           `/sites/${siteId}/traffic-matching-lists/${trafficMatchingListId}`,
           body
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

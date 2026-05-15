@@ -4,6 +4,10 @@ import { NetworkClient } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { buildQuery } from "../utils/query.js";
 import { READ_ONLY, WRITE_NOT_IDEMPOTENT, WRITE, formatDryRun } from "../utils/safety.js";
+import {
+  listClientsOutputSchema,
+  getClientOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerClientTools(
   server: McpServer,
@@ -13,7 +17,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_list_clients",
     {
-      description: "List currently connected clients at a site. Returns per client (shape varies by type): id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress, connectedAt, uplinkDeviceId (the switch/AP they're attached to), access (object with type). WIRELESS and WIRED variants include their own connection details (signal/channel for wireless, port binding for wired) — call the tool and inspect by type for exact fields. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API.",
+      description: "List currently connected clients at a site. Returns per client: id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress, connectedAt, uplinkDeviceId (the switch/AP they're attached to), access.type. NOTE: verified against 10.4.55 — the Integration API client schema is minimal and identical across types; it does NOT expose signal strength, channel, or per-port binding. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -31,13 +35,14 @@ export function registerClientTools(
           .describe("Number of records to return (default: 25, max: 200)"),
         filter: z.string().optional().describe("Filter expression"),
       },
+      outputSchema: listClientsOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites/${siteId}/clients${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -52,12 +57,13 @@ export function registerClientTools(
         siteId: z.string().describe("Site ID"),
         clientId: z.string().describe("Client ID"),
       },
+      outputSchema: getClientOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, clientId }) => {
       try {
         const data = await client.get(`/sites/${siteId}/clients/${clientId}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }

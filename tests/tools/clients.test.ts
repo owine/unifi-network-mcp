@@ -32,14 +32,10 @@ describe("registerClientTools", () => {
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
           "/sites/site1/clients?offset=0&limit=25"
         );
-        expect(result).toEqual({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(mockData, null, 2),
-            },
-          ],
-        });
+        expect(result.content).toEqual([
+          { type: "text", text: JSON.stringify(mockData, null, 2) },
+        ]);
+        expect(result.structuredContent).toEqual(mockData);
       });
 
       it("should handle client errors", async () => {
@@ -96,14 +92,10 @@ describe("registerClientTools", () => {
         expect(mockFn(client, "get")).toHaveBeenCalledWith(
           "/sites/site1/clients/client1"
         );
-        expect(result).toEqual({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(mockData, null, 2),
-            },
-          ],
-        });
+        expect(result.content).toEqual([
+          { type: "text", text: JSON.stringify(mockData, null, 2) },
+        ]);
+        expect(result.structuredContent).toEqual(mockData);
       });
 
       it("should handle client errors", async () => {

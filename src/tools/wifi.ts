@@ -11,6 +11,10 @@ import {
   formatDryRun,
   requireConfirmation,
 } from "../utils/safety.js";
+import {
+  listWifiOutputSchema,
+  getWifiOutputSchema,
+} from "../utils/output-schemas.js";
 
 export function registerWifiTools(
   server: McpServer,
@@ -41,13 +45,14 @@ export function registerWifiTools(
           .optional()
           .describe("Filter expression"),
       },
+      outputSchema: listWifiOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, offset, limit, filter }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites/${siteId}/wifi/broadcasts${query}`);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -62,6 +67,7 @@ export function registerWifiTools(
         siteId: z.string().describe("Site ID"),
         wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),
       },
+      outputSchema: getWifiOutputSchema,
       annotations: READ_ONLY,
     },
     async ({ siteId, wifiBroadcastId }) => {
@@ -69,7 +75,7 @@ export function registerWifiTools(
         const data = await client.get(
           `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -173,6 +179,7 @@ export function registerWifiTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: getWifiOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({
@@ -249,7 +256,7 @@ export function registerWifiTools(
           body.handoffSuggestionsConfiguration = handoffSuggestionsConfiguration;
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi/broadcasts`, body);
         const data = await client.post(`/sites/${siteId}/wifi/broadcasts`, body);
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -367,6 +374,7 @@ export function registerWifiTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
+      outputSchema: getWifiOutputSchema,
       annotations: WRITE,
     },
     async ({
@@ -462,7 +470,7 @@ export function registerWifiTools(
           `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`,
           body
         );
-        return formatSuccess(data);
+        return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
       }
