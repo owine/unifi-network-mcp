@@ -20,7 +20,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_list_firewall_zones",
     {
-      description: "List all firewall zones at a site",
+      description: "List firewall zones (groupings of networks for zone-based firewalling) at a site. Returns: id, name, networkIds[], systemDefined (true for INTERNAL/EXTERNAL/DMZ/HOTSPOT/VPN/GATEWAY). Use for: zone inventory; pair with unifi_list_firewall_policies to see rules between zones.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -57,7 +57,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_get_firewall_zone",
     {
-      description: "Get a specific firewall zone by ID",
+      description: "Get a firewall zone by ID (same fields as the list entry).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         firewallZoneId: z.string().describe("Firewall zone ID"),
@@ -79,7 +79,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_list_firewall_policies",
     {
-      description: "List all firewall policies at a site",
+      description: "List firewall policies (zone-based rules) at a site. Returns: id, name, action (ALLOW/BLOCK/REJECT), source (zoneId, matching criteria), destination, protocol, ports, schedule, loggingEnabled, enabled, predefined (true for system rules). Evaluation order within a zone pair comes from unifi_get_firewall_policy_ordering.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -118,7 +118,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_get_firewall_policy",
     {
-      description: "Get a specific firewall policy by ID",
+      description: "Get a firewall policy by ID with full match criteria and action.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         firewallPolicyId: z.string().describe("Firewall policy ID"),
@@ -140,7 +140,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_get_firewall_policy_ordering",
     {
-      description: "Get user-defined firewall policy ordering for a zone pair",
+      description: "Get the evaluation order of user-defined firewall policies for a specific (source zone, destination zone) pair. Returns: beforeSystemDefined[] and afterSystemDefined[] arrays of policy IDs. System-defined rules sit between these two arrays.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         sourceFirewallZoneId: z
@@ -324,7 +324,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_patch_firewall_policy",
     {
-      description: "Partially update a firewall policy (e.g. toggle logging)",
+      description: "Partially update a firewall policy without resending all fields. Common use: toggle loggingEnabled or enabled. Idempotent for fields supplied.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         firewallPolicyId: z.string().describe("Firewall policy ID"),

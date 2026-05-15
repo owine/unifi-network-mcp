@@ -12,7 +12,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_list_switch_stacks",
     {
-      description: "List all Switch Stacks at a site",
+      description: "List Switch Stacks (multiple physical switches managed as one logical unit) at a site. Returns: id, name, members[] (deviceId, role: MASTER/MEMBER/BACKUP, stackPort), state. Use for: identifying stacked switches; individual member configs/stats still come from unifi_get_device.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -51,7 +51,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_get_switch_stack",
     {
-      description: "Get details of a specific Switch Stack",
+      description: "Get full details of a Switch Stack including all members and stacking topology. Returns the same fields as the list response but for a single stack.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         switchStackId: z.string().describe("Switch Stack ID"),
@@ -73,7 +73,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_list_mc_lag_domains",
     {
-      description: "List all MC-LAG (Multi-Chassis LAG) Domains at a site",
+      description: "List MC-LAG (Multi-Chassis Link Aggregation) Domains — pairs of switches presenting as one for LAG redundancy. Returns: id, name, peerSwitches[] (deviceId, role), peerLinkPorts, state.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -112,7 +112,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_get_mc_lag_domain",
     {
-      description: "Get details of a specific MC-LAG (Multi-Chassis LAG) Domain",
+      description: "Get full details of an MC-LAG Domain (the two peer switches, peer-link ports, and member LAGs).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         mcLagDomainId: z.string().describe("MC-LAG Domain ID"),
@@ -134,7 +134,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_list_lags",
     {
-      description: "List all LAGs (Link Aggregation Groups) at a site",
+      description: "List LAGs (Link Aggregation Groups — bonded switch ports) at a site. Returns: id, name, members[] (deviceId, portIdx), mode (LACP/STATIC), mcLagDomainId if part of an MC-LAG.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -173,7 +173,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_get_lag",
     {
-      description: "Get details of a specific LAG (Link Aggregation Group)",
+      description: "Get full details of a LAG including member ports and aggregation mode.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         lagId: z.string().describe("LAG ID"),

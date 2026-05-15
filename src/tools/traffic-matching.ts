@@ -20,7 +20,7 @@ export function registerTrafficMatchingTools(
   server.registerTool(
     "unifi_list_traffic_matching_lists",
     {
-      description: "List all traffic matching lists at a site (port groups, IP groups)",
+      description: "List traffic matching lists at a site — named collections of ports or IPs reused in firewall/ACL rules. Returns: id, type (PORTS/IPV4_ADDRESSES/IPV6_ADDRESSES), name, items[]. Use for: finding the matching-list ID to reference from a firewall policy.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -59,7 +59,7 @@ export function registerTrafficMatchingTools(
   server.registerTool(
     "unifi_get_traffic_matching_list",
     {
-      description: "Get a specific traffic matching list by ID",
+      description: "Get a specific traffic matching list by ID (full items array).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         trafficMatchingListId: z.string().describe("Traffic matching list ID"),

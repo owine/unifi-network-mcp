@@ -20,7 +20,7 @@ export function registerAclTools(
   server.registerTool(
     "unifi_list_acl_rules",
     {
-      description: "List all ACL rules at a site",
+      description: "List ACL rules (switch/AP-level access control lists, distinct from zone-based firewall policies) at a site. Returns: id, type (IPV4/MAC), name, enabled, action (ALLOW/BLOCK), description, protocolFilter, source/destination matchers. ACLs apply earlier in the path than firewall policies.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -57,7 +57,7 @@ export function registerAclTools(
   server.registerTool(
     "unifi_get_acl_rule",
     {
-      description: "Get a specific ACL rule by ID",
+      description: "Get a specific ACL rule by ID (full match criteria and action).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         aclRuleId: z.string().describe("ACL rule ID"),
@@ -79,7 +79,7 @@ export function registerAclTools(
   server.registerTool(
     "unifi_get_acl_rule_ordering",
     {
-      description: "Get user-defined ACL rule ordering",
+      description: "Get the evaluation order of user-defined ACL rules. Returns: orderedAclRuleIds[]. Rules higher in the list win.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
       },

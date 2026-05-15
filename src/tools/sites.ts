@@ -12,7 +12,7 @@ export function registerSiteTools(
   server.registerTool(
     "unifi_list_sites",
     {
-      description: "List all sites available to the API key",
+      description: "List all sites the API key has access to. Returns: id (the siteId every other tool requires), internalReference, name. Use for: first call in any workflow — almost every other tool needs a siteId.",
       inputSchema: {
         offset: z
           .number()

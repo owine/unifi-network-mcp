@@ -13,7 +13,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_list_clients",
     {
-      description: "List all connected clients (wired, wireless, VPN) at a site",
+      description: "List currently connected clients (wired, wireless, VPN) at a site. Returns per client: id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress, connectedAt, uplinkDeviceId (the switch/AP they're attached to). Wireless clients also include: wlanId, signalDbm, signalToNoiseRatioDb, radioFrequencyGHz, channel, txRateKbps, rxRateKbps. Wired clients include: switchPortIdx, vlanId. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -47,7 +47,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_get_client",
     {
-      description: "Get a specific client by ID",
+      description: "Get a specific connected client by ID. Returns same shape as unifi_list_clients entries.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         clientId: z.string().describe("Client ID"),
@@ -69,7 +69,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_authorize_guest",
     {
-      description: "Authorize a guest client on a hotspot network",
+      description: "Authorize a guest client through a captive-portal hotspot. Optional limits override hotspot defaults. Idempotency: not safe to retry — re-authorizing extends the session.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         clientId: z.string().describe("Client ID"),
@@ -143,7 +143,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_unauthorize_guest",
     {
-      description: "Unauthorize a guest client",
+      description: "Revoke guest authorization; the client returns to the captive portal on next request. Idempotent.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         clientId: z.string().describe("Client ID"),

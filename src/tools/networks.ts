@@ -20,7 +20,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_list_networks",
     {
-      description: "List all networks at a site",
+      description: "List all networks (VLANs/LAN segments) at a site. Returns: id, name, management (UNMANAGED/GATEWAY/SWITCH), enabled, vlanId, dhcpGuarding, subnet info. Use for: VLAN inventory; pair with unifi_get_network_references to find what consumes a network.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -57,7 +57,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_get_network",
     {
-      description: "Get a specific network by ID",
+      description: "Get full configuration for a network/VLAN by ID.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         networkId: z.string().describe("Network ID"),
@@ -77,7 +77,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_get_network_references",
     {
-      description: "Get references to a network (what WiFi broadcasts, firewall zones, etc. use this network)",
+      description: "Get all objects that reference this network: WiFi broadcasts assigned to it, firewall zones containing it, etc. Use before deleting a network to find dependencies that need to be re-pointed or removed.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         networkId: z.string().describe("Network ID"),
@@ -101,7 +101,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_create_network",
     {
-      description: "Create a new network",
+      description: "Create a new VLAN/network. management=GATEWAY means routed via UDM/UXG; SWITCH means VLAN-only; UNMANAGED means external. Idempotency: not safe to retry — re-running creates duplicates.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         name: z.string().describe("Network name"),

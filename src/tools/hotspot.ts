@@ -19,7 +19,7 @@ export function registerHotspotTools(
   server.registerTool(
     "unifi_list_vouchers",
     {
-      description: "List all hotspot vouchers at a site",
+      description: "List hotspot/guest-portal vouchers at a site. Returns: id, code, name, createdAt, expiresAt, timeLimitMinutes, dataUsageLimitMBytes, rxRateLimitKbps, txRateLimitKbps, authorizedGuestLimit, authorizedGuestCount, expired. Use filter like 'expired.eq(true)' to bulk-find stale vouchers.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -60,7 +60,7 @@ export function registerHotspotTools(
   server.registerTool(
     "unifi_get_voucher",
     {
-      description: "Get a specific hotspot voucher by ID",
+      description: "Get a specific hotspot voucher by ID (same fields as the list entry).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         voucherId: z.string().describe("Voucher ID"),
@@ -84,7 +84,7 @@ export function registerHotspotTools(
   server.registerTool(
     "unifi_create_voucher",
     {
-      description: "Create hotspot vouchers",
+      description: "Create one or more hotspot vouchers (use count for batch creation, up to 1000 at once). Returns: array of created vouchers with their generated codes. Idempotency: not safe to retry — each call mints fresh codes.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         name: z

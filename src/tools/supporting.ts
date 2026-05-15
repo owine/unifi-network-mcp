@@ -12,7 +12,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_wans",
     {
-      description: "List all WAN interfaces at a site",
+      description: "List WAN interfaces (uplinks to the internet) at a site. Returns: id, name, type (WAN/WAN2), enabled, ipv4 config, ipv6 config, status (UP/DOWN), gateway, dns servers, currentRxRateBps/currentTxRateBps. Use for: WAN status, multi-WAN/failover inventory.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -45,7 +45,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_vpn_tunnels",
     {
-      description: "List all site-to-site VPN tunnels at a site",
+      description: "List site-to-site VPN tunnels (IPsec, WireGuard, OpenVPN site-to-site) at a site. Returns: id, name, type, enabled, remoteEndpoint, localNetworks, remoteNetworks, status. For roaming client VPN servers, see unifi_list_vpn_servers.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -82,7 +82,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_vpn_servers",
     {
-      description: "List all VPN servers at a site",
+      description: "List VPN servers (roaming/client-access VPNs: WireGuard, OpenVPN, L2TP, Teleport) at a site. Returns: id, name, type, enabled, listenPort, clientNetworks, dnsServers, connectedClientsCount.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -119,7 +119,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_radius_profiles",
     {
-      description: "List all RADIUS profiles at a site",
+      description: "List RADIUS profiles (auth/accounting server configurations referenced by WiFi WPA-Enterprise, switch 802.1X port auth, VPN). Returns: id, name, authServers[], accountingServers[], interimUpdateIntervalSec.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -158,7 +158,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_device_tags",
     {
-      description: "List all device tags at a site (used for WiFi broadcast assignments)",
+      description: "List device tags at a site. Tags group APs/switches for selective WiFi broadcast (via broadcastingDeviceFilter on a WiFi network). Returns: id, name, deviceIds[].",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -195,7 +195,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_dpi_categories",
     {
-      description: "List all DPI (Deep Packet Inspection) categories for traffic identification",
+      description: "List DPI categories (global, not site-scoped) — high-level traffic groupings like 'Streaming', 'Social Networks', 'Gaming'. Returns: id, name. Use the category id when building firewall policies that match by category.",
       inputSchema: {
         offset: z
           .number()
@@ -231,7 +231,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_dpi_applications",
     {
-      description: "List all DPI applications for traffic identification and filtering",
+      description: "List individual DPI applications (global) — specific apps/services like 'Netflix', 'Zoom', 'Steam'. Returns: id, name, categoryId. More granular than unifi_list_dpi_categories.",
       inputSchema: {
         offset: z
           .number()
@@ -267,7 +267,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_countries",
     {
-      description: "List all countries/regions for geo-based rules (ISO codes and names)",
+      description: "List countries/regions (global) for geo-IP firewall rules. Returns: id (ISO alpha-2 code), name. Use the id when building firewall policies that match by source/destination country.",
       inputSchema: {
         offset: z
           .number()

@@ -13,7 +13,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_list_devices",
     {
-      description: "List all adopted devices at a site",
+      description: "List all adopted devices (gateways, switches, APs) at a site. Returns: id, name, model, macAddress, ipAddress, state (ONLINE/OFFLINE/etc), firmwareVersion, adoptedAt, uplink, features. Use for: device inventory; pair with unifi_get_device for full config (port table, radios) and unifi_get_device_statistics for live metrics.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -47,7 +47,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_get_device",
     {
-      description: "Get a specific device by ID",
+      description: "Get full configuration for a device. Returns (in addition to list fields): interfaces.ports[] (idx, name, state, speedMbps, poe.standard/state/enabled, connector), interfaces.radios[] (frequencyGHz, channel, channelWidthMHz, transmitPowerDbm, transmitPowerMode) for APs, uplink details, supported features. Use for: switch port layout/PoE state, AP radio config, uplink topology. For live throughput/CPU/memory, use unifi_get_device_statistics.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),
@@ -67,7 +67,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_get_device_statistics",
     {
-      description: "Get latest statistics for a device",
+      description: "Get latest live statistics for a device. Returns: uptimeSec, lastHeartbeatAt, nextHeartbeatAt, loadAverage1/5/15Min, cpuUtilizationPct, memoryUtilizationPct, uplink (txRateBps, rxRateBps), interfaces.radios[] (txRetriesPct, txPackets, rxPackets) for APs, interfaces.ports[] (txBytes, rxBytes, txPackets, rxPackets, txErrors, rxErrors, poePowerW) for switches. Use for: device health, port throughput, PoE consumption, AP radio utilization. For config (channel, power, port assignment) use unifi_get_device.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),
@@ -89,7 +89,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_list_pending_devices",
     {
-      description: "List devices pending adoption (global, not site-specific)",
+      description: "List devices pending adoption across all sites (global endpoint, not site-scoped). Returns: macAddress, model, ipAddress, firmwareVersion, lastSeenAt. Use for: discovering new devices on the network before calling unifi_adopt_device.",
       inputSchema: {
         offset: z
           .number()
@@ -124,7 +124,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_adopt_device",
     {
-      description: "Adopt a pending device",
+      description: "Adopt a pending device into a site by MAC address. The device must already appear in unifi_list_pending_devices. Idempotency: not safe to retry — re-adopting may error or duplicate.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         macAddress: z.string().describe("MAC address of the device"),
@@ -182,7 +182,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_restart_device",
     {
-      description: "Restart a device",
+      description: "Restart (reboot) a device. The device will be unreachable for ~1–3 minutes. Idempotent: repeated calls trigger fresh reboots.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),
@@ -210,7 +210,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_power_cycle_port",
     {
-      description: "Power cycle a specific port on a device (PoE restart)",
+      description: "Power-cycle PoE on a specific switch port (briefly drops then restores power). portIdx is the port number (1-based) as shown in unifi_get_device interfaces.ports[].idx. Use for: rebooting a PoE-powered camera/AP without touching the device.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),

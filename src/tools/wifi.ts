@@ -20,7 +20,7 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_list_wifi",
     {
-      description: "List all WiFi broadcasts (SSIDs) at a site",
+      description: "List all WiFi broadcasts (SSIDs) at a site. Returns: id, name (SSID), enabled, type (STANDARD/IOT_OPTIMIZED), broadcastingFrequenciesGHz (2.4/5/6), securityConfiguration, hideName, bandSteeringEnabled, mloEnabled, network reference, broadcastingDeviceFilter (which APs broadcast it). Use for: SSID inventory. For per-AP radio state (channel, txPower), use unifi_get_device on the AP.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -57,7 +57,7 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_get_wifi",
     {
-      description: "Get a specific WiFi network by ID",
+      description: "Get full configuration for a WiFi broadcast (SSID), including all optional fields not always returned by list: clientFilteringPolicy, blackoutScheduleConfiguration, hotspotConfiguration, mdnsProxyConfiguration, handoffSuggestionsConfiguration, dtimPeriodByFrequencyGHzOverride, etc.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),

@@ -10,7 +10,7 @@ export function registerSystemTools(
   server.registerTool(
     "unifi_get_info",
     {
-      description: "Get application information including version and whether it's a UniFi OS Console",
+      description: "Get UniFi Network application info. Returns: applicationVersion, isUniFiOSConsole (true on UDM/UDM-Pro/UNVR, false on standalone Network controller). Use for: capability checks before calling version-gated tools.",
       inputSchema: {},
       annotations: READ_ONLY,
     },
