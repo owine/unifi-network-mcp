@@ -12,7 +12,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_wans",
     {
-      description: "List WAN interfaces (uplinks to the internet) at a site. Returns: id, name, type (WAN/WAN2), enabled, ipv4 config, ipv6 config, status (UP/DOWN), gateway, dns servers, currentRxRateBps/currentTxRateBps. Use for: WAN status, multi-WAN/failover inventory.",
+      description: "List WAN interface definitions at a site. Returns: id, name, and configuration metadata. NOTE: the 10.4.55 docs describe this as static identification info — live link status and throughput rates are NOT documented as part of this response. Use for: WAN inventory, multi-WAN topology.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -45,7 +45,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_vpn_tunnels",
     {
-      description: "List site-to-site VPN tunnels (IPsec, WireGuard, OpenVPN site-to-site) at a site. Returns: id, name, type, enabled, remoteEndpoint, localNetworks, remoteNetworks, status. For roaming client VPN servers, see unifi_list_vpn_servers.",
+      description: "List site-to-site VPN tunnels (IPsec, WireGuard, OpenVPN site-to-site) at a site. Returns: tunnel definitions per row (per-row schema not rendered in 10.4.55 docs — call to inspect). For roaming client VPN servers, see unifi_list_vpn_servers.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -82,7 +82,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_vpn_servers",
     {
-      description: "List VPN servers (roaming/client-access VPNs: WireGuard, OpenVPN, L2TP, Teleport) at a site. Returns: id, name, type, enabled, listenPort, clientNetworks, dnsServers, connectedClientsCount.",
+      description: "List VPN servers (roaming/client-access VPNs: WireGuard, OpenVPN, L2TP, Teleport) at a site. Returns: server definitions per row (per-row schema not rendered in 10.4.55 docs — call to inspect).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -119,7 +119,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_radius_profiles",
     {
-      description: "List RADIUS profiles (auth/accounting server configurations referenced by WiFi WPA-Enterprise, switch 802.1X port auth, VPN). Returns: id, name, authServers[], accountingServers[], interimUpdateIntervalSec.",
+      description: "List RADIUS profiles (auth/accounting server configurations referenced by WiFi WPA-Enterprise, switch 802.1X port auth, VPN). Returns: id, name, metadata.origin, plus server configuration (full schema not rendered in 10.4.55 docs — call to inspect).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -267,7 +267,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_countries",
     {
-      description: "List countries/regions (global) for geo-IP firewall rules. Returns: id (ISO alpha-2 code), name. Use the id when building firewall policies that match by source/destination country.",
+      description: "List countries/regions (global) for geo-IP firewall rules. Returns: id (ISO country code), name. Use the id when building firewall policies that match by source/destination country.",
       inputSchema: {
         offset: z
           .number()

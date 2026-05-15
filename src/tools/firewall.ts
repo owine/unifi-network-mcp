@@ -20,7 +20,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_list_firewall_zones",
     {
-      description: "List firewall zones (groupings of networks for zone-based firewalling) at a site. Returns: id, name, networkIds[], systemDefined (true for INTERNAL/EXTERNAL/DMZ/HOTSPOT/VPN/GATEWAY). Use for: zone inventory; pair with unifi_list_firewall_policies to see rules between zones.",
+      description: "List firewall zones (groupings of networks for zone-based firewalling) at a site. Returns: id, name, networkIds[], metadata.origin (indicates system-defined vs user-defined). Use for: zone inventory; pair with unifi_list_firewall_policies to see rules between zones.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -79,7 +79,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_list_firewall_policies",
     {
-      description: "List firewall policies (zone-based rules) at a site. Returns: id, name, action (ALLOW/BLOCK/REJECT), source (zoneId, matching criteria), destination, protocol, ports, schedule, loggingEnabled, enabled, predefined (true for system rules). Evaluation order within a zone pair comes from unifi_get_firewall_policy_ordering.",
+      description: "List firewall policies (zone-based rules) at a site. Returns: id, name, enabled, action (object with type field), source/destination (zone reference + trafficFilter), ipProtocolScope, connectionStateFilter, ipsecFilter, schedule, loggingEnabled, index, description, metadata.origin. Protocols/ports are encoded inside source/destination.trafficFilter, not as top-level fields. Evaluation order within a zone pair comes from unifi_get_firewall_policy_ordering.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z

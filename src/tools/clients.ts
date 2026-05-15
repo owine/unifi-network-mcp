@@ -13,7 +13,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_list_clients",
     {
-      description: "List currently connected clients (wired, wireless, VPN) at a site. Returns per client: id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress, connectedAt, uplinkDeviceId (the switch/AP they're attached to). Wireless clients also include: wlanId, signalDbm, signalToNoiseRatioDb, radioFrequencyGHz, channel, txRateKbps, rxRateKbps. Wired clients include: switchPortIdx, vlanId. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API.",
+      description: "List currently connected clients at a site. Returns per client (shape varies by type): id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress, connectedAt, uplinkDeviceId (the switch/AP they're attached to), access (object with type). WIRELESS and WIRED variants include their own connection details (signal/channel for wireless, port binding for wired) — call the tool and inspect by type for exact fields. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z

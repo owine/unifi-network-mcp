@@ -19,7 +19,7 @@ export function registerHotspotTools(
   server.registerTool(
     "unifi_list_vouchers",
     {
-      description: "List hotspot/guest-portal vouchers at a site. Returns: id, code, name, createdAt, expiresAt, timeLimitMinutes, dataUsageLimitMBytes, rxRateLimitKbps, txRateLimitKbps, authorizedGuestLimit, authorizedGuestCount, expired. Use filter like 'expired.eq(true)' to bulk-find stale vouchers.",
+      description: "List hotspot/guest-portal vouchers at a site. Returns: id, code, name, createdAt, activatedAt (when first guest used it), expiresAt, timeLimitMinutes, dataUsageLimitMBytes, rxRateLimitKbps, txRateLimitKbps, authorizedGuestLimit, authorizedGuestCount, expired. Use filter like 'expired.eq(true)' to bulk-find stale vouchers.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z

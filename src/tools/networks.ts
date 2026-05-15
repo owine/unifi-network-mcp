@@ -20,7 +20,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_list_networks",
     {
-      description: "List all networks (VLANs/LAN segments) at a site. Returns: id, name, management (UNMANAGED/GATEWAY/SWITCH), enabled, vlanId, dhcpGuarding, subnet info. Use for: VLAN inventory; pair with unifi_get_network_references to find what consumes a network.",
+      description: "List all networks (VLANs/LAN segments) at a site. Returns: id, name, management (UNMANAGED/GATEWAY/SWITCH), enabled, vlanId, default (true for the default network), dhcpGuarding, metadata.origin. NOTE: the Integration API does NOT expose subnet/DHCP-range/DNS-server settings — only top-level identification and VLAN ID. Use for: VLAN inventory; pair with unifi_get_network_references to find what consumes a network.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -57,7 +57,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_get_network",
     {
-      description: "Get full configuration for a network/VLAN by ID.",
+      description: "Get a network/VLAN by ID. Schema is sparse — only id, name, management, enabled, vlanId, default, dhcpGuarding, metadata. Subnet/DHCP-range/DNS settings are NOT available via the Integration API.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         networkId: z.string().describe("Network ID"),
@@ -77,7 +77,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_get_network_references",
     {
-      description: "Get all objects that reference this network: WiFi broadcasts assigned to it, firewall zones containing it, etc. Use before deleting a network to find dependencies that need to be re-pointed or removed.",
+      description: "Get all objects that reference this network (WiFi broadcasts, firewall zones, etc.). Returns: { referenceResources: [...] }. Use before deleting a network to find dependencies that need to be re-pointed or removed.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         networkId: z.string().describe("Network ID"),
