@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.7.0](https://github.com/owine/unifi-network-mcp/compare/2.6.0...2.7.0) (2026-05-15)
+
+
+### Features
+
+* add outputSchema to all resource-returning tools, verified against live API 10.4.55 ([4e58e32](https://github.com/owine/unifi-network-mcp/commit/4e58e32a741599bdf374096305a61f796ff1506d))
+
+
+### Dependencies
+
+* lock file maintenance ([#106](https://github.com/owine/unifi-network-mcp/issues/106)) ([f1319d0](https://github.com/owine/unifi-network-mcp/commit/f1319d0eddec708c23608d640450eb1380452844))
+
 ## [2.6.0](https://github.com/owine/unifi-network-mcp/compare/2.5.0...2.6.0) (2026-05-13)
 
 
