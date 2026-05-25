@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.1](https://github.com/owine/unifi-network-mcp/compare/2.7.0...2.7.1) (2026-05-25)
+
+
+### Dependencies
+
+* lock file maintenance ([#107](https://github.com/owine/unifi-network-mcp/issues/107)) ([f5ff7d4](https://github.com/owine/unifi-network-mcp/commit/f5ff7d4097abb35a5b96cedd226910534cf12290))
+
 ## [2.7.0](https://github.com/owine/unifi-network-mcp/compare/2.6.0...2.7.0) (2026-05-15)
 
 
