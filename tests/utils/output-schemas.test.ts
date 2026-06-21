@@ -8,6 +8,7 @@ import {
   networkOutputSchema,
   firewallPolicyOutputSchema,
   voucherOutputSchema,
+  createVouchersOutputSchema,
   lagOutputSchema,
   getInfoOutputSchema,
   listDpiCategoriesOutputSchema,
@@ -164,7 +165,28 @@ describe("output schemas", () => {
       z.object(lagOutputSchema).parse({ id: "l1", type: "LOCAL" })
     ).not.toThrow();
     expect(() =>
-      z.object(getInfoOutputSchema).parse({ applicationVersion: "10.4.55" })
+      z.object(getInfoOutputSchema).parse({ applicationVersion: "10.5.43" })
     ).not.toThrow();
+  });
+
+  it("create-voucher schema accepts the real Generate Vouchers response (live-captured 10.5.43)", () => {
+    // Captured live: POST /hotspot/vouchers returns { vouchers: [...] } —
+    // NOT a paginated { data: [...] } envelope. `code` is a STRING despite
+    // the docs sample rendering it as a bare number. Regression guard against
+    // the previous `{ ...pagination, data }` schema that hard-failed every call.
+    const real = {
+      vouchers: [
+        {
+          id: "d685adca-bef6-435f-9039-33f08663129f",
+          createdAt: "2026-06-21T01:26:20Z",
+          name: "shape-test",
+          code: "8744293332",
+          authorizedGuestCount: 0,
+          expired: false,
+          timeLimitMinutes: 1,
+        },
+      ],
+    };
+    expect(() => z.object(createVouchersOutputSchema).parse(real)).not.toThrow();
   });
 });

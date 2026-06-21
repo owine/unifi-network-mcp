@@ -77,7 +77,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_get_device_statistics",
     {
-      description: "Get latest live statistics for a device. Returns: uptimeSec, lastHeartbeatAt, nextHeartbeatAt, loadAverage1/5/15Min, cpuUtilizationPct, memoryUtilizationPct, uplink (txRateBps, rxRateBps), interfaces.radios[] for APs ({frequencyGHz, txRetriesPct}). NOTE: verified against 10.4.55 — the Integration API does NOT expose per-switch-port byte/error/PoE-power counters here; port-level live stats are unavailable. Use for: device health and AP radio metrics. For config (channel, power, port assignment), use unifi_get_device.",
+      description: "Get latest live statistics for a device. Returns: uptimeSec, lastHeartbeatAt, nextHeartbeatAt, loadAverage1/5/15Min, cpuUtilizationPct, memoryUtilizationPct, uplink (txRateBps, rxRateBps), interfaces.radios[] for APs ({frequencyGHz, txRetriesPct}). NOTE: verified against 10.5.43 — the Integration API does NOT expose per-switch-port byte/error/PoE-power counters here; port-level live stats are unavailable. Use for: device health and AP radio metrics. For config (channel, power, port assignment), use unifi_get_device.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),
@@ -100,7 +100,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_list_pending_devices",
     {
-      description: "List devices pending adoption across all sites (global endpoint, not site-scoped). Returns: basic device info per pending device (macAddress, model, ipAddress, firmwareVersion, etc. — exact per-row schema is not rendered in the 10.4.55 docs). Use for: discovering new devices on the network before calling unifi_adopt_device.",
+      description: "List devices pending adoption across all sites (global endpoint, not site-scoped). Returns: basic device info per pending device (macAddress, model, ipAddress, firmwareVersion, etc. — exact per-row schema is not rendered in the 10.5.43 docs). Use for: discovering new devices on the network before calling unifi_adopt_device.",
       inputSchema: {
         offset: z
           .number()
