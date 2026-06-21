@@ -280,6 +280,7 @@ const AclRule = z
     protocolFilter: z.array(z.string()).optional(),
     sourceFilter: z.unknown().optional(),
     destinationFilter: z.unknown().optional(),
+    enforcingDeviceFilter: z.unknown().optional(),
     metadata: Metadata.optional(),
   })
   .passthrough();

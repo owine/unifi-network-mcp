@@ -9,6 +9,7 @@ import {
   firewallPolicyOutputSchema,
   voucherOutputSchema,
   createVouchersOutputSchema,
+  aclRuleOutputSchema,
   lagOutputSchema,
   getInfoOutputSchema,
   listDpiCategoriesOutputSchema,
@@ -188,5 +189,18 @@ describe("output schemas", () => {
       ],
     };
     expect(() => z.object(createVouchersOutputSchema).parse(real)).not.toThrow();
+  });
+
+  it("acl rule schema accepts source/destination/enforcingDevice filters", () => {
+    expect(() =>
+      z.object(aclRuleOutputSchema).parse({
+        id: "a1",
+        type: "IPV4",
+        action: "BLOCK",
+        sourceFilter: { type: "NETWORK", value: "n1" },
+        destinationFilter: null,
+        enforcingDeviceFilter: { type: "ALL" },
+      })
+    ).not.toThrow();
   });
 });
