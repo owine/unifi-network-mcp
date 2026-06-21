@@ -124,15 +124,15 @@ export function registerAclTools(
           .optional()
           .describe("Protocols this ACL rule will be applied to (TCP, UDP). When null, applies to all protocols"),
         sourceFilter: z
-          .record(z.string(), z.unknown())
+          .unknown()
           .optional()
           .describe("Traffic source filter (opaque object — pass the structure the API expects)"),
         destinationFilter: z
-          .record(z.string(), z.unknown())
+          .unknown()
           .optional()
           .describe("Traffic destination filter (opaque object — pass the structure the API expects)"),
         enforcingDeviceFilter: z
-          .record(z.string(), z.unknown())
+          .unknown()
           .optional()
           .describe("IDs of the Switch-capable devices used to enforce the ACL rule. When null/omitted, the rule is provisioned to all switches on the site"),
         dryRun: z
@@ -180,15 +180,15 @@ export function registerAclTools(
           .optional()
           .describe("Protocols this ACL rule will be applied to (TCP, UDP). When null, applies to all protocols"),
         sourceFilter: z
-          .record(z.string(), z.unknown())
+          .unknown()
           .optional()
           .describe("Traffic source filter (opaque object — pass the structure the API expects)"),
         destinationFilter: z
-          .record(z.string(), z.unknown())
+          .unknown()
           .optional()
           .describe("Traffic destination filter (opaque object — pass the structure the API expects)"),
         enforcingDeviceFilter: z
-          .record(z.string(), z.unknown())
+          .unknown()
           .optional()
           .describe("IDs of the Switch-capable devices used to enforce the ACL rule. When null/omitted, the rule is provisioned to all switches on the site"),
         dryRun: z
