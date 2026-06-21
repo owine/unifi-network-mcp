@@ -22,7 +22,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_wans",
     {
-      description: "List WAN interface definitions at a site. Returns: id, name only (verified against 10.4.55 — the Integration API exposes no live link status or throughput rates here). Use for: WAN inventory, multi-WAN topology.",
+      description: "List WAN interface definitions at a site. Returns: id, name only (verified against 10.5.43 — the Integration API exposes no live link status or throughput rates here). Use for: WAN inventory, multi-WAN topology.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -56,7 +56,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_vpn_tunnels",
     {
-      description: "List site-to-site VPN tunnels (IPsec, WireGuard, OpenVPN site-to-site) at a site. Returns: tunnel definitions per row (per-row schema not rendered in 10.4.55 docs — call to inspect). For roaming client VPN servers, see unifi_list_vpn_servers.",
+      description: "List site-to-site VPN tunnels (IPsec, WireGuard, OpenVPN site-to-site) at a site. Returns: tunnel definitions per row (per-row schema not rendered in 10.5.43 docs — call to inspect). For roaming client VPN servers, see unifi_list_vpn_servers.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z

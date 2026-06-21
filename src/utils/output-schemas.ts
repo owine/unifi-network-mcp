@@ -3,7 +3,7 @@
  * field optional, every nested object uses .passthrough() to allow
  * firmware/hardware-specific fields to flow through unchanged).
  *
- * Verified against UniFi Network API 10.4.55. Where the docs collapse
+ * Verified against UniFi Network API 10.5.43. Where the docs collapse
  * nested arrays/objects (e.g. interfaces.ports[], radios[]), the schema
  * uses passthrough records so the contract doesn't lock to fields we
  * haven't verified.
@@ -170,7 +170,7 @@ const WifiBroadcast = z
 
 const ApplicationInfo = z
   .object({
-    // Live-verified (10.4.55): only applicationVersion is returned.
+    // Live-verified (10.5.43): only applicationVersion is returned.
     applicationVersion: z.string().optional(),
   })
   .passthrough();
@@ -280,6 +280,7 @@ const AclRule = z
     protocolFilter: z.array(z.string()).optional(),
     sourceFilter: z.unknown().optional(),
     destinationFilter: z.unknown().optional(),
+    enforcingDeviceFilter: z.unknown().optional(),
     metadata: Metadata.optional(),
   })
   .passthrough();
@@ -350,7 +351,7 @@ const TrafficMatchingList = z
   })
   .passthrough();
 
-// Verified against the live Integration API (10.4.55). The WAN and
+// Verified against the live Integration API (10.5.43). The WAN and
 // site-to-site-tunnel list rows are intentionally minimal in the API.
 const Wan = z
   .object({
@@ -450,9 +451,12 @@ export const listVouchersOutputSchema = {
   data: z.array(Voucher),
 } as const;
 
+// NOTE: the Generate Vouchers endpoint does NOT return the standard
+// paginated envelope. Live-verified (10.5.43): it returns
+// `{ "vouchers": [ ...Voucher ] }` with no offset/limit/count/totalCount.
+// An over-tight schema here (e.g. requiring `data`) hard-fails every call.
 export const createVouchersOutputSchema = {
-  ...PaginationFields,
-  data: z.array(Voucher),
+  vouchers: z.array(Voucher),
 } as const;
 
 export const firewallZoneOutputSchema = FirewallZone.shape;

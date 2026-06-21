@@ -123,6 +123,18 @@ export function registerAclTools(
           .array(z.enum(["TCP", "UDP"]))
           .optional()
           .describe("Protocols this ACL rule will be applied to (TCP, UDP). When null, applies to all protocols"),
+        sourceFilter: z
+          .unknown()
+          .optional()
+          .describe("Traffic source filter (opaque object — pass the structure the API expects)"),
+        destinationFilter: z
+          .unknown()
+          .optional()
+          .describe("Traffic destination filter (opaque object — pass the structure the API expects)"),
+        enforcingDeviceFilter: z
+          .unknown()
+          .optional()
+          .describe("IDs of the Switch-capable devices used to enforce the ACL rule. When null/omitted, the rule is provisioned to all switches on the site"),
         dryRun: z
           .boolean()
           .optional()
@@ -131,11 +143,14 @@ export function registerAclTools(
       outputSchema: aclRuleOutputSchema,
       annotations: WRITE_NOT_IDEMPOTENT,
     },
-    async ({ siteId, type, name, enabled, action, description, protocolFilter, dryRun }) => {
+    async ({ siteId, type, name, enabled, action, description, protocolFilter, sourceFilter, destinationFilter, enforcingDeviceFilter, dryRun }) => {
       try {
         const body: Record<string, unknown> = { type, name, enabled, action };
         if (description !== undefined) body.description = description;
         if (protocolFilter !== undefined) body.protocolFilter = protocolFilter;
+        if (sourceFilter !== undefined) body.sourceFilter = sourceFilter;
+        if (destinationFilter !== undefined) body.destinationFilter = destinationFilter;
+        if (enforcingDeviceFilter !== undefined) body.enforcingDeviceFilter = enforcingDeviceFilter;
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/acl-rules`, body);
         const data = await client.post(`/sites/${siteId}/acl-rules`, body);
         return formatSuccess(data, { structured: true });
@@ -164,6 +179,18 @@ export function registerAclTools(
           .array(z.enum(["TCP", "UDP"]))
           .optional()
           .describe("Protocols this ACL rule will be applied to (TCP, UDP). When null, applies to all protocols"),
+        sourceFilter: z
+          .unknown()
+          .optional()
+          .describe("Traffic source filter (opaque object — pass the structure the API expects)"),
+        destinationFilter: z
+          .unknown()
+          .optional()
+          .describe("Traffic destination filter (opaque object — pass the structure the API expects)"),
+        enforcingDeviceFilter: z
+          .unknown()
+          .optional()
+          .describe("IDs of the Switch-capable devices used to enforce the ACL rule. When null/omitted, the rule is provisioned to all switches on the site"),
         dryRun: z
           .boolean()
           .optional()
@@ -172,11 +199,14 @@ export function registerAclTools(
       outputSchema: aclRuleOutputSchema,
       annotations: WRITE,
     },
-    async ({ siteId, aclRuleId, type, name, enabled, action, description, protocolFilter, dryRun }) => {
+    async ({ siteId, aclRuleId, type, name, enabled, action, description, protocolFilter, sourceFilter, destinationFilter, enforcingDeviceFilter, dryRun }) => {
       try {
         const body: Record<string, unknown> = { type, name, enabled, action };
         if (description !== undefined) body.description = description;
         if (protocolFilter !== undefined) body.protocolFilter = protocolFilter;
+        if (sourceFilter !== undefined) body.sourceFilter = sourceFilter;
+        if (destinationFilter !== undefined) body.destinationFilter = destinationFilter;
+        if (enforcingDeviceFilter !== undefined) body.enforcingDeviceFilter = enforcingDeviceFilter;
         if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/acl-rules/${aclRuleId}`, body);
         const data = await client.put(
           `/sites/${siteId}/acl-rules/${aclRuleId}`,

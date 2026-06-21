@@ -212,6 +212,32 @@ describe("registerAclTools", () => {
         const callArgs = mockFn(client, "post").mock.calls[0];
         expect(callArgs[1]).not.toHaveProperty("description");
         expect(callArgs[1]).not.toHaveProperty("protocolFilter");
+        expect(callArgs[1]).not.toHaveProperty("sourceFilter");
+        expect(callArgs[1]).not.toHaveProperty("destinationFilter");
+        expect(callArgs[1]).not.toHaveProperty("enforcingDeviceFilter");
+      });
+
+      it("should pass through source/destination/enforcingDevice filters when provided", async () => {
+        mockFn(client, "post").mockResolvedValue({ id: "rule3" });
+
+        const handler = handlers.get("unifi_create_acl_rule");
+        await handler({
+          siteId: "site123",
+          type: "IPV4",
+          name: "Filtered rule",
+          enabled: true,
+          action: "BLOCK",
+          sourceFilter: { type: "NETWORK", value: "n1" },
+          destinationFilter: { type: "IP", value: "10.0.0.1" },
+          enforcingDeviceFilter: { type: "ALL" },
+        });
+
+        const callArgs = mockFn(client, "post").mock.calls[0];
+        expect(callArgs[1]).toMatchObject({
+          sourceFilter: { type: "NETWORK", value: "n1" },
+          destinationFilter: { type: "IP", value: "10.0.0.1" },
+          enforcingDeviceFilter: { type: "ALL" },
+        });
       });
 
       it("should return error when client.post fails", async () => {
