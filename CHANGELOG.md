@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.8.0](https://github.com/owine/unifi-network-mcp/compare/2.7.5...2.8.0) (2026-06-22)
+
+
+### Features
+
+* align with UniFi Network API 10.5.43 ([#146](https://github.com/owine/unifi-network-mcp/issues/146)) ([3e92a6a](https://github.com/owine/unifi-network-mcp/commit/3e92a6ae44a6dae5efa797defb32069e1aa9bf2d))
+
+
+### Dependencies
+
+* lock file maintenance ([#147](https://github.com/owine/unifi-network-mcp/issues/147)) ([6e17e70](https://github.com/owine/unifi-network-mcp/commit/6e17e70cfa14fb6b18a891127ed560cd8446e587))
+* lock file maintenance all non-major dependencies ([#143](https://github.com/owine/unifi-network-mcp/issues/143)) ([7f447af](https://github.com/owine/unifi-network-mcp/commit/7f447af452ac721f89929174fd92a193c590cd72))
+
 ## [2.7.5](https://github.com/owine/unifi-network-mcp/compare/2.7.4...2.7.5) (2026-06-16)
 
 
