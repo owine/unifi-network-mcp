@@ -44,7 +44,7 @@
     "@eslint/js": "10.0.1",
     "@types/node": "24.13.3",
     "@vitest/coverage-v8": "4.1.10",
-    "eslint": "10.6.0",
+    "eslint": "10.7.0",
     "lefthook": "2.1.10",
     "typescript": "6.0.3",
     "typescript-eslint": "8.63.0",
