@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.8.3](https://github.com/owine/unifi-network-mcp/compare/2.8.2...2.8.3) (2026-07-13)
+
+
+### Dependencies
+
+* update all non-major dependencies ([#160](https://github.com/owine/unifi-network-mcp/issues/160)) ([cab4ff4](https://github.com/owine/unifi-network-mcp/commit/cab4ff4c2471858c311a6c7d3cfa1b271d4be548))
+* update dependency eslint to v10.7.0 ([#167](https://github.com/owine/unifi-network-mcp/issues/167)) ([344148d](https://github.com/owine/unifi-network-mcp/commit/344148dd57f1a8e9de9f613e4ea8ea1fd423f32c))
+* update pnpm to v11.11.0 ([#162](https://github.com/owine/unifi-network-mcp/issues/162)) ([5b6645e](https://github.com/owine/unifi-network-mcp/commit/5b6645eda923b1c659d44451ceae6072b22f0cc8))
+* update testing to v4.1.10 ([#161](https://github.com/owine/unifi-network-mcp/issues/161)) ([89e60ae](https://github.com/owine/unifi-network-mcp/commit/89e60aef6cde9cd1054e81aabe7ab5487b7e7063))
+
 ## [2.8.2](https://github.com/owine/unifi-network-mcp/compare/2.8.1...2.8.2) (2026-07-06)
 
 
