@@ -1,9 +1,16 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config.js";
 import { NetworkClient } from "./client.js";
 import { registerAllTools } from "./tools/index.js";
+
+// Read at runtime rather than importing: package.json sits outside rootDir,
+// so a static import would emit dist/src/ and break the published layout.
+const { version } = createRequire(__filename)("../package.json") as {
+  version: string;
+};
 
 async function main() {
   const config = loadConfig();
@@ -11,7 +18,7 @@ async function main() {
 
   const server = new McpServer({
     name: "unifi-network",
-    version: "1.0.0",
+    version,
   });
 
   registerAllTools(server, client, config.readOnly);
