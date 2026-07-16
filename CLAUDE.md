@@ -6,7 +6,7 @@ MCP server exposing UniFi Network's Integration API as tool calls. Built with th
 
 ## Local dev setup
 
-- Node version pinned in `.nvmrc` (24.15.0). Use [fnm](https://github.com/Schniz/fnm) — `fnm use` auto-reads `.nvmrc` on `cd`. The published library declares broader `engines.node` (`^22.13.0 || ^24.0.0`) for consumers; the `.nvmrc` only pins *development*.
+- Node version pinned in `.nvmrc` (24.18.0). Use [fnm](https://github.com/Schniz/fnm) — `fnm use` auto-reads `.nvmrc` on `cd`. The published library declares broader `engines.node` (`^22.13.0 || ^24.0.0`) for consumers; the `.nvmrc` only pins *development*.
 - Package manager: pnpm via Corepack. `corepack enable`, then `pnpm install`.
 - Dev install/build use pnpm; **publishing uses `npm publish --provenance`** (hybrid — npm has the most battle-tested OIDC flow).
 
@@ -48,17 +48,19 @@ src/
     responses.ts      # formatSuccess() / formatError() helpers
     query.ts          # buildQuery() for pagination/filter params
     safety.ts         # Tool annotations, formatDryRun(), requireConfirmation()
+    output-schemas.ts # Zod output schemas for tools' structuredContent (58 tools)
 ```
 
 ## Adding a new tool
 
-1. Add a function `registerXTools(server, client, readOnly)` in `src/tools/<domain>.ts`
-2. Use `server.registerTool(name, { description, inputSchema, annotations }, handler)`
+1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`) omit the `readOnly` param entirely — there is nothing to gate
+2. Use `server.registerTool(name, { description, inputSchema, outputSchema, annotations }, handler)`
 3. Set appropriate annotations from `utils/safety.ts`: `READ_ONLY`, `WRITE`, `WRITE_NOT_IDEMPOTENT`, `DESTRUCTIVE`
-4. For write tools: register them after `if (readOnly) return;` at the function level, add optional `dryRun` parameter
-5. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`
-6. Wire it into `src/tools/index.ts` via `registerAllTools()`
-7. Add tests in `tests/tools/<domain>.test.ts` using `createMockServer()` and `createMockClient()` from `tests/tools/_helpers.ts`
+4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource. Follow the loose strategy in that file: non-key fields optional, nested objects `.passthrough()`
+5. For write tools: register them after `if (readOnly) return;` at the function level, add optional `dryRun` parameter
+6. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`
+7. Wire it into `src/tools/index.ts` via `registerAllTools()`
+8. Add tests in `tests/tools/<domain>.test.ts` using `createMockServer()` and `createMockClient()` from `tests/tools/_helpers.ts`
 
 ## Tool safety
 
