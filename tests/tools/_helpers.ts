@@ -7,6 +7,8 @@ interface ToolConfig {
   description: string;
   annotations: Record<string, unknown>;
   schema: Record<string, unknown>;
+  /** Undefined when the tool declares no outputSchema. */
+  outputSchema?: Record<string, unknown>;
 }
 
 /**
@@ -14,7 +16,7 @@ interface ToolConfig {
  * Returns maps from tool name → handler function and tool name → config.
  *
  * server.registerTool() is called as:
- *   server.registerTool(name, { description, inputSchema, annotations }, handler)
+ *   server.registerTool(name, { description, inputSchema, outputSchema, annotations }, handler)
  */
 export function createMockServer() {
   const handlers = new Map<string, (...args: any[]) => any>();
@@ -26,6 +28,7 @@ export function createMockServer() {
         config: {
           description?: string;
           inputSchema?: Record<string, unknown>;
+          outputSchema?: Record<string, unknown>;
           annotations?: Record<string, unknown>;
         },
         handler: (...a: any[]) => any,
@@ -34,6 +37,7 @@ export function createMockServer() {
           description: config.description ?? "",
           annotations: config.annotations ?? {},
           schema: config.inputSchema ?? {},
+          outputSchema: config.outputSchema,
         });
         handlers.set(name, handler);
       },
