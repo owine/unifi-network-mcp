@@ -4,7 +4,7 @@ An MCP (Model Context Protocol) server that exposes the UniFi Network Integratio
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 22.13+ or 24 (see `engines` in `package.json`)
 - A UniFi Network console with the Integration API enabled
 - An API key generated from your UniFi Network console
 
@@ -22,13 +22,14 @@ Use `-s user` for global availability across all projects, or `-s project` for t
 
 ### From source
 
-If you prefer to build locally:
+If you prefer to build locally, this project uses pnpm via Corepack — use `pnpm install`, not `npm install`, which ignores `pnpm-lock.yaml` and resolves different dependency versions:
 
 ```bash
 git clone https://github.com/owine/unifi-network-mcp.git
 cd unifi-network-mcp
-npm install
-npm run build
+corepack enable
+pnpm install
+pnpm run build
 ```
 
 Then add to Claude Code:
@@ -73,15 +74,21 @@ This server provides layered safety controls for responsible operation:
 - **Tool annotations** — Every tool declares `readOnlyHint`, `destructiveHint`, and `idempotentHint` so MCP clients (like Claude Code) can make informed confirmation decisions
 - **Read-only mode** — Enabled by default. Only read operations (list, get) are registered. Set `UNIFI_NETWORK_READ_ONLY=false` to enable write/mutating tools
 - **Destructive tool warnings** — Tools that delete or irreversibly modify resources have descriptions prefixed with `DESTRUCTIVE:` to clearly signal risk
-- **Confirmation parameter** — The most dangerous tools (e.g., `unifi_remove_device`, `unifi_bulk_delete_vouchers`) require an explicit `confirm: true` parameter that must be present for the call to succeed
-- **Dry-run support** — All write tools accept an optional `dryRun: true` parameter that returns a preview of the HTTP request (method, path, body) without making any changes
+- **Confirmation parameter** — Every tool marked `DESTRUCTIVE:` (all 10 of them, including `unifi_remove_device` and `unifi_bulk_delete_vouchers`) requires an explicit `confirm: true` parameter for the call to succeed
+- **Dry-run support** — All 33 write tools accept an optional `dryRun: true` parameter that returns a preview of the HTTP request (method, path, body) without making any changes
+
+## Structured Output
+
+58 of the 74 tools (all 41 read tools, plus the 17 write tools whose API responses return the affected resource) declare an MCP `outputSchema` and return `structuredContent` alongside the usual text content. Clients that understand structured output get typed, machine-readable results instead of parsing JSON out of a text blob.
+
+The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi Network API 10.5.43. They deliberately use a **loose strategy**: every non-key field is optional and nested objects use `.passthrough()`, so firmware- and hardware-specific fields flow through unchanged rather than being stripped or triggering a validation error. This keeps the contract stable across console versions and hardware models.
 
 ## Tools (74 total)
 
 ### System (1)
 | Tool | Description |
 |---|---|
-| `unifi_get_info` | Get application information including version and whether it's a UniFi OS Console |
+| `unifi_get_info` | Get UniFi Network application info — returns `applicationVersion` only |
 
 ### Sites (1)
 | Tool | Description |
@@ -207,11 +214,15 @@ This server provides layered safety controls for responsible operation:
 ## Development
 
 ```bash
-npm run build        # Compile TypeScript
-npm start            # Run the server
-npm run typecheck    # Type-check without emitting
-npm run lint         # ESLint
-npm test             # Run all tests (vitest)
+pnpm install           # Install dependencies
+pnpm run build         # Compile TypeScript
+pnpm start             # Run the server
+pnpm run typecheck     # Type-check without emitting
+pnpm run lint          # ESLint
+pnpm run lint:fix      # ESLint with auto-fix
+pnpm test              # Run all tests (vitest)
+pnpm run test:watch    # Run tests in watch mode
+pnpm run test:coverage # Run tests with coverage
 ```
 
 ### Commit conventions
