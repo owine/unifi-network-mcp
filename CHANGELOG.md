@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.0](https://github.com/owine/unifi-network-mcp/compare/2.9.0...2.10.0) (2026-07-23)
+
+
+### Features
+
+* run TypeScript 6 and 7 side-by-side to unblock the v7 upgrade ([#182](https://github.com/owine/unifi-network-mcp/issues/182)) ([396fc3a](https://github.com/owine/unifi-network-mcp/commit/396fc3a8c079e2495691e3bec7c6c40a135124f7))
+
 ## [2.9.0](https://github.com/owine/unifi-network-mcp/compare/2.8.3...2.9.0) (2026-07-20)
 
 
