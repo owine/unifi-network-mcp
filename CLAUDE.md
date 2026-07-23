@@ -10,6 +10,26 @@ MCP server exposing UniFi Network's Integration API as tool calls. Built with th
 - Package manager: pnpm via Corepack. `corepack enable`, then `pnpm install`.
 - Dev install/build use pnpm; **publishing uses `npm publish --provenance`** (hybrid — npm has the most battle-tested OIDC flow).
 
+### TypeScript 6/7 side-by-side
+
+**Do not "fix" the two aliased `typescript` entries in `devDependencies` — they are deliberate.**
+
+```jsonc
+"@typescript/native": "npm:typescript@7.0.2",         // the real TS 7 — provides `tsc`
+"typescript": "npm:@typescript/typescript6@6.0.2",    // vendored TS 6.0.3 — provides `tsc6` + the JS API
+```
+
+TypeScript 7 is the Go port and ships **no JS API**, so `typescript-estree` crashes at module load with `TypeError: Cannot read properties of undefined (reading 'Cjs')` — meaning `typescript-eslint` cannot run on it at all. The aliases split the *import specifier* from the *bin*:
+
+- Anything resolving the `typescript` **module** (i.e. `typescript-eslint`) gets TS 6.0.3 and its JS API.
+- The `tsc` **bin** is TS 7, because the v7 package keeps that bin name — so `build` and `typecheck` run the Go compiler with no script changes.
+
+Consequences worth knowing:
+
+- `tsc6` is available if you ever need the old compiler for comparison.
+- Renovate now tracks *two* packages: the `@typescript/native` line is TS 7 proper; the `typescript` line is the separately-versioned `@typescript/typescript6` vendoring (its `6.0.2` reports `--version 6.0.3`).
+- Unwind this once typescript-eslint supports TS 7.1's new API ([typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)): drop `@typescript/native` and point `typescript` back at the real package. Nothing else references either alias. See [the TS 7.0 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) and #182.
+
 ## Commands
 
 ```bash
