@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.11.0](https://github.com/owine/unifi-network-mcp/compare/2.10.0...2.11.0) (2026-08-04)
+
+
+### Features
+
+* update dependency @modelcontextprotocol/sdk to v1.30.0 ([#194](https://github.com/owine/unifi-network-mcp/issues/194)) ([11a7458](https://github.com/owine/unifi-network-mcp/commit/11a745857cdcdba30b17bfe159838463c233c927))
+
+
+### Dependencies
+
+* update pnpm to v11.19.0 ([#198](https://github.com/owine/unifi-network-mcp/issues/198)) ([8b9d9b0](https://github.com/owine/unifi-network-mcp/commit/8b9d9b0287ba509e8f639f6f982d599d3560324f))
+* update toolchain-versions ([#193](https://github.com/owine/unifi-network-mcp/issues/193)) ([62eaa5f](https://github.com/owine/unifi-network-mcp/commit/62eaa5fc0d0ce03bf5f802212551e710f735aeaa))
+
 ## [2.10.0](https://github.com/owine/unifi-network-mcp/compare/2.9.0...2.10.0) (2026-07-28)
 
 
