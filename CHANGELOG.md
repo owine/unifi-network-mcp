@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.11.1](https://github.com/owine/unifi-network-mcp/compare/2.11.0...2.11.1) (2026-08-10)
+
+
+### Dependencies
+
+* update dependency typescript-eslint to v8.66.0 ([#202](https://github.com/owine/unifi-network-mcp/issues/202)) ([e0e9110](https://github.com/owine/unifi-network-mcp/commit/e0e91104e57a12f5dcad420ffccaae9c0d701ba4))
+* update pnpm/setup action to v2.0.1 ([#205](https://github.com/owine/unifi-network-mcp/issues/205)) ([119f8cd](https://github.com/owine/unifi-network-mcp/commit/119f8cd482e7ce92f7a4df5d336e98d978b469f3))
+* update toolchain-versions ([#203](https://github.com/owine/unifi-network-mcp/issues/203)) ([e7d4bf6](https://github.com/owine/unifi-network-mcp/commit/e7d4bf60a7f9703ebeaa67f0a435d8981e8fb05a))
+
 ## [2.11.0](https://github.com/owine/unifi-network-mcp/compare/2.10.0...2.11.0) (2026-08-04)
 
 
