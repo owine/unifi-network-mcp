@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.11.4](https://github.com/owine/unifi-network-mcp/compare/2.11.3...2.11.4) (2026-08-31)
+
+
+### Dependencies
+
+* update dependency eslint to v10.9.1 ([#221](https://github.com/owine/unifi-network-mcp/issues/221)) ([bcf2d52](https://github.com/owine/unifi-network-mcp/commit/bcf2d52b79de38015e96e7b4f6747a41c4c6bd36))
+* update dependency lefthook to v2.1.12 ([#225](https://github.com/owine/unifi-network-mcp/issues/225)) ([f9bc5c2](https://github.com/owine/unifi-network-mcp/commit/f9bc5c26f879a41c602d2ca24f802dad1d8ba8a5))
+* update dependency typescript-eslint to v8.68.0 ([#222](https://github.com/owine/unifi-network-mcp/issues/222)) ([35ffae1](https://github.com/owine/unifi-network-mcp/commit/35ffae186e549d3e9dcd9682b2800ce5adbae6ef))
+* update dependency zod to v4.5.1 ([#227](https://github.com/owine/unifi-network-mcp/issues/227)) ([97059e8](https://github.com/owine/unifi-network-mcp/commit/97059e848f06ab38bea88c02bcfdcebf46ce70b2))
+* update dependency zod to v4.5.4 ([#228](https://github.com/owine/unifi-network-mcp/issues/228)) ([fe0fe02](https://github.com/owine/unifi-network-mcp/commit/fe0fe028a4419c7929486a8a9dc0b5e565cb9a36))
+* update pnpm/setup action to v2.1.0 ([#229](https://github.com/owine/unifi-network-mcp/issues/229)) ([d1b89a2](https://github.com/owine/unifi-network-mcp/commit/d1b89a286a781fdaa5d5ee154c3f6c5f6981d62a))
+* update toolchain-versions ([#223](https://github.com/owine/unifi-network-mcp/issues/223)) ([17b1bdb](https://github.com/owine/unifi-network-mcp/commit/17b1bdb57085bbd98f02ca7fffd6840d2e142890))
+
 ## [2.11.3](https://github.com/owine/unifi-network-mcp/compare/2.11.2...2.11.3) (2026-08-25)
 
 
