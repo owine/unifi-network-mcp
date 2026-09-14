@@ -36,7 +36,7 @@ export function registerWifiTools(
         limit: z
           .number()
           .int()
-          .min(1)
+          .min(0)
           .max(200)
           .optional()
           .describe("Number of records to return (default: 25, max: 200)"),
@@ -94,8 +94,8 @@ export function registerWifiTools(
         enabled: z.boolean().describe("Enable the WiFi network"),
         type: z.enum(["STANDARD", "IOT_OPTIMIZED"]).describe("WiFi type"),
         broadcastingFrequenciesGHz: z
-          .array(z.string())
-          .describe("Frequencies: 2.4, 5, 6"),
+          .array(z.enum(["2.4", "5", "6"]))
+          .describe("Frequencies to broadcast on. Accepted as strings and sent to the API as numbers (2.4, 5, 6)."),
         securityConfiguration: z
           .record(z.string(), z.unknown())
           .describe("Security configuration object"),
@@ -277,9 +277,9 @@ export function registerWifiTools(
           .optional()
           .describe("WiFi type"),
         broadcastingFrequenciesGHz: z
-          .array(z.string())
+          .array(z.enum(["2.4", "5", "6"]))
           .optional()
-          .describe("Frequencies: 2.4, 5, 6"),
+          .describe("Frequencies to broadcast on. Accepted as strings and sent to the API as numbers (2.4, 5, 6)."),
         securityConfiguration: z
           .record(z.string(), z.unknown())
           .optional()

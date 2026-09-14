@@ -16,6 +16,7 @@ import {
   listCountriesOutputSchema,
   listWansOutputSchema,
   listVpnServersOutputSchema,
+  switchStackOutputSchema,
 } from "../../src/utils/output-schemas.js";
 
 /**
@@ -201,6 +202,70 @@ describe("output schemas", () => {
         destinationFilter: null,
         enforcingDeviceFilter: { type: "ALL" },
       })
+    ).not.toThrow();
+  });
+
+  it("switch stack accepts the 10.6.106 shape (units[] + top-level deviceId)", () => {
+    // Response sample from the 10.6.106 console docs. `units` replaced
+    // `members`, and `deviceId` is new at the top level.
+    expect(() =>
+      z.object(switchStackOutputSchema).parse({
+        id: "497f6eca-6276-4993-bfeb-53cbbbba6f08",
+        deviceId: "4de4adb9-21ee-47e3-aeb4-8cf8ed6c109a",
+        name: "Rack Stack",
+        units: [{ deviceId: "d1" }, { deviceId: "d2" }],
+        lags: [{ id: "l1" }],
+        metadata: { origin: "USER_DEFINED" },
+      })
+    ).not.toThrow();
+  });
+
+  it("switch stack still accepts the pre-10.6.106 shape (members[])", () => {
+    // The server talks to older consoles too — the rename must not make
+    // their responses fail output validation.
+    expect(() =>
+      z.object(switchStackOutputSchema).parse({
+        id: "s1",
+        name: "Old Stack",
+        members: [{ deviceId: "d1" }],
+        lags: [],
+        metadata: { origin: "USER_DEFINED" },
+      })
+    ).not.toThrow();
+  });
+
+  it("network schema accepts ipv6Configuration alongside ipv4Configuration", () => {
+    // Live-captured from 10.6.106: ipv6Configuration is returned by
+    // get-by-id but appears in no documented response sample.
+    expect(() =>
+      z.object(networkOutputSchema).parse({
+        id: "8bb9e33c-9ee0-419c-88c6-f4b41776a289",
+        name: "IoT",
+        management: "GATEWAY",
+        enabled: true,
+        vlanId: 20,
+        zoneId: "6884fc9e-af1a-4f83-bea4-b158421bf16a",
+        ipv4Configuration: {
+          autoScaleEnabled: false,
+          hostIpAddress: "10.20.20.1",
+          prefixLength: 24,
+          dhcpConfiguration: { mode: "SERVER", leaseTimeSeconds: 86400 },
+        },
+        ipv6Configuration: {
+          interfaceType: "STATIC",
+          clientAddressAssignment: { slaacEnabled: true },
+          routerAdvertisement: { priority: "LOW" },
+          hostIpAddress: "fdc4:15e9:d008:20::1",
+          prefixLength: 64,
+        },
+        metadata: { origin: "USER_DEFINED" },
+      })
+    ).not.toThrow();
+  });
+
+  it("acl rule schema accepts the read-only index field", () => {
+    expect(() =>
+      z.object(aclRuleOutputSchema).parse({ id: "a1", index: 0 })
     ).not.toThrow();
   });
 });

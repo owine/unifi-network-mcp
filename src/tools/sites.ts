@@ -24,14 +24,14 @@ export function registerSiteTools(
         limit: z
           .number()
           .int()
-          .min(1)
+          .min(0)
           .max(200)
           .optional()
           .describe("Number of records to return (default: 25, max: 200)"),
         filter: z
           .string()
           .optional()
-          .describe("Filter expression (e.g., 'name.like(office*)')"),
+          .describe("Filter expression (e.g., name.like('office*'))"),
       },
       outputSchema: listSitesOutputSchema,
       annotations: READ_ONLY,

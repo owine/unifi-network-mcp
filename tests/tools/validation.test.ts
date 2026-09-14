@@ -227,6 +227,19 @@ describe("pagination parameters", () => {
         });
         expect(result.success).toBe(false);
       });
+
+      it("accepts limit=0", () => {
+        // The API documents limit as [0 .. 200]; a 0 limit returns the
+        // count with an empty data array, which is a legitimate way to
+        // ask "how many are there?" without fetching rows.
+        const result = schema.safeParse({ siteId: "site1", limit: 0 });
+        expect(result.success).toBe(true);
+      });
+
+      it("rejects a negative limit", () => {
+        const result = schema.safeParse({ siteId: "site1", limit: -1 });
+        expect(result.success).toBe(false);
+      });
     });
   }
 });

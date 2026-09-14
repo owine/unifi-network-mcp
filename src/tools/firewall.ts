@@ -39,7 +39,7 @@ export function registerFirewallTools(
         limit: z
           .number()
           .int()
-          .min(1)
+          .min(0)
           .max(200)
           .optional()
           .describe("Number of records to return (default: 25, max: 200)"),
@@ -100,7 +100,7 @@ export function registerFirewallTools(
         limit: z
           .number()
           .int()
-          .min(1)
+          .min(0)
           .max(200)
           .optional()
           .describe("Number of records to return (default: 25, max: 200)"),

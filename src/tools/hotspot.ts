@@ -37,7 +37,7 @@ export function registerHotspotTools(
         limit: z
           .number()
           .int()
-          .min(1)
+          .min(0)
           .max(1000)
           .optional()
           .default(100)
