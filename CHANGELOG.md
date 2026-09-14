@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.13.0](https://github.com/owine/unifi-network-mcp/compare/2.12.0...2.13.0) (2026-09-14)
+
+
+### Features
+
+* align tools with UniFi Network API 10.6.106 ([#245](https://github.com/owine/unifi-network-mcp/issues/245)) ([d633675](https://github.com/owine/unifi-network-mcp/commit/d633675347eba60a8879f521f4d99d1ee0585ace))
+* update testing to v5 ([#242](https://github.com/owine/unifi-network-mcp/issues/242)) ([de6fddd](https://github.com/owine/unifi-network-mcp/commit/de6fddd4c8a4811082c85dbd90e44642fb912f56))
+
+
+### Dependencies
+
+* update all non-major dependencies ([#239](https://github.com/owine/unifi-network-mcp/issues/239)) ([41f6980](https://github.com/owine/unifi-network-mcp/commit/41f69801898b1d166682e90330c5f04e5a1056e0))
+* update dependency typescript-eslint to v8.70.0 ([#240](https://github.com/owine/unifi-network-mcp/issues/240)) ([467a275](https://github.com/owine/unifi-network-mcp/commit/467a27584220b702ea0f79ce6b6d467b7221b20d))
+* update toolchain-versions ([#241](https://github.com/owine/unifi-network-mcp/issues/241)) ([0c3b249](https://github.com/owine/unifi-network-mcp/commit/0c3b24932e6faed51337f22fbc8d0a5444ef9d01))
+
 ## [2.12.0](https://github.com/owine/unifi-network-mcp/compare/2.11.4...2.12.0) (2026-09-07)
 
 
