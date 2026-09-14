@@ -24,7 +24,7 @@ export function registerDnsPolicyTools(
   server.registerTool(
     "unifi_list_dns_policies",
     {
-      description: "List DNS policies (local DNS records and forward rules served by the gateway) at a site. Returns: id, type (A_RECORD, AAAA_RECORD, CNAME_RECORD, MX_RECORD, TXT_RECORD, SRV_RECORD, FORWARD_DOMAIN), enabled, domain, ipv4Address, ttlSeconds.",
+      description: "List DNS policies (local DNS records and forward rules served by the gateway) at a site. Returns: id, type (A_RECORD, AAAA_RECORD, CNAME_RECORD, MX_RECORD, TXT_RECORD, SRV_RECORD, FORWARD_DOMAIN), enabled, domain, ipv4Address, ttlSeconds, metadata.origin.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z

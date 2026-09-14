@@ -17,7 +17,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_list_clients",
     {
-      description: "List currently connected clients at a site. Returns per client: id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress, connectedAt, uplinkDeviceId (the switch/AP they're attached to), access.type. NOTE: verified against 10.5.43 — the Integration API client schema is minimal and identical across types; it does NOT expose signal strength, channel, or per-port binding. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API.",
+      description: "List currently connected clients at a site. Returns per client: id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress (frequently absent — do not rely on it being present), connectedAt, uplinkDeviceId (the switch/AP they're attached to), access.type. NOTE: verified against 10.6.106 — the Integration API client schema is minimal and identical across types; it does NOT expose signal strength, channel, or per-port binding. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -75,7 +75,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_authorize_guest",
     {
-      description: "Authorize a guest client through a captive-portal hotspot. Optional limits override hotspot defaults. Idempotency: not safe to retry — re-authorizing extends the session.",
+      description: "Authorize a guest client through a captive-portal hotspot. Optional limits override hotspot defaults. Returns (per 10.6.106 docs, not live-verified): action, grantedAuthorization and revokedAuthorization objects (authorizedAt, authorizationMethod, expiresAt, dataUsageLimitMBytes, rxRateLimitKbps, txRateLimitKbps, usage). Idempotency: not safe to retry — re-authorizing extends the session.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         clientId: z.string().describe("Client ID"),
@@ -149,7 +149,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_unauthorize_guest",
     {
-      description: "Revoke guest authorization; the client returns to the captive portal on next request. Idempotent.",
+      description: "Revoke guest authorization; the client returns to the captive portal on next request. Returns (per 10.6.106 docs, not live-verified): action plus a revokedAuthorization object. Idempotent.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         clientId: z.string().describe("Client ID"),

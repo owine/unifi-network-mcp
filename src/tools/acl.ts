@@ -25,7 +25,7 @@ export function registerAclTools(
   server.registerTool(
     "unifi_list_acl_rules",
     {
-      description: "List ACL rules (switch/AP-level access control lists, distinct from zone-based firewall policies) at a site. Returns: id, type (IPV4/MAC), name, enabled, action (ALLOW/BLOCK), description, protocolFilter, source/destination matchers. ACLs apply earlier in the path than firewall policies.",
+      description: "List ACL rules (switch/AP-level access control lists, distinct from zone-based firewall policies) at a site. Returns: id, type (IPV4/MAC), name, enabled, action (ALLOW/BLOCK), description, protocolFilter, sourceFilter/destinationFilter matchers, enforcingDeviceFilter (which devices apply the rule), index (evaluation order — read-only; change it with unifi_reorder_acl_rules), metadata.origin. ACLs apply earlier in the path than firewall policies.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z

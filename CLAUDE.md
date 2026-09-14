@@ -105,6 +105,8 @@ Tests mock `NetworkClient` methods and capture tool handlers via `createMockServ
 
 ## API version bumps
 
+Aligned with UniFi Network API **10.6.106**. Tool descriptions and `src/utils/output-schemas.ts` are verified against that version; a few notes still cite an older version where that endpoint has not been re-verified live since.
+
 For updating tools to match a new UniFi Network API version, follow the skill at `~/.claude/skills/unifi-api-update/SKILL.md`.
 
 ## Releases

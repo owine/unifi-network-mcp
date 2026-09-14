@@ -20,7 +20,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_list_switch_stacks",
     {
-      description: "List Switch Stacks (multiple physical switches managed as one logical unit) at a site. Returns: id, name, members[], lags[] (LAGs spanning the stack), metadata.origin. Use for: identifying stacked switches; individual member configs/stats still come from unifi_get_device.",
+      description: "List Switch Stacks (multiple physical switches managed as one logical unit) at a site. Returns: id, deviceId (the stack's primary device), name, units[] (the stacked switches — named `members` on consoles older than 10.6.106), lags[] (LAGs spanning the stack), metadata.origin. Per-unit schema is not rendered in the 10.6.106 docs — call unifi_get_switch_stack to inspect. Use for: identifying stacked switches; individual member configs/stats still come from unifi_get_device.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -60,7 +60,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_get_switch_stack",
     {
-      description: "Get full details of a Switch Stack including all members and stacking topology. Returns the same fields as the list response but for a single stack.",
+      description: "Get full details of a Switch Stack including all units and stacking topology. Returns the same fields as the list response but for a single stack: id, deviceId, name, units[] (named `members` before 10.6.106), lags[], metadata.origin.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         switchStackId: z.string().describe("Switch Stack ID"),

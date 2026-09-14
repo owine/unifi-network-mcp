@@ -340,7 +340,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_patch_firewall_policy",
     {
-      description: "Partially update a firewall policy without resending all fields. Common use: toggle loggingEnabled or enabled. Idempotent for fields supplied.",
+      description: "Partially update a firewall policy without resending all fields. loggingEnabled is the only field documented as patchable in API 10.6.106; other fields may be rejected — use unifi_update_firewall_policy for a full update. Idempotent for fields supplied.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         firewallPolicyId: z.string().describe("Firewall policy ID"),

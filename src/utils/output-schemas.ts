@@ -3,7 +3,7 @@
  * field optional, every nested object uses .passthrough() to allow
  * firmware/hardware-specific fields to flow through unchanged).
  *
- * Verified against UniFi Network API 10.5.43. Where the docs collapse
+ * Verified against UniFi Network API 10.6.106. Where the docs collapse
  * nested arrays/objects (e.g. interfaces.ports[], radios[]), the schema
  * uses passthrough records so the contract doesn't lock to fields we
  * haven't verified.
@@ -170,7 +170,7 @@ const WifiBroadcast = z
 
 const ApplicationInfo = z
   .object({
-    // Live-verified (10.5.43): only applicationVersion is returned.
+    // Live-verified (10.6.106): only applicationVersion is returned.
     applicationVersion: z.string().optional(),
   })
   .passthrough();
@@ -361,7 +361,7 @@ const TrafficMatchingList = z
   })
   .passthrough();
 
-// Verified against the live Integration API (10.5.43). The WAN and
+// Verified against the live Integration API (10.6.106). The WAN and
 // site-to-site-tunnel list rows are intentionally minimal in the API.
 const Wan = z
   .object({

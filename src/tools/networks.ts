@@ -25,7 +25,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_list_networks",
     {
-      description: "List all networks (VLANs/LAN segments) at a site. Returns: id, name, management (UNMANAGED/GATEWAY/SWITCH), enabled, vlanId, default (true for the default network), dhcpGuarding, metadata.origin. NOTE: the list view is sparse — for subnet/DHCP/NTP detail (ipv4Configuration), call unifi_get_network on a specific id. Use for: VLAN inventory; pair with unifi_get_network_references to find what consumes a network.",
+      description: "List all networks (VLANs/LAN segments) at a site. Returns: id, name, management (UNMANAGED/GATEWAY/SWITCH), enabled, vlanId, default (true for the default network), zoneId (the firewall zone the network sits in), dhcpGuarding, metadata.origin. NOTE: the list view is sparse — for subnet/DHCP/NTP detail (ipv4Configuration/ipv6Configuration), call unifi_get_network on a specific id. Use for: VLAN inventory; pair with unifi_get_network_references to find what consumes a network.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -63,7 +63,7 @@ export function registerNetworkTools(
   server.registerTool(
     "unifi_get_network",
     {
-      description: "Get a network/VLAN by ID. Returns the list fields PLUS (live-verified) zoneId, isolationEnabled, internetAccessEnabled, mdnsForwardingEnabled, cellularBackupEnabled, and a full ipv4Configuration object (hostIpAddress, prefixLength, dhcpConfiguration with ipAddressRange/leaseTimeSeconds/domainName/ntpServerIpAddresses). NOTE: subnet/DHCP detail appears here at get-by-id but NOT in unifi_list_networks (sparse list view).",
+      description: "Get a network/VLAN by ID. Returns the list fields PLUS (live-verified) isolationEnabled, internetAccessEnabled, mdnsForwardingEnabled, cellularBackupEnabled, a full ipv4Configuration object (autoScaleEnabled, hostIpAddress, prefixLength, dhcpConfiguration with mode/ipAddressRange/leaseTimeSeconds/domainName/pingConflictDetectionEnabled/ntpServerIpAddresses), and an ipv6Configuration object (interfaceType, clientAddressAssignment, routerAdvertisement, hostIpAddress, prefixLength). NOTE: subnet/DHCP detail appears here at get-by-id but NOT in unifi_list_networks (sparse list view).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         networkId: z.string().describe("Network ID"),

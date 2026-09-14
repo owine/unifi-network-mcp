@@ -186,7 +186,7 @@ export function registerHotspotTools(
   server.registerTool(
     "unifi_delete_voucher",
     {
-      description: "DESTRUCTIVE: Delete a hotspot voucher",
+      description: "DESTRUCTIVE: Delete a hotspot voucher. Returns: vouchersDeleted (count of vouchers removed).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         voucherId: z.string().describe("Voucher ID"),
@@ -219,13 +219,13 @@ export function registerHotspotTools(
   server.registerTool(
     "unifi_bulk_delete_vouchers",
     {
-      description: "DESTRUCTIVE: Bulk delete hotspot vouchers based on filter criteria",
+      description: "DESTRUCTIVE: Bulk delete hotspot vouchers based on filter criteria. Returns: vouchersDeleted (count of vouchers removed).",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         filter: z
           .string()
           .describe(
-            "Required filter expression (e.g., 'expired.eq(true)', 'name.like(guest*)')"
+            "Required filter expression (e.g., 'expired.eq(true)', name.like('guest*'))"
           ),
         confirm: z
           .boolean()

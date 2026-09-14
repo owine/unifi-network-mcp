@@ -266,7 +266,7 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_update_wifi",
     {
-      description: "Update an existing WiFi network",
+      description: "Update an existing WiFi network. NOTE: this is a full PUT — API 10.6.106 documents 14 of these fields as required (type, name, enabled, securityConfiguration, multicastToUnicastConversionEnabled, clientIsolationEnabled, hideName, uapsdEnabled, channel2gLockedTo6, dtimPeriod2gLockedTo3, broadcastingFrequenciesGHz, arpProxyEnabled, bssTransitionEnabled, advertiseDeviceName). They are optional here for convenience, but a sparse update may be rejected by the API — read the current values with unifi_get_wifi and resend the full set if you get a 400.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),

@@ -56,7 +56,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_get_device",
     {
-      description: "Get full configuration for a device. Returns (in addition to list fields): supported, firmwareUpdatable, provisionedAt, configurationId, uplink.deviceId, features (object keyed by capability: switching {lags[]} / accessPoint {}), interfaces.ports[] for switches ({idx, state, connector, maxSpeedMbps, speedMbps, poe:{standard, type, enabled, state}}), interfaces.radios[] for APs ({wlanStandard, frequencyGHz, channelWidthMHz, channel}). NOTE: in the LIST endpoint, features/interfaces are capability-tag string arrays instead. Use for: switch port layout/PoE state, AP radio config, uplink topology. For live throughput/CPU/memory, use unifi_get_device_statistics.",
+      description: "Get full configuration for a device. Returns (in addition to list fields): supported, firmwareUpdatable, adoptedAt, provisionedAt, configurationId, uplink.deviceId, features (object keyed by capability: switching {lags[]} / accessPoint {}), interfaces.ports[] for switches ({idx, state, connector, maxSpeedMbps, speedMbps, poe:{standard, type, enabled, state}}), interfaces.radios[] for APs ({wlanStandard, frequencyGHz, channelWidthMHz, channel}). NOTE: in the LIST endpoint, features/interfaces are capability-tag string arrays instead. Use for: switch port layout/PoE state, AP radio config, uplink topology. For live throughput/CPU/memory, use unifi_get_device_statistics.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),
@@ -77,7 +77,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_get_device_statistics",
     {
-      description: "Get latest live statistics for a device. Returns: uptimeSec, lastHeartbeatAt, nextHeartbeatAt, loadAverage1/5/15Min, cpuUtilizationPct, memoryUtilizationPct, uplink (txRateBps, rxRateBps), interfaces.radios[] for APs ({frequencyGHz, txRetriesPct}). NOTE: verified against 10.5.43 — the Integration API does NOT expose per-switch-port byte/error/PoE-power counters here; port-level live stats are unavailable. Use for: device health and AP radio metrics. For config (channel, power, port assignment), use unifi_get_device.",
+      description: "Get latest live statistics for a device. Returns: uptimeSec, lastHeartbeatAt, nextHeartbeatAt, loadAverage1/5/15Min, cpuUtilizationPct, memoryUtilizationPct, uplink (txRateBps, rxRateBps), interfaces.radios[] for APs ({frequencyGHz, txRetriesPct}). NOTE: verified against 10.6.106 — the Integration API does NOT expose per-switch-port byte/error/PoE-power counters here; port-level live stats are unavailable. Use for: device health and AP radio metrics. For config (channel, power, port assignment), use unifi_get_device.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         deviceId: z.string().describe("Device ID"),
@@ -100,7 +100,7 @@ export function registerDeviceTools(
   server.registerTool(
     "unifi_list_pending_devices",
     {
-      description: "List devices pending adoption across all sites (global endpoint, not site-scoped). Returns: basic device info per pending device (macAddress, model, ipAddress, firmwareVersion, etc. — exact per-row schema is not rendered in the 10.5.43 docs). Use for: discovering new devices on the network before calling unifi_adopt_device.",
+      description: "List devices pending adoption across all sites (global endpoint, not site-scoped). Returns: basic device info per pending device (macAddress, model, ipAddress, firmwareVersion, etc. — exact per-row schema is not rendered in the 10.6.106 docs). Use for: discovering new devices on the network before calling unifi_adopt_device.",
       inputSchema: {
         offset: z
           .number()
@@ -140,7 +140,9 @@ export function registerDeviceTools(
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         macAddress: z.string().describe("MAC address of the device"),
-        ignoreDeviceLimit: z.boolean().optional().describe("Ignore device limit when adopting (default: false)"),
+        // Required by the API; kept optional here and defaulted to false below
+        // so callers need not pass it explicitly.
+        ignoreDeviceLimit: z.boolean().optional().describe("Ignore device limit when adopting (required by the API; sent as false when omitted)"),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },
       outputSchema: adoptDeviceOutputSchema,

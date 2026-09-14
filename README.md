@@ -81,7 +81,7 @@ This server provides layered safety controls for responsible operation:
 
 58 of the 74 tools (all 41 read tools, plus the 17 write tools whose API responses return the affected resource) declare an MCP `outputSchema` and return `structuredContent` alongside the usual text content. Clients that understand structured output get typed, machine-readable results instead of parsing JSON out of a text blob.
 
-The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi Network API 10.5.43. They deliberately use a **loose strategy**: every non-key field is optional and nested objects use `.passthrough()`, so firmware- and hardware-specific fields flow through unchanged rather than being stripped or triggering a validation error. This keeps the contract stable across console versions and hardware models.
+The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi Network API 10.6.106. They deliberately use a **loose strategy**: every non-key field is optional and nested objects use `.passthrough()`, so firmware- and hardware-specific fields flow through unchanged rather than being stripped or triggering a validation error. This keeps the contract stable across console versions and hardware models.
 
 ## Tools (74 total)
 
