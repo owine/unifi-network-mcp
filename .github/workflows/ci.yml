@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # `install: false` — pnpm/setup installs by default; each job runs its own
@@ -33,7 +33,7 @@ jobs:
 
   test-matrix:
     needs: lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       matrix:
         node-version:
@@ -59,7 +59,7 @@ jobs:
   test:
     needs: test-matrix
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Verify matrix succeeded
         env:
@@ -73,7 +73,7 @@ jobs:
   security:
     # Skip on Renovate runs — Renovate runs its own vulnerability checks
     if: github.actor != 'renovate[bot]'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
