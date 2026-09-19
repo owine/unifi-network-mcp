@@ -85,3 +85,14 @@ jobs:
           scan-ref: .
           severity: HIGH,CRITICAL
           exit-code: 1
+          # trivy-action v0.36.0 defaults to Trivy v0.70.0, which parses only
+          # the FIRST document of pnpm v12's multi-document pnpm-lock.yaml.
+          # Document 1 holds packageManagerDependencies (pnpm's own binaries);
+          # the real dependency tree lives in document 2. This repo is on
+          # pnpm@12.4.1, so the scan inspected zero packages and exited 0 --
+          # green because nothing was looked at, not because nothing was
+          # vulnerable ("Supported files for scanner(s) not found" in run
+          # 35399411224). v0.74.0 reads both documents. Remove this pin once a
+          # trivy-action release ships v0.74.0+ as its default.
+          # renovate: datasource=github-releases depName=aquasecurity/trivy
+          version: v0.74.0
