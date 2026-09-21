@@ -41,8 +41,6 @@ jobs:
           runtime: node@${{ matrix.node-version }}
           cache: true
           require-lockfile: true
-      - name: TEMP verify node version
-        run: node --version
       - run: pnpm run build
       - run: pnpm test
 
