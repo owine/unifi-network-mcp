@@ -40,6 +40,24 @@ describe("history tools", () => {
     expect((await handler({ siteReference: "default", ...query })).structuredContent).toMatchObject({ count: 1, mayBeTruncated: false });
   });
 
+  it("truncates instead of failing when the controller ignores the requested limit", async () => {
+    const { client, handlers } = setup();
+    const extra = [row, { ...row, _id: "session-b" }, { ...row, _id: "session-c" }];
+    mockFn(client, "getClientSessions").mockResolvedValue(envelope(extra));
+    const result = await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query });
+    expect(result.isError).toBeUndefined();
+    expect(result.structuredContent).toMatchObject({ count: 2, limit: 2, mayBeTruncated: true });
+    expect(result.structuredContent.data.map((s: { _id: string }) => s._id)).toEqual(["session-a", "session-b"]);
+  });
+
+  it("de-duplicates repeated session IDs rather than discarding a usable page", async () => {
+    const { client, handlers } = setup();
+    mockFn(client, "getClientSessions").mockResolvedValue(envelope([row, row]));
+    const result = await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query });
+    expect(result.isError).toBeUndefined();
+    expect(result.structuredContent).toMatchObject({ count: 1, mayBeTruncated: false });
+  });
+
   it("preserves null hostnames seen on real disconnected clients", async () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientSessions").mockResolvedValue(envelope([{ ...row, hostname: null }]));
@@ -48,7 +66,7 @@ describe("history tools", () => {
     expect(result.structuredContent.data[0].hostname).toBeNull();
   });
 
-  it.each([envelope([row, row]), { data: [] }, { meta: { rc: "error" }, data: [] }])("rejects malformed or duplicate sessions", async data => {
+  it.each([{ data: [] }, { meta: { rc: "error" }, data: [] }])("rejects malformed session envelopes", async data => {
     const { client, handlers } = setup();
     mockFn(client, "getClientSessions").mockResolvedValue(data);
     expect((await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query })).isError).toBe(true);

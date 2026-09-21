@@ -40,11 +40,19 @@ export function registerClientHistoryTools(server: McpServer, client: NetworkCli
   }, async ({ siteReference, start, end, limit, mac }) => {
     try {
       if (end <= start || end - start > 31 * 86400) throw new Error("Use an increasing time window of at most 31 days");
-      const { data } = ClientSessionEnvelope.parse(await client.getClientSessions(siteReference, { start, end, limit, mac }));
-      if (data.length > limit || new Set(data.map(row => row._id)).size !== data.length) {
-        throw new Error("Controller returned inconsistent session results");
+      const { data: rows } = ClientSessionEnvelope.parse(await client.getClientSessions(siteReference, { start, end, limit, mac }));
+      // The controller honours neither _start nor _limit reliably, and can
+      // repeat a session ID across roaming records. Normalise instead of
+      // rejecting: a usable page is better than an error with no data.
+      const seen = new Set<string>();
+      const deduped: typeof rows = [];
+      for (const row of rows) {
+        if (seen.has(row._id)) continue;
+        seen.add(row._id);
+        deduped.push(row);
       }
-      const mayBeTruncated = data.length === limit;
+      const data = deduped.slice(0, limit);
+      const mayBeTruncated = deduped.length >= limit;
       return formatSuccess({ data, count: data.length, limit, mayBeTruncated, start, end,
         coverage: "Retained controller sessions; A non-truncated response does not prove retention coverage or include every ongoing connection." }, { structured: true });
     } catch (err) { return formatError(err); }

@@ -6,10 +6,16 @@ export class NetworkClient {
   private networkUrl: string;
 
   constructor(config: Config) {
-    if (config.consoleId && (config.host !== "api.ui.com" || !/^[A-Za-z0-9:]+$/.test(config.consoleId))) {
-      throw new Error("Cloud Connector requires host api.ui.com and a valid console ID");
+    // Cloud Connector only exists behind api.ui.com. A console ID set against a
+    // local controller is ignored rather than fatal: the other tools work fine
+    // against that controller, and taking the whole server down helps nobody.
+    const useConnector = config.consoleId !== undefined && config.host === "api.ui.com";
+    if (config.consoleId !== undefined && !useConnector) {
+      console.error(
+        `Ignoring UNIFI_NETWORK_CONSOLE_ID: Cloud Connector requires host api.ui.com, but host is ${config.host}.`
+      );
     }
-    const consolePath = config.consoleId ? `/v1/connector/consoles/${config.consoleId}` : "";
+    const consolePath = useConnector ? `/v1/connector/consoles/${config.consoleId}` : "";
     this.networkUrl = `https://${config.host}${consolePath}/proxy/network`;
     this.baseUrl = `${this.networkUrl}/integration/v1`;
     this.headers = {
@@ -109,9 +115,13 @@ export class NetworkClient {
       redirect: "error", signal: AbortSignal.timeout(25000),
     });
     if (!response.ok) {
+      // Drain before throwing: an unread body pins the socket until GC, so a
+      // run of failures (say, a mis-scoped API key) would leak connections.
+      await response.body?.cancel();
       throw new Error(`Controller history returned HTTP ${response.status}; verify API-key access and controller support. This is not an empty history result.`);
     }
     if (!response.headers.get("content-type")?.includes("application/json")) {
+      await response.body?.cancel();
       throw new Error("Controller history returned non-JSON data; verify controller authentication");
     }
     // Bound the body before parsing: controller session records can be large.
@@ -133,7 +143,13 @@ export class NetworkClient {
     } finally {
       reader.releaseLock();
     }
-    const result: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    const text = Buffer.concat(chunks).toString("utf8");
+    if (text.trim() === "") {
+      // A bare JSON.parse would surface "Unexpected end of JSON input", which
+      // reads as a broken tool rather than an unusable controller response.
+      throw new Error("Controller history returned an empty body; verify controller support. This is not an empty history result.");
+    }
+    const result: unknown = JSON.parse(text);
     if (result && typeof result === "object" && "meta" in result) {
       const meta = result.meta;
       if (meta && typeof meta === "object" && "rc" in meta && meta.rc !== "ok") {

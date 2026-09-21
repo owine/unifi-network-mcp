@@ -3,8 +3,11 @@ import { z } from "zod";
 const configSchema = z.object({
   host: z.string().min(1).describe("UniFi Network host (IP or hostname)"),
   apiKey: z.string().min(1).describe("UniFi Network API key"),
-  consoleId: z.string().regex(/^[A-Za-z0-9:]+$/).optional()
-    .describe("Optional Cloud Connector console ID; host must be api.ui.com"),
+  // Console/host IDs are hex, UUID- or colon-shaped depending on vintage, so
+  // hyphens and underscores are allowed; the charset still excludes anything
+  // that could escape the URL path segment it is interpolated into.
+  consoleId: z.string().regex(/^[A-Za-z0-9:_-]{1,128}$/).optional()
+    .describe("Optional Cloud Connector console ID; only used when host is api.ui.com"),
   verifySsl: z
     .boolean()
     .default(true)

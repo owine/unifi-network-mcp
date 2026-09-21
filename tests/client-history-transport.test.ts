@@ -37,6 +37,26 @@ describe("controller history transport", () => {
     expect(fetchMock.mock.calls[1][0]).toBe("https://api.ui.com/v1/connector/consoles/ABC123:456/proxy/network/integration/v1/sites");
   });
 
+  it("accepts hyphenated and UUID-shaped console IDs", async () => {
+    fetchMock.mockResolvedValue(response([]));
+    const consoleId = "70A741-A0B1C2D3-4E5F-6071";
+    await new NetworkClient({ ...config, host: "api.ui.com", consoleId }).getClientHistory("default", 24);
+    expect(fetchMock.mock.calls[0][0]).toContain(`/v1/connector/consoles/${consoleId}/proxy/network`);
+  });
+
+  it("ignores a console ID set against a local controller instead of taking the server down", async () => {
+    const warn = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    fetchMock.mockResolvedValue(response([]));
+    try {
+      const client = new NetworkClient({ ...config, consoleId: "ABC:123" });
+      await client.get("/sites");
+      expect(fetchMock.mock.calls[0][0]).toBe("https://console.example/proxy/network/integration/v1/sites");
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("api.ui.com"));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it.each([
     { start: 1789272000000 }, { end: query.start }, { end: query.start + 32 * 86400 },
     { limit: 0 }, { limit: 1001 }, { mac: "x/../../cmd" },
@@ -45,9 +65,8 @@ describe("controller history transport", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("rejects path traversal and invalid Cloud Connector host", async () => {
+  it("rejects path traversal in the site reference", async () => {
     await expect(new NetworkClient(config).getClientHistory("../other", 24)).rejects.toThrow("internalReference");
-    expect(() => new NetworkClient({ ...config, consoleId: "ABC:123" })).toThrow("api.ui.com");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -55,6 +74,16 @@ describe("controller history transport", () => {
     fetchMock.mockResolvedValue(response({ token: "must-not-be-shown" }, status));
     await expect(new NetworkClient(config).getClientSessions("default", query)).rejects.toThrow(`HTTP ${status}`);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["an error status", () => response({ token: "must-not-be-shown" }, 403)],
+    ["a non-JSON body", () => new Response("<html>Login</html>", { headers: { "Content-Type": "text/html" } })],
+  ])("releases the connection when rejecting %s", async (_label, make) => {
+    const res = make();
+    fetchMock.mockResolvedValue(res);
+    await expect(new NetworkClient(config).getClientSessions("default", query)).rejects.toThrow();
+    expect(res.bodyUsed).toBe(true);
   });
 
   it("rejects legacy errors wrapped in HTTP 200", async () => {
@@ -65,6 +94,13 @@ describe("controller history transport", () => {
   it("rejects HTML login responses", async () => {
     fetchMock.mockResolvedValue(new Response("<html>Login</html>", { headers: { "Content-Type": "text/html" } }));
     await expect(new NetworkClient(config).getClientHistory("default", 24)).rejects.toThrow("non-JSON");
+  });
+
+  it("reports an empty JSON body as unusable rather than as a parser error", async () => {
+    fetchMock.mockResolvedValue(new Response("", { headers: { "Content-Type": "application/json" } }));
+    const attempt = new NetworkClient(config).getClientHistory("default", 24);
+    await expect(attempt).rejects.toThrow("empty body");
+    await expect(attempt).rejects.toThrow("not an empty history result");
   });
 
   it("bounds response size before JSON parsing", async () => {
