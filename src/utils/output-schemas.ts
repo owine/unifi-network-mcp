@@ -596,3 +596,55 @@ export const listPendingDevicesOutputSchema = {
   ...PaginationFields,
   data: z.array(PendingDevice),
 } as const;
+
+// Controller history endpoints (v2 clients/history and stat/session) are not
+// part of the Integration API, so these follow the same loose strategy against
+// the controller's own response shape: only the identity fields are required.
+export const HistoryClient = z
+  .object({
+    mac: z.string(),
+    hostname: z.string().nullish(),
+    display_name: z.string().nullish(),
+    first_seen: z.number().optional(),
+    last_seen: z.number().optional(),
+    is_wired: z.boolean().optional(),
+    status: z.string().optional(),
+  })
+  .passthrough();
+
+export const ClientSession = z
+  .object({
+    _id: z.string(),
+    mac: z.string(),
+    assoc_time: z.number(),
+    duration: z.number().optional(),
+    rx_bytes: z.number().optional(),
+    tx_bytes: z.number().optional(),
+    hostname: z.string().nullish(),
+    is_wired: z.boolean().optional(),
+    roaming_sessions: z.array(z.unknown()).optional(),
+  })
+  .passthrough();
+
+/** Envelope returned by the controller's stat/session endpoint. */
+export const ClientSessionEnvelope = z.object({
+  meta: z.object({ rc: z.literal("ok") }).passthrough(),
+  data: z.array(ClientSession),
+});
+
+export const listClientHistoryOutputSchema = {
+  data: z.array(HistoryClient),
+  count: z.number(),
+  withinHours: z.number(),
+  coverage: z.string(),
+} as const;
+
+export const listClientSessionsOutputSchema = {
+  data: z.array(ClientSession),
+  count: z.number(),
+  limit: z.number(),
+  mayBeTruncated: z.boolean(),
+  start: z.number(),
+  end: z.number(),
+  coverage: z.string(),
+} as const;
