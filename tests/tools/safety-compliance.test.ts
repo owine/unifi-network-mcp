@@ -60,13 +60,13 @@ describe("safety compliance", () => {
     expect(destructiveTools.length).toBeGreaterThan(0);
   });
 
-  it("should register exactly 74 tools in read+write mode", () => {
-    expect(allTools.length).toBe(74);
+  it("should register exactly 76 tools in read+write mode", () => {
+    expect(allTools.length).toBe(76);
   });
 
-  it("should register exactly 41 tools in read-only mode", () => {
+  it("should register exactly 43 tools in read-only mode", () => {
     const readOnlyModeTools = collectTools(true);
-    expect(readOnlyModeTools.length).toBe(41);
+    expect(readOnlyModeTools.length).toBe(43);
   });
 
   // ── Read-only tools: no safety guards ──────────────────────────────

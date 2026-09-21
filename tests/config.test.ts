@@ -4,6 +4,7 @@ import { loadConfig } from "../src/config.js";
 describe("loadConfig", () => {
   const ENV_KEYS = [
     "UNIFI_NETWORK_HOST",
+    "UNIFI_NETWORK_CONSOLE_ID",
     "UNIFI_NETWORK_API_KEY",
     "UNIFI_NETWORK_VERIFY_SSL",
     "UNIFI_NETWORK_READ_ONLY",
@@ -19,6 +20,7 @@ describe("loadConfig", () => {
     // Provide valid defaults so tests only override what they're testing
     process.env.UNIFI_NETWORK_HOST = "192.168.1.1";
     process.env.UNIFI_NETWORK_API_KEY = "test-api-key";
+    delete process.env.UNIFI_NETWORK_CONSOLE_ID;
     delete process.env.UNIFI_NETWORK_VERIFY_SSL;
     delete process.env.UNIFI_NETWORK_READ_ONLY;
   });

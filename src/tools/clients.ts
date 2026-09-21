@@ -17,7 +17,7 @@ export function registerClientTools(
   server.registerTool(
     "unifi_list_clients",
     {
-      description: "List currently connected clients at a site. Returns per client: id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress (frequently absent — do not rely on it being present), connectedAt, uplinkDeviceId (the switch/AP they're attached to), access.type. NOTE: verified against 10.6.106 — the Integration API client schema is minimal and identical across types; it does NOT expose signal strength, channel, or per-port binding. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API.",
+      description: "List currently connected clients at a site. Returns per client: id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress (frequently absent — do not rely on it being present), connectedAt, uplinkDeviceId (the switch/AP they're attached to), access.type. NOTE: verified against 10.6.106 — the Integration API client schema is minimal and identical across types; it does NOT expose signal strength, channel, or per-port binding. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API; use unifi_list_client_history and unifi_list_client_sessions for controller-retained records.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z

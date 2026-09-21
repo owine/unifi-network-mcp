@@ -3,18 +3,18 @@ import { createMockServer, createMockClient } from "./_helpers.js";
 import { registerAllTools } from "../../src/tools/index.js";
 
 describe("registerAllTools", () => {
-  it("should register 74 tools in read-write mode", () => {
+  it("should register 76 tools in read-write mode", () => {
     const { server, handlers } = createMockServer();
     const client = createMockClient();
     registerAllTools(server, client, false);
-    expect(handlers.size).toBe(74);
+    expect(handlers.size).toBe(76);
   });
 
-  it("should register 35 tools in read-only mode", () => {
+  it("should register 43 tools in read-only mode", () => {
     const { server, handlers } = createMockServer();
     const client = createMockClient();
     registerAllTools(server, client, true);
-    expect(handlers.size).toBe(41);
+    expect(handlers.size).toBe(43);
   });
 
   it("should call server.registerTool once per registered tool", () => {
