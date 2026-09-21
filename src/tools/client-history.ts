@@ -33,27 +33,26 @@ export function registerClientHistoryTools(server: McpServer, client: NetworkCli
   });
 
   server.registerTool("unifi_list_client_sessions", {
-    description: "Read retained past client connections, including disconnected clients, from the controller stat/session query endpoint. POST here only reads statistics. Returns controller session IDs, MACs, assoc_time (epoch seconds), duration (seconds), rx_bytes/tx_bytes (controller perspective), and roaming_sessions when available. Use an explicit UTC epoch-second window (max 31 days), fixed end and offset pagination until hasMore is false; hasMore is conservative, not a total. Records reflect controller retention and may omit ongoing sessions. Wi-Fi association/bytes do not establish end-to-end Internet success. Do not interpret controller is_guest as proof of a person's identity or ownership.",
+    description: "Read retained past client connections, including disconnected clients, from the controller stat/session query endpoint. POST here only reads statistics. Returns controller session IDs, MACs, assoc_time (epoch seconds), duration (seconds), rx_bytes/tx_bytes (controller perspective), and roaming_sessions when available. Use an explicit UTC epoch-second window (max 31 days). If mayBeTruncated is true, split the time window (overlap boundaries and deduplicate IDs) or filter by MAC. The controller ignores offset pagination. Records reflect controller retention and may omit ongoing sessions. Wi-Fi association/bytes do not establish end-to-end Internet success. Do not interpret controller is_guest as proof of a person's identity or ownership.",
     inputSchema: {
       siteReference,
       start: z.number().int().min(0).max(4102444800).describe("Start Unix epoch seconds, not milliseconds"),
       end: z.number().int().min(1).max(4102444800).describe("End Unix epoch seconds; after start and at most 31 days later"),
       mac: z.string().regex(/^([\da-f]{2}:){5}[\da-f]{2}$/i).optional().describe("Optional client MAC address"),
-      offset: z.number().int().min(0).max(1000000).default(0).describe("Records to skip; keep the same time window across pages"),
-      limit: z.number().int().min(1).max(1000).default(200).describe("Page size; reduce for large roaming histories"),
+      limit: z.number().int().min(1).max(1000).default(1000).describe("Maximum records; a full result requires a narrower window or MAC filter"),
     },
-    outputSchema: { data: z.array(session), count: z.number(), offset: z.number(), limit: z.number(), hasMore: z.boolean(), nextOffset: z.number().nullable(), start: z.number(), end: z.number(), coverage: z.string() },
+    outputSchema: { data: z.array(session), count: z.number(), limit: z.number(), mayBeTruncated: z.boolean(), start: z.number(), end: z.number(), coverage: z.string() },
     annotations: READ_ONLY,
-  }, async ({ siteReference, start, end, offset, limit, mac }) => {
+  }, async ({ siteReference, start, end, limit, mac }) => {
     try {
       if (end <= start || end - start > 31 * 86400) throw new Error("Use an increasing time window of at most 31 days");
-      const { data } = sessionEnvelope.parse(await client.getClientSessions(siteReference, { start, end, offset, limit, mac }));
+      const { data } = sessionEnvelope.parse(await client.getClientSessions(siteReference, { start, end, limit, mac }));
       if (data.length > limit || new Set(data.map(row => row._id)).size !== data.length) {
-        throw new Error("Controller returned inconsistent session pagination");
+        throw new Error("Controller returned inconsistent session results");
       }
-      const hasMore = data.length === limit;
-      return formatSuccess({ data, count: data.length, offset, limit, hasMore, nextOffset: hasMore ? offset + data.length : null, start, end,
-        coverage: "Retained controller sessions; pagination exhaustion does not prove retention coverage or include every ongoing connection." }, { structured: true });
+      const mayBeTruncated = data.length === limit;
+      return formatSuccess({ data, count: data.length, limit, mayBeTruncated, start, end,
+        coverage: "Retained controller sessions; A non-truncated response does not prove retention coverage or include every ongoing connection." }, { structured: true });
     } catch (err) { return formatError(err); }
   });
 }

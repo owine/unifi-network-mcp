@@ -4,7 +4,7 @@ import { registerAllTools } from "../src/tools/index.js";
 import { createMockServer, createMockClient, mockFn, parseInputSchema } from "./tools/_helpers.js";
 
 const config = { host: "console.example", apiKey: "test-secret", verifySsl: true, readOnly: true };
-const query = { start: 1789272000, end: 1790000000, offset: 0, limit: 2 };
+const query = { start: 1789272000, end: 1790000000, limit: 2 };
 const row = { _id: "session-a", mac: "02:00:00:00:00:01", assoc_time: 1789990000,
   duration: 323, rx_bytes: 1234, tx_bytes: 567, roaming_sessions: [] };
 const envelope = (data: unknown[]) => ({ meta: { rc: "ok" }, data });
@@ -17,7 +17,7 @@ describe("controller history transport", () => {
   beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("uses the read-only POST session query, seconds, stable sort and offset", async () => {
+  it("uses the read-only POST session query, seconds, stable sort without the ignored offset parameter", async () => {
     fetchMock.mockResolvedValue(response(envelope([row])));
     const client = new NetworkClient(config);
     expect(await client.getClientSessions("default", { ...query, mac: "AA:BB:CC:DD:EE:FF" })).toEqual(envelope([row]));
@@ -25,7 +25,7 @@ describe("controller history transport", () => {
     expect(url).toBe("https://console.example/proxy/network/api/s/default/stat/session");
     expect(options.method).toBe("POST");
     expect(JSON.parse(options.body)).toEqual({ type: "all", start: query.start, end: query.end,
-      _start: 0, _limit: 2, _sort: "-assoc_time", mac: "aa:bb:cc:dd:ee:ff" });
+      _limit: 2, _sort: "-assoc_time", mac: "aa:bb:cc:dd:ee:ff" });
     expect(options.redirect).toBe("error");
     expect(options.signal).toBeInstanceOf(AbortSignal);
   });
@@ -41,7 +41,7 @@ describe("controller history transport", () => {
 
   it.each([
     { start: 1789272000000 }, { end: query.start }, { end: query.start + 32 * 86400 },
-    { offset: -1 }, { limit: 0 }, { limit: 1001 }, { mac: "x/../../cmd" },
+    { limit: 0 }, { limit: 1001 }, { mac: "x/../../cmd" },
   ])("rejects invalid queries before sending credentials: %j", async (change) => {
     await expect(new NetworkClient(config).getClientSessions("default", { ...query, ...change })).rejects.toThrow("Invalid session query");
     expect(fetchMock).not.toHaveBeenCalled();
@@ -100,14 +100,12 @@ describe("history tools", () => {
     expect(result.structuredContent.coverage).toContain("not a complete session log");
   });
 
-  it("paginates a full page and reports exhaustion only on a short page", async () => {
+  it("flags full results for time-window splitting instead of claiming offset pagination works", async () => {
     const { client, handlers } = setup();
-    mockFn(client, "getClientSessions").mockResolvedValueOnce(envelope([row, { ...row, _id: "session-b" }])).mockResolvedValueOnce(envelope([]));
+    mockFn(client, "getClientSessions").mockResolvedValueOnce(envelope([row, { ...row, _id: "session-b" }])).mockResolvedValueOnce(envelope([row]));
     const handler = handlers.get("unifi_list_client_sessions")!;
-    const first = await handler({ siteReference: "default", ...query });
-    expect(first.structuredContent).toMatchObject({ count: 2, hasMore: true, nextOffset: 2 });
-    const second = await handler({ siteReference: "default", ...query, offset: 2 });
-    expect(second.structuredContent).toMatchObject({ count: 0, hasMore: false, nextOffset: null });
+    expect((await handler({ siteReference: "default", ...query })).structuredContent).toMatchObject({ count: 2, mayBeTruncated: true });
+    expect((await handler({ siteReference: "default", ...query })).structuredContent).toMatchObject({ count: 1, mayBeTruncated: false });
   });
 
   it("preserves null hostnames seen on real disconnected clients", async () => {
@@ -128,7 +126,7 @@ describe("history tools", () => {
     const { configs } = setup();
     const schema = parseInputSchema(configs, "unifi_list_client_sessions");
     expect(schema.safeParse({ siteReference: "default", start: query.start * 1000, end: query.end * 1000 }).success).toBe(false);
-    expect(schema.parse({ siteReference: "default", start: query.start, end: query.end })).toMatchObject({ offset: 0, limit: 200 });
+    expect(schema.parse({ siteReference: "default", start: query.start, end: query.end })).toMatchObject({ limit: 1000 });
   });
 
   it("propagates access failures for both tools", async () => {

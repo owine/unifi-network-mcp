@@ -81,17 +81,17 @@ export class NetworkClient {
   }
 
   async getClientSessions(siteReference: string, query: {
-    start: number; end: number; offset: number; limit: number; mac?: string;
+    start: number; end: number; limit: number; mac?: string;
   }): Promise<unknown> {
     this.validateSiteReference(siteReference);
-    const { start, end, offset, limit, mac } = query;
-    if (![start, end, offset, limit].every(Number.isSafeInteger) || start < 0 || end > 4102444800 ||
-        end <= start || end - start > 31 * 86400 || offset < 0 || offset > 1000000 || limit < 1 || limit > 1000 ||
+    const { start, end, limit, mac } = query;
+    if (![start, end, limit].every(Number.isSafeInteger) || start < 0 || end > 4102444800 ||
+        end <= start || end - start > 31 * 86400 || limit < 1 || limit > 1000 ||
         (mac !== undefined && !/^([\da-f]{2}:){5}[\da-f]{2}$/i.test(mac))) {
-      throw new Error("Invalid session query: use epoch seconds, an increasing window of at most 31 days, valid pagination and MAC");
+      throw new Error("Invalid session query: use epoch seconds, an increasing window of at most 31 days, a valid limit and MAC");
     }
     return this.historyRequest(`/api/s/${siteReference}/stat/session`, {
-      type: "all", start, end, _start: offset, _limit: limit, _sort: "-assoc_time",
+      type: "all", start, end, _limit: limit, _sort: "-assoc_time",
       ...(mac ? { mac: mac.toLowerCase() } : {}),
     });
   }

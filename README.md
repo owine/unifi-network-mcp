@@ -256,13 +256,13 @@ MIT
 
 The Integration API only lists connected clients. The two history tools use the controller APIs instead: GET `/proxy/network/v2/api/site/{siteReference}/clients/history` and POST `/proxy/network/api/s/{siteReference}/stat/session`. The POST is a statistics query and does not change the network. Both tools remain available in read-only mode.
 
-Use `internalReference` from `unifi_list_sites` (often `default`), not its UUID. Session queries require `start` and `end` in Unix **seconds**, with a maximum 31-day window. Keep the end fixed and advance `offset` to `nextOffset` until `hasMore` is false. A full page conservatively indicates more data may exist; an empty final page is normal. Check session IDs across pages if collecting while new sessions are being recorded.
+Use `internalReference` from `unifi_list_sites` (often `default`), not its UUID. Session queries require `start` and `end` in Unix **seconds**, with a maximum 31-day window. The controller ignores `_start`/offset on this endpoint. A full result sets `mayBeTruncated=true`; split the time window or filter by MAC and query again. Overlap split boundaries and deduplicate session IDs. A result below the requested limit means the query was not capped, not that all dates were retained.
 
 ```json
-{"siteReference":"default","start":1789272000,"end":1789876800,"offset":0,"limit":200}
+{"siteReference":"default","start":1789272000,"end":1789876800,"limit":1000}
 ```
 
-Results preserve controller field names, including `assoc_time`, `duration`, `rx_bytes`, `tx_bytes` and `roaming_sessions`. RX/TX are the controller's counters, not relabeled client download/upload. Inventory is separate from session history. Retention varies; exhausting pages does not prove all requested dates were retained, and ongoing sessions may not be present. Neither association nor traffic counters establish end-to-end Internet success. The `is_guest` flag does not establish device ownership.
+Results preserve controller field names, including `assoc_time`, `duration`, `rx_bytes`, `tx_bytes` and `roaming_sessions`. RX/TX are the controller's counters, not relabeled client download/upload. Inventory is separate from session history. Retention varies; a non-truncated result does not prove all requested dates were retained, and ongoing sessions may not be present. Neither association nor traffic counters establish end-to-end Internet success. The `is_guest` flag does not establish device ownership.
 
 These controller routes are not part of the published Integration API contract. Their availability and API-key permissions vary by controller version. Unsupported, unauthorized, HTML login, legacy `meta.rc` error and malformed responses fail explicitly instead of becoming an empty history. History requests have a 25-second timeout, reject redirects, and cap responses at 10 MB. No browser cookies are required where API-key access is supported.
 
