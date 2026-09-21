@@ -55,6 +55,7 @@ src/
     sites.ts          # Site listing (1 tool)
     devices.ts        # Device management (8 tools)
     clients.ts        # Client management (4 tools)
+    client-history.ts # Retained sessions & offline client history (2 tools)
     networks.ts       # Network configuration (6 tools)
     wifi.ts           # WiFi/SSID configuration (5 tools)
     hotspot.ts        # Hotspot vouchers (5 tools)
@@ -68,12 +69,12 @@ src/
     responses.ts      # formatSuccess() / formatError() helpers
     query.ts          # buildQuery() for pagination/filter params
     safety.ts         # Tool annotations, formatDryRun(), requireConfirmation()
-    output-schemas.ts # Zod output schemas for tools' structuredContent (58 tools)
+    output-schemas.ts # Zod output schemas for tools' structuredContent (60 tools)
 ```
 
 ## Adding a new tool
 
-1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`) omit the `readOnly` param entirely — there is nothing to gate
+1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`, `client-history`) omit the `readOnly` param entirely — there is nothing to gate
 2. Use `server.registerTool(name, { description, inputSchema, outputSchema, annotations }, handler)`
 3. Set appropriate annotations from `utils/safety.ts`: `READ_ONLY`, `WRITE`, `WRITE_NOT_IDEMPOTENT`, `DESTRUCTIVE`
 4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource. Follow the loose strategy in that file: non-key fields optional, nested objects `.passthrough()`
