@@ -4,6 +4,7 @@ import { registerSystemTools } from "./system.js";
 import { registerSiteTools } from "./sites.js";
 import { registerDeviceTools } from "./devices.js";
 import { registerClientTools } from "./clients.js";
+import { registerClientHistoryTools } from "./client-history.js";
 import { registerNetworkTools } from "./networks.js";
 import { registerWifiTools } from "./wifi.js";
 import { registerHotspotTools } from "./hotspot.js";
@@ -23,6 +24,7 @@ export function registerAllTools(
   registerSiteTools(server, client);
   registerDeviceTools(server, client, readOnly);
   registerClientTools(server, client, readOnly);
+  registerClientHistoryTools(server, client);
   registerNetworkTools(server, client, readOnly);
   registerWifiTools(server, client, readOnly);
   registerHotspotTools(server, client, readOnly);

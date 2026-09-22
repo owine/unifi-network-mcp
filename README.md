@@ -1,6 +1,6 @@
 # UniFi Network MCP Server
 
-An MCP (Model Context Protocol) server that exposes the UniFi Network Integration API as tools for Claude Code and other MCP clients. Provides 74 tools for managing sites, devices, clients, networks, WiFi, firewalls, ACLs, switching, DNS policies, hotspot vouchers, VPNs, and more.
+An MCP (Model Context Protocol) server that exposes the UniFi Network Integration API as tools for Claude Code and other MCP clients. Provides 76 tools for managing sites, devices, clients, networks, WiFi, firewalls, ACLs, switching, DNS policies, hotspot vouchers, VPNs, and more.
 
 ## Prerequisites
 
@@ -79,11 +79,11 @@ This server provides layered safety controls for responsible operation:
 
 ## Structured Output
 
-58 of the 74 tools (all 41 read tools, plus the 17 write tools whose API responses return the affected resource) declare an MCP `outputSchema` and return `structuredContent` alongside the usual text content. Clients that understand structured output get typed, machine-readable results instead of parsing JSON out of a text blob.
+60 of the 76 tools (all 43 read tools, plus the 17 write tools whose API responses return the affected resource) declare an MCP `outputSchema` and return `structuredContent` alongside the usual text content. Clients that understand structured output get typed, machine-readable results instead of parsing JSON out of a text blob.
 
 The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi Network API 10.6.106. They deliberately use a **loose strategy**: every non-key field is optional and nested objects use `.passthrough()`, so firmware- and hardware-specific fields flow through unchanged rather than being stripped or triggering a validation error. This keeps the contract stable across console versions and hardware models.
 
-## Tools (74 total)
+## Tools (76 total)
 
 ### System (1)
 | Tool | Description |
@@ -114,6 +114,12 @@ The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi
 | `unifi_get_client` | Get a specific client by ID |
 | `unifi_authorize_guest` | Authorize a guest client on a hotspot network |
 | `unifi_unauthorize_guest` | Unauthorize a guest client |
+
+### Client history (2)
+| Tool | Description |
+|---|---|
+| `unifi_list_client_history` | Historical/offline client inventory and first/last seen times |
+| `unifi_list_client_sessions` | Retained connection sessions, duration, byte counters and roaming records |
 
 ### Networks (6)
 | Tool | Description |
@@ -245,3 +251,23 @@ git commit --allow-empty -m "chore: release 2.0.0" -m "Release-As: 2.0.0"
 ## License
 
 MIT
+
+## Retained client connections
+
+The Integration API only lists connected clients. The two history tools use the controller APIs instead: GET `/proxy/network/v2/api/site/{siteReference}/clients/history` and POST `/proxy/network/api/s/{siteReference}/stat/session`. The POST is a statistics query and does not change the network. Both tools remain available in read-only mode.
+
+Use `internalReference` from `unifi_list_sites` (often `default`), not its UUID. Session queries require `start` and `end` in Unix **seconds**, with a maximum 31-day window. The controller ignores `_start`/offset on this endpoint. A full result sets `mayBeTruncated=true`; split the time window or filter by MAC and query again. Overlap split boundaries and deduplicate session IDs. A result below the requested limit means the query was not capped, not that all dates were retained.
+
+```json
+{"siteReference":"default","start":1789272000,"end":1789876800,"limit":1000}
+```
+
+Results preserve controller field names, including `assoc_time`, `duration`, `rx_bytes`, `tx_bytes` and `roaming_sessions`. RX/TX are the controller's counters, not relabeled client download/upload. Inventory is separate from session history. Retention varies; a non-truncated result does not prove all requested dates were retained, and ongoing sessions may not be present. Neither association nor traffic counters establish end-to-end Internet success. The `is_guest` flag does not establish device ownership.
+
+These controller routes are not part of the published Integration API contract. Their availability and API-key permissions vary by controller version. Unsupported, unauthorized, HTML login, legacy `meta.rc` error and malformed responses fail explicitly instead of becoming an empty history. History requests have a 25-second timeout, reject redirects, and cap responses at 10 MB. No browser cookies are required where API-key access is supported.
+
+### Cloud Connector
+
+To use a Site Manager API key with a console, set `UNIFI_NETWORK_HOST=api.ui.com` and `UNIFI_NETWORK_CONSOLE_ID` to its console ID. The existing `UNIFI_NETWORK_API_KEY` supplies the key. This works for current Integration API tools and the controller history routes when permitted by the console/key. Cloud Connector requires eligible console ownership/access and firmware 5.0.3 or later. Keep TLS verification enabled.
+
+References: [official Cloud Connector API](https://developer.ui.com/site-manager/v1.0.0) and the [Art-of-WiFi controller client](https://github.com/Art-of-WiFi/UniFi-API-client/blob/master/src/Client.php), whose session queries use epoch seconds.
