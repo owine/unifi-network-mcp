@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.14.0](https://github.com/owine/unifi-network-mcp/compare/2.13.0...2.14.0) (2026-09-22)
+
+
+### Features
+
+* add retained client sessions and offline history ([#255](https://github.com/owine/unifi-network-mcp/issues/255)) ([c788f7f](https://github.com/owine/unifi-network-mcp/commit/c788f7f59353a1146c7617c26fdbe898826666c4))
+
+
+### Bug Fixes
+
+* pin Trivy to v0.74.0 so the security scan reads pnpm v12 lockfiles ([#247](https://github.com/owine/unifi-network-mcp/issues/247)) ([33abea7](https://github.com/owine/unifi-network-mcp/commit/33abea7855097d567c3c4d012225f337bcf2aaff))
+
+
+### Dependencies
+
+* update all non-major dependencies ([#252](https://github.com/owine/unifi-network-mcp/issues/252)) ([6a12532](https://github.com/owine/unifi-network-mcp/commit/6a12532ed1801ba66bc11d6aebe5f14ea557ace8))
+* update dependency @types/node to v24.13.6 ([#258](https://github.com/owine/unifi-network-mcp/issues/258)) ([2f278bc](https://github.com/owine/unifi-network-mcp/commit/2f278bc70951a9b286e921cd5b3cfc93e83614d9))
+* update dependency eslint to v10.11.0 ([#256](https://github.com/owine/unifi-network-mcp/issues/256)) ([cdd2896](https://github.com/owine/unifi-network-mcp/commit/cdd2896ef26067beaadfd8c51589c4d3e2da137d))
+* update pnpm to v12.4.2 ([#253](https://github.com/owine/unifi-network-mcp/issues/253)) ([bce6801](https://github.com/owine/unifi-network-mcp/commit/bce68014c14bf671ad2da69336cc8cda01174f7c))
+* update pnpm to v12.5.1 ([#257](https://github.com/owine/unifi-network-mcp/issues/257)) ([bdabf46](https://github.com/owine/unifi-network-mcp/commit/bdabf467770304ff0f3f96ac18cbec66bb849d73))
+* update testing to v5.0.1 ([#254](https://github.com/owine/unifi-network-mcp/issues/254)) ([707144f](https://github.com/owine/unifi-network-mcp/commit/707144f321612e7c1bb758143a6fb83f1a616d44))
+
 ## [2.13.0](https://github.com/owine/unifi-network-mcp/compare/2.12.0...2.13.0) (2026-09-14)
 
 
