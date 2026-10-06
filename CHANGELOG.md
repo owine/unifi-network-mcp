@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.14.3](https://github.com/owine/unifi-network-mcp/compare/2.14.2...2.14.3) (2026-10-06)
+
+
+### Dependencies
+
+* update pnpm to v12.9.0 ([#280](https://github.com/owine/unifi-network-mcp/issues/280)) ([ec365e4](https://github.com/owine/unifi-network-mcp/commit/ec365e4554b32166864b33dd9fbd9b4ec33a7824))
+
 ## [2.14.2](https://github.com/owine/unifi-network-mcp/compare/2.14.1...2.14.2) (2026-10-05)
 
 
