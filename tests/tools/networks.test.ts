@@ -200,6 +200,13 @@ describe("registerNetworkTools", () => {
       registerNetworkTools(server, client);
     });
 
+    const gatewayFields = {
+      isolationEnabled: false,
+      cellularBackupEnabled: true,
+      internetAccessEnabled: true,
+      ipv4Configuration: { hostIpAddress: "192.0.2.1", prefixLength: 24 },
+    };
+
     it("should register the tool", () => {
       expect(handlers.has("unifi_create_network")).toBe(true);
     });
@@ -211,10 +218,53 @@ describe("registerNetworkTools", () => {
       expect(config?.annotations.idempotentHint).toBe(false);
     });
 
-    it("should return success when client.post succeeds", async () => {
-      const mockData = { id: "net-new", name: "Guest", vlanId: 10 };
+    it("should POST an UNMANAGED network with only the common fields", async () => {
+      const mockData = { id: "net-new", name: "External", vlanId: 30 };
       mockFn(client, "post").mockResolvedValue(mockData);
 
+      const handler = handlers.get("unifi_create_network");
+      const result = await handler({
+        siteId: "site1",
+        name: "External",
+        management: "UNMANAGED",
+        enabled: true,
+        vlanId: 30,
+      });
+
+      expect(mockFn(client, "post")).toHaveBeenCalledWith(
+        "/sites/site1/networks",
+        { name: "External", management: "UNMANAGED", enabled: true, vlanId: 30 }
+      );
+      expect(result.content[0].text).toContain("net-new");
+      expect(result.isError).toBeUndefined();
+    });
+
+    it("should POST a GATEWAY network with its variant fields", async () => {
+      mockFn(client, "post").mockResolvedValue({ id: "net-new" });
+
+      const handler = handlers.get("unifi_create_network");
+      const result = await handler({
+        siteId: "site1",
+        name: "Guest",
+        management: "GATEWAY",
+        enabled: true,
+        vlanId: 10,
+        ...gatewayFields,
+        zoneId: "zone-1",
+      });
+
+      expect(mockFn(client, "post")).toHaveBeenCalledWith("/sites/site1/networks", {
+        name: "Guest",
+        management: "GATEWAY",
+        enabled: true,
+        vlanId: 10,
+        ...gatewayFields,
+        zoneId: "zone-1",
+      });
+      expect(result.isError).toBeUndefined();
+    });
+
+    it("should reject a GATEWAY network missing its required variant fields", async () => {
       const handler = handlers.get("unifi_create_network");
       const result = await handler({
         siteId: "site1",
@@ -224,12 +274,44 @@ describe("registerNetworkTools", () => {
         vlanId: 10,
       });
 
-      expect(mockFn(client, "post")).toHaveBeenCalledWith(
-        "/sites/site1/networks",
-        { name: "Guest", management: "GATEWAY", enabled: true, vlanId: 10 }
+      expect(mockFn(client, "post")).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(
+        "Missing required fields for management GATEWAY: isolationEnabled, cellularBackupEnabled, internetAccessEnabled, ipv4Configuration"
       );
-      expect(result.content[0].text).toContain("net-new");
-      expect(result.isError).toBeUndefined();
+    });
+
+    it("should require deviceId for a SWITCH network", async () => {
+      const handler = handlers.get("unifi_create_network");
+      const result = await handler({
+        siteId: "site1",
+        name: "Core",
+        management: "SWITCH",
+        enabled: true,
+        vlanId: 40,
+        isolationEnabled: false,
+        cellularBackupEnabled: false,
+        ipv4Configuration: { hostIpAddress: "198.51.100.1", prefixLength: 24 },
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("deviceId");
+    });
+
+    it("should reject fields that belong to another management type", async () => {
+      const handler = handlers.get("unifi_create_network");
+      const result = await handler({
+        siteId: "site1",
+        name: "External",
+        management: "UNMANAGED",
+        enabled: true,
+        vlanId: 30,
+        internetAccessEnabled: true,
+      });
+
+      expect(mockFn(client, "post")).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Fields not accepted for management UNMANAGED: internetAccessEnabled");
     });
 
     it("should return dryRun preview when dryRun=true", async () => {
@@ -240,6 +322,7 @@ describe("registerNetworkTools", () => {
         management: "GATEWAY",
         enabled: true,
         vlanId: 10,
+        ...gatewayFields,
         dryRun: true,
       });
 
@@ -250,8 +333,7 @@ describe("registerNetworkTools", () => {
     });
 
     it("should return error when client fails", async () => {
-      const testError = new Error("Create failed");
-      mockFn(client, "post").mockRejectedValue(testError);
+      mockFn(client, "post").mockRejectedValue(new Error("Create failed"));
 
       const handler = handlers.get("unifi_create_network");
       const result = await handler({
@@ -260,6 +342,7 @@ describe("registerNetworkTools", () => {
         management: "GATEWAY",
         enabled: true,
         vlanId: 10,
+        ...gatewayFields,
       });
 
       expect(result.isError).toBe(true);
@@ -267,15 +350,14 @@ describe("registerNetworkTools", () => {
     });
 
     it("should pass dhcpGuarding when provided", async () => {
-      const mockData = { id: "net-new", name: "Guest", vlanId: 10 };
-      mockFn(client, "post").mockResolvedValue(mockData);
+      mockFn(client, "post").mockResolvedValue({ id: "net-new" });
 
       const dhcpSettings = { trustedDhcpServerIpAddresses: ["192.168.1.1"] };
       const handler = handlers.get("unifi_create_network");
       const result = await handler({
         siteId: "site1",
-        name: "Guest",
-        management: "GATEWAY",
+        name: "External",
+        management: "UNMANAGED",
         enabled: true,
         vlanId: 10,
         dhcpGuarding: dhcpSettings,
@@ -283,15 +365,45 @@ describe("registerNetworkTools", () => {
 
       expect(mockFn(client, "post")).toHaveBeenCalledWith(
         "/sites/site1/networks",
-        { name: "Guest", management: "GATEWAY", enabled: true, vlanId: 10, dhcpGuarding: dhcpSettings }
+        { name: "External", management: "UNMANAGED", enabled: true, vlanId: 10, dhcpGuarding: dhcpSettings }
       );
       expect(result.isError).toBeUndefined();
     });
   });
 
   describe("unifi_update_network", () => {
+    // Shape captured live from an 11.0.83 GATEWAY network (values redacted).
+    const currentNetwork = {
+      management: "GATEWAY",
+      id: "net1",
+      name: "IoT",
+      enabled: true,
+      vlanId: 20,
+      metadata: { origin: "USER_DEFINED" },
+      isolationEnabled: false,
+      cellularBackupEnabled: true,
+      zoneId: "zone-1",
+      internetAccessEnabled: true,
+      mdnsForwardingEnabled: true,
+      dhcpGuarding: { trustedDhcpServerIpAddresses: ["192.0.2.1"] },
+      ipv4Configuration: {
+        autoScaleEnabled: false,
+        hostIpAddress: "192.0.2.1",
+        prefixLength: 24,
+        dhcpConfiguration: { mode: "SERVER", ntpServerIpAddresses: ["192.0.2.1", ""] },
+      },
+      ipv6Configuration: { interfaceType: "STATIC", prefixLength: 64 },
+      default: false,
+    };
+
+    // The documented PUT body: the GET response minus its read-only fields.
+    const currentBody = Object.fromEntries(
+      Object.entries(currentNetwork).filter(([field]) => !["id", "metadata", "default"].includes(field))
+    );
+
     beforeEach(() => {
       registerNetworkTools(server, client);
+      mockFn(client, "get").mockResolvedValue(currentNetwork);
     });
 
     it("should register the tool", () => {
@@ -305,85 +417,111 @@ describe("registerNetworkTools", () => {
       expect(config?.annotations.idempotentHint).toBe(true);
     });
 
-    it("should return success when client.put succeeds", async () => {
-      const mockData = { id: "net1", name: "LAN Updated" };
-      mockFn(client, "put").mockResolvedValue(mockData);
+    it("should read the current network and PUT the merged full body", async () => {
+      mockFn(client, "put").mockResolvedValue({ ...currentNetwork, name: "IoT Updated" });
 
       const handler = handlers.get("unifi_update_network");
-      const result = await handler({
-        siteId: "site1",
-        networkId: "net1",
-        name: "LAN Updated",
-        management: "GATEWAY",
-        enabled: true,
-        vlanId: 1,
-      });
+      const result = await handler({ siteId: "site1", networkId: "net1", name: "IoT Updated" });
 
-      expect(mockFn(client, "put")).toHaveBeenCalledWith(
-        "/sites/site1/networks/net1",
-        { name: "LAN Updated", management: "GATEWAY", enabled: true, vlanId: 1 }
-      );
-      expect(result.content[0].text).toContain("LAN Updated");
+      expect(mockFn(client, "get")).toHaveBeenCalledWith("/sites/site1/networks/net1");
+      expect(mockFn(client, "put")).toHaveBeenCalledWith("/sites/site1/networks/net1", {
+        ...currentBody,
+        name: "IoT Updated",
+      });
+      expect(result.content[0].text).toContain("IoT Updated");
       expect(result.isError).toBeUndefined();
     });
 
-    it("should return dryRun preview when dryRun=true", async () => {
-      const handler = handlers.get("unifi_update_network");
-      const result = await handler({
-        siteId: "site1",
-        networkId: "net1",
-        name: "LAN Updated",
-        management: "GATEWAY",
-        enabled: true,
-        vlanId: 1,
-        dryRun: true,
-      });
+    it("should keep dhcpGuarding and ipv4Configuration when they are not passed", async () => {
+      mockFn(client, "put").mockResolvedValue(currentNetwork);
 
-      expect(mockFn(client, "put")).not.toHaveBeenCalled();
-      expect(result.content[0].text).toContain("dryRun");
-      expect(result.content[0].text).toContain("PUT");
-      expect(result.content[0].text).toContain("/sites/site1/networks/net1");
+      const handler = handlers.get("unifi_update_network");
+      await handler({ siteId: "site1", networkId: "net1", enabled: false });
+
+      const body = mockFn(client, "put").mock.calls[0][1];
+      expect(body.dhcpGuarding).toEqual(currentNetwork.dhcpGuarding);
+      expect(body.ipv4Configuration).toEqual(currentNetwork.ipv4Configuration);
+      expect(body.enabled).toBe(false);
     });
 
-    it("should return error when client fails", async () => {
-      const testError = new Error("Update failed");
-      mockFn(client, "put").mockRejectedValue(testError);
+    it("should not send read-only response fields", async () => {
+      mockFn(client, "put").mockResolvedValue(currentNetwork);
 
       const handler = handlers.get("unifi_update_network");
-      const result = await handler({
-        siteId: "site1",
-        networkId: "net1",
-        name: "LAN",
-        management: "GATEWAY",
+      await handler({ siteId: "site1", networkId: "net1", vlanId: 21 });
+
+      const body = mockFn(client, "put").mock.calls[0][1];
+      expect(body).not.toHaveProperty("id");
+      expect(body).not.toHaveProperty("metadata");
+      expect(body).not.toHaveProperty("default");
+    });
+
+    it("should send an explicit null to clear an optional field", async () => {
+      mockFn(client, "put").mockResolvedValue(currentNetwork);
+
+      const handler = handlers.get("unifi_update_network");
+      await handler({ siteId: "site1", networkId: "net1", ipv6Configuration: null, dhcpGuarding: null });
+
+      const body = mockFn(client, "put").mock.calls[0][1];
+      expect(body.ipv6Configuration).toBeNull();
+      expect(body.dhcpGuarding).toBeNull();
+    });
+
+    it("should drop GATEWAY-only fields when switching to UNMANAGED", async () => {
+      mockFn(client, "put").mockResolvedValue(currentNetwork);
+
+      const handler = handlers.get("unifi_update_network");
+      await handler({ siteId: "site1", networkId: "net1", management: "UNMANAGED" });
+
+      expect(mockFn(client, "put")).toHaveBeenCalledWith("/sites/site1/networks/net1", {
+        management: "UNMANAGED",
+        name: "IoT",
         enabled: true,
-        vlanId: 1,
+        vlanId: 20,
+        dhcpGuarding: currentNetwork.dhcpGuarding,
       });
+    });
+
+    it("should reject a switch to SWITCH without deviceId", async () => {
+      const handler = handlers.get("unifi_update_network");
+      const result = await handler({ siteId: "site1", networkId: "net1", management: "SWITCH" });
+
+      expect(mockFn(client, "put")).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Missing required fields for management SWITCH: deviceId");
+    });
+
+    it("should return the merged body as a dryRun preview without writing", async () => {
+      const handler = handlers.get("unifi_update_network");
+      const result = await handler({ siteId: "site1", networkId: "net1", name: "IoT Updated", dryRun: true });
+
+      expect(mockFn(client, "put")).not.toHaveBeenCalled();
+      const preview = JSON.parse(result.content[0].text);
+      expect(preview.dryRun).toBe(true);
+      expect(preview.wouldExecute.method).toBe("PUT");
+      expect(preview.wouldExecute.path).toBe("/sites/site1/networks/net1");
+      expect(preview.wouldExecute.body).toEqual({ ...currentBody, name: "IoT Updated" });
+    });
+
+    it("should return error when the current network cannot be read", async () => {
+      mockFn(client, "get").mockRejectedValue(new Error("HTTP 404: not found"));
+
+      const handler = handlers.get("unifi_update_network");
+      const result = await handler({ siteId: "site1", networkId: "missing", name: "x" });
+
+      expect(mockFn(client, "put")).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("HTTP 404");
+    });
+
+    it("should return error when client.put fails", async () => {
+      mockFn(client, "put").mockRejectedValue(new Error("Update failed"));
+
+      const handler = handlers.get("unifi_update_network");
+      const result = await handler({ siteId: "site1", networkId: "net1", name: "LAN" });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Update failed");
-    });
-
-    it("should pass dhcpGuarding when provided", async () => {
-      const mockData = { id: "net1", name: "LAN Updated" };
-      mockFn(client, "put").mockResolvedValue(mockData);
-
-      const dhcpSettings = { trustedDhcpServerIpAddresses: ["10.0.0.1"] };
-      const handler = handlers.get("unifi_update_network");
-      const result = await handler({
-        siteId: "site1",
-        networkId: "net1",
-        name: "LAN Updated",
-        management: "GATEWAY",
-        enabled: true,
-        vlanId: 1,
-        dhcpGuarding: dhcpSettings,
-      });
-
-      expect(mockFn(client, "put")).toHaveBeenCalledWith(
-        "/sites/site1/networks/net1",
-        { name: "LAN Updated", management: "GATEWAY", enabled: true, vlanId: 1, dhcpGuarding: dhcpSettings }
-      );
-      expect(result.isError).toBeUndefined();
     });
   });
 
