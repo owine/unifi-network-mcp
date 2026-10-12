@@ -171,6 +171,67 @@ describe("registerWifiTools", () => {
     });
   });
 
+  describe("passphrase redaction", () => {
+    // PPSK shape captured live on 11.0.83 (values replaced).
+    const ppskSsid = {
+      type: "STANDARD",
+      id: "wifi1",
+      name: "Home",
+      securityConfiguration: {
+        type: "WPA2_PERSONAL",
+        presharedKeys: [
+          { network: { type: "SPECIFIC", networkId: "net-a" }, passphrase: FIXTURE_KEYS.ppskA },
+          { network: { type: "SPECIFIC", networkId: "net-b" }, passphrase: FIXTURE_KEYS.ppskB },
+        ],
+      },
+    };
+
+    beforeEach(() => {
+      registerWifiTools(server, client);
+    });
+
+    it("get_wifi redacts every passphrase by default", async () => {
+      mockFn(client, "get").mockResolvedValue(ppskSsid);
+
+      const result = await handlers.get("unifi_get_wifi")({ siteId: "site1", wifiBroadcastId: "wifi1" });
+
+      expect(result.content[0].text).not.toContain(FIXTURE_KEYS.ppskA);
+      expect(result.content[0].text).not.toContain(FIXTURE_KEYS.ppskB);
+      const keys = (result.structuredContent as typeof ppskSsid).securityConfiguration.presharedKeys;
+      expect(keys.map((k) => k.passphrase)).toEqual(["[REDACTED]", "[REDACTED]"]);
+      expect(keys[0].network).toEqual({ type: "SPECIFIC", networkId: "net-a" });
+    });
+
+    it("get_wifi returns plaintext passphrases when includeSecrets=true", async () => {
+      mockFn(client, "get").mockResolvedValue(ppskSsid);
+
+      const result = await handlers.get("unifi_get_wifi")({
+        siteId: "site1",
+        wifiBroadcastId: "wifi1",
+        includeSecrets: true,
+      });
+
+      expect(result.content[0].text).toContain(FIXTURE_KEYS.ppskA);
+    });
+
+    it("list_wifi redacts passphrases inside the paginated envelope", async () => {
+      mockFn(client, "get").mockResolvedValue({ offset: 0, limit: 25, count: 1, totalCount: 1, data: [ppskSsid] });
+
+      const result = await handlers.get("unifi_list_wifi")({ siteId: "site1" });
+
+      expect(result.content[0].text).not.toContain(FIXTURE_KEYS.ppskA);
+      expect(result.content[0].text).toContain("[REDACTED]");
+    });
+
+    it("does not mutate the API response object", async () => {
+      mockFn(client, "get").mockResolvedValue(ppskSsid);
+
+      await handlers.get("unifi_get_wifi")({ siteId: "site1", wifiBroadcastId: "wifi1" });
+
+      expect(ppskSsid.securityConfiguration.presharedKeys[0].passphrase).toBe(FIXTURE_KEYS.ppskA);
+    });
+  });
+
   describe("unifi_create_wifi", () => {
     const standardCreate = {
       siteId: "site1",
@@ -415,6 +476,29 @@ describe("registerWifiTools", () => {
       expect(mockFn(client, "post").mock.calls[0][1].broadcastingFrequenciesGHz).toEqual([5, 2.4]);
     });
 
+    it("should reject a redaction placeholder instead of setting it as the passphrase", async () => {
+      const result = await handlers.get("unifi_create_wifi")({
+        ...standardCreate,
+        securityConfiguration: { type: "WPA2_PERSONAL", passphrase: "[REDACTED]" },
+      });
+
+      expect(mockFn(client, "post")).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("needs the real passphrase");
+    });
+
+    it("should redact the passphrase in the response echo and dryRun preview", async () => {
+      const secured = { ...standardCreate, securityConfiguration: { type: "WPA2_PERSONAL", passphrase: FIXTURE_KEYS.created } };
+      mockFn(client, "post").mockResolvedValue({ id: "wifi-new", securityConfiguration: secured.securityConfiguration });
+
+      const result = await handlers.get("unifi_create_wifi")(secured);
+      const preview = await handlers.get("unifi_create_wifi")({ ...secured, dryRun: true });
+
+      expect(mockFn(client, "post").mock.calls[0][1].securityConfiguration.passphrase).toBe(FIXTURE_KEYS.created);
+      expect(result.content[0].text).not.toContain(FIXTURE_KEYS.created);
+      expect(preview.content[0].text).not.toContain(FIXTURE_KEYS.created);
+    });
+
     it("should reject schema when channel2gLockedTo6 is missing", () => {
       const schema = parseInputSchema(configs, "unifi_create_wifi");
       const result = schema.safeParse({
@@ -589,6 +673,49 @@ describe("registerWifiTools", () => {
       expect(mockFn(client, "put").mock.calls[0][1].handoffSuggestionsConfiguration).toBeNull();
     });
 
+    it("should keep the stored passphrases when the caller echoes back redacted values", async () => {
+      mockFn(client, "put").mockResolvedValue(currentSsid);
+
+      await handlers.get("unifi_update_wifi")({
+        siteId: "site1",
+        wifiBroadcastId: "wifi1",
+        securityConfiguration: {
+          type: "WPA2_WPA3_PERSONAL",
+          passphrase: "[REDACTED]",
+          pmfMode: "REQUIRED",
+          presharedKeys: [
+            { network: { type: "SPECIFIC", networkId: "net-a" }, passphrase: "[REDACTED]" },
+            { network: { type: "SPECIFIC", networkId: "net-b" }, passphrase: FIXTURE_KEYS.newB },
+          ],
+        },
+      });
+
+      const security = mockFn(client, "put").mock.calls[0][1].securityConfiguration;
+      expect(security.passphrase).toBe(FIXTURE_KEYS.current);
+      expect(security.pmfMode).toBe("REQUIRED");
+      expect(security.presharedKeys[0].passphrase).toBe(FIXTURE_KEYS.a);
+      expect(security.presharedKeys[1].passphrase).toBe(FIXTURE_KEYS.newB);
+    });
+
+    it("should refuse to restore a redacted PPSK key into a reordered entry", async () => {
+      const result = await handlers.get("unifi_update_wifi")({
+        siteId: "site1",
+        wifiBroadcastId: "wifi1",
+        securityConfiguration: {
+          type: "WPA2_WPA3_PERSONAL",
+          presharedKeys: [
+            { network: { type: "SPECIFIC", networkId: "net-b" }, passphrase: "[REDACTED]" },
+            { network: { type: "SPECIFIC", networkId: "net-a" }, passphrase: "[REDACTED]" },
+          ],
+        },
+      });
+
+      expect(mockFn(client, "put")).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("presharedKeys[0]");
+      expect(result.content[0].text).not.toContain(FIXTURE_KEYS.a);
+    });
+
     it("should drop STANDARD-only fields when switching to IOT_OPTIMIZED", async () => {
       mockFn(client, "put").mockResolvedValue(currentSsid);
 
@@ -611,7 +738,7 @@ describe("registerWifiTools", () => {
       expect(result.content[0].text).toContain("Fields not accepted for type IOT_OPTIMIZED: mloEnabled");
     });
 
-    it("should return the merged body as a dryRun preview without writing", async () => {
+    it("should return a redacted merged-body dryRun preview without writing", async () => {
       const result = await handlers.get("unifi_update_wifi")({
         siteId: "site1",
         wifiBroadcastId: "wifi1",
@@ -623,7 +750,16 @@ describe("registerWifiTools", () => {
       const preview = JSON.parse(result.content[0].text);
       expect(preview.wouldExecute.method).toBe("PUT");
       expect(preview.wouldExecute.body.enabled).toBe(false);
-      expect(preview.wouldExecute.body.securityConfiguration.passphrase).toBe(FIXTURE_KEYS.current);
+      expect(preview.wouldExecute.body.securityConfiguration.passphrase).toBe("[REDACTED]");
+      expect(result.content[0].text).not.toContain(FIXTURE_KEYS.current);
+    });
+
+    it("should redact passphrases in the response echo", async () => {
+      mockFn(client, "put").mockResolvedValue(currentSsid);
+
+      const result = await handlers.get("unifi_update_wifi")({ siteId: "site1", wifiBroadcastId: "wifi1", name: "x" });
+
+      expect(result.content[0].text).not.toContain(FIXTURE_KEYS.current);
     });
 
     it("should return error when client.put fails", async () => {

@@ -19,6 +19,7 @@ import {
   unsupportedFields,
   type JsonObject,
 } from "../utils/full-put.js";
+import { containsRedacted, redactSecrets, restoreRedacted, REDACTED } from "../utils/secrets.js";
 import {
   listWifiOutputSchema,
   getWifiOutputSchema,
@@ -107,7 +108,7 @@ const wifiFields = {
   securityConfiguration: z
     .record(z.string(), z.unknown())
     .optional()
-    .describe("Security configuration object (type, passphrase, presharedKeys[], pmfMode, …)"),
+    .describe(`Security configuration object (type, passphrase, presharedKeys[], pmfMode, …). A "${REDACTED}" value read from unifi_get_wifi is kept as the existing secret on update.`),
   multicastToUnicastConversionEnabled: flag("Enable multicast to unicast conversion"),
   clientIsolationEnabled: flag("Enable client isolation"),
   hideName: flag("Hide SSID name"),
@@ -155,6 +156,13 @@ function checkBody(body: JsonObject, updates: JsonObject) {
   }
 }
 
+const includeSecrets = z
+  .boolean()
+  .optional()
+  .describe(`Return WiFi passphrases in plaintext instead of "${REDACTED}" (default: false). Only set this when the user explicitly needs the key.`);
+
+const readRedaction = `Passphrases (securityConfiguration.passphrase, presharedKeys[].passphrase) are returned as "${REDACTED}" unless includeSecrets is true.`;
+
 export function registerWifiTools(
   server: McpServer,
   client: NetworkClient,
@@ -163,7 +171,7 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_list_wifi",
     {
-      description: `List all WiFi broadcasts (SSIDs) at a site. Returns (sparse list view, live-verified on 11.0.83): id, name (SSID), type (STANDARD/IOT_OPTIMIZED), enabled, metadata.origin, network reference (absent on PPSK SSIDs), securityConfiguration.type, broadcastingFrequenciesGHz, hotspotConfiguration (empty object when set). Booleans such as hideName/bandSteeringEnabled/clientIsolationEnabled, the full security configuration and optional configs are only returned by unifi_get_wifi. Use for: SSID inventory. For per-AP radio state (channel, txPower), use unifi_get_device on the AP.`,
+      description: `List all WiFi broadcasts (SSIDs) at a site. Returns (sparse list view, live-verified on 11.0.83): id, name (SSID), type (STANDARD/IOT_OPTIMIZED), enabled, metadata.origin, network reference (absent on PPSK SSIDs), securityConfiguration.type, broadcastingFrequenciesGHz, hotspotConfiguration (empty object when set). Booleans such as hideName/bandSteeringEnabled/clientIsolationEnabled, the full security configuration and optional configs are only returned by unifi_get_wifi. ${readRedaction} Use for: SSID inventory. For per-AP radio state (channel, txPower), use unifi_get_device on the AP.`,
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -183,15 +191,16 @@ export function registerWifiTools(
           .string()
           .optional()
           .describe("Filter expression, e.g. enabled.eq(true)"),
+        includeSecrets,
       },
       outputSchema: listWifiOutputSchema,
       annotations: READ_ONLY,
     },
-    async ({ siteId, offset, limit, filter }) => {
+    async ({ siteId, offset, limit, filter, includeSecrets }) => {
       try {
         const query = buildQuery({ offset, limit, filter });
         const data = await client.get(`/sites/${siteId}/wifi/broadcasts${query}`);
-        return formatSuccess(data, { structured: true });
+        return formatSuccess(includeSecrets ? data : redactSecrets(data), { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -201,20 +210,21 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_get_wifi",
     {
-      description: `Get full configuration for a WiFi broadcast (SSID). Returns the list fields plus the booleans (hideName, clientIsolationEnabled, uapsdEnabled, multicastToUnicastConversionEnabled, bandSteeringEnabled, arpProxyEnabled, bssTransitionEnabled, advertiseDeviceName, channel2gLockedTo6, dtimPeriod2gLockedTo3), the full securityConfiguration (type, pmfMode, fastRoamingEnabled, saeConfiguration, presharedKeys[] on PPSK SSIDs, …), and optional configs when configured (omitted otherwise): clientFilteringPolicy, blackoutScheduleConfiguration, hotspotConfiguration, mdnsProxyConfiguration, handoffSuggestionsConfiguration, dtimPeriodByFrequencyGHzOverride, broadcastingDeviceFilter, mloEnabled.`,
+      description: `Get full configuration for a WiFi broadcast (SSID). Returns the list fields plus the booleans (hideName, clientIsolationEnabled, uapsdEnabled, multicastToUnicastConversionEnabled, bandSteeringEnabled, arpProxyEnabled, bssTransitionEnabled, advertiseDeviceName, channel2gLockedTo6, dtimPeriod2gLockedTo3), the full securityConfiguration (type, pmfMode, fastRoamingEnabled, saeConfiguration, presharedKeys[] on PPSK SSIDs, …), and optional configs when configured (omitted otherwise): clientFilteringPolicy, blackoutScheduleConfiguration, hotspotConfiguration, mdnsProxyConfiguration, handoffSuggestionsConfiguration, dtimPeriodByFrequencyGHzOverride, broadcastingDeviceFilter, mloEnabled. ${readRedaction}`,
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),
+        includeSecrets,
       },
       outputSchema: getWifiOutputSchema,
       annotations: READ_ONLY,
     },
-    async ({ siteId, wifiBroadcastId }) => {
+    async ({ siteId, wifiBroadcastId, includeSecrets }) => {
       try {
         const data = await client.get(
           `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`
         );
-        return formatSuccess(data, { structured: true });
+        return formatSuccess(includeSecrets ? data : redactSecrets(data), { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -226,7 +236,7 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_create_wifi",
     {
-      description: `Create a new WiFi network (SSID). Required for both types: type, name, enabled, securityConfiguration, multicastToUnicastConversionEnabled, clientIsolationEnabled, hideName, uapsdEnabled, channel2gLockedTo6, dtimPeriod2gLockedTo3. STANDARD additionally requires broadcastingFrequenciesGHz, arpProxyEnabled, bssTransitionEnabled, advertiseDeviceName; fields marked "STANDARD only" are rejected for IOT_OPTIMIZED (per 11.0.83 docs). Idempotency: not safe to retry — re-running creates a duplicate SSID.`,
+      description: `Create a new WiFi network (SSID). Required for both types: type, name, enabled, securityConfiguration, multicastToUnicastConversionEnabled, clientIsolationEnabled, hideName, uapsdEnabled, channel2gLockedTo6, dtimPeriod2gLockedTo3. STANDARD additionally requires broadcastingFrequenciesGHz, arpProxyEnabled, bssTransitionEnabled, advertiseDeviceName; fields marked "STANDARD only" are rejected for IOT_OPTIMIZED (per 11.0.83 docs). The response echo has passphrases redacted. Idempotency: not safe to retry — re-running creates a duplicate SSID.`,
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         ...wifiFields,
@@ -254,9 +264,12 @@ export function registerWifiTools(
       try {
         const body = toBodyFields(fields);
         checkBody(body, body);
-        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi/broadcasts`, body);
+        if (containsRedacted(body)) {
+          throw new Error(`securityConfiguration contains "${REDACTED}" — a new SSID needs the real passphrase`);
+        }
+        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi/broadcasts`, redactSecrets(body));
         const data = await client.post(`/sites/${siteId}/wifi/broadcasts`, body);
-        return formatSuccess(data, { structured: true });
+        return formatSuccess(redactSecrets(data), { structured: true });
       } catch (err) {
         return formatError(err);
       }
@@ -266,7 +279,7 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_update_wifi",
     {
-      description: `Update an existing WiFi network. Pass only the fields to change. The API's PUT replaces the whole SSID (11.0.83 documents 14 required fields for STANDARD, 10 for IOT_OPTIMIZED), so this tool reads the current SSID, keeps every documented body field, overlays your changes and sends the full body — omitted fields keep their current values instead of being reset. Pass null to clear an optional config (e.g. broadcastingDeviceFilter: null broadcasts from all APs). dryRun shows the merged body.`,
+      description: `Update an existing WiFi network. Pass only the fields to change. The API's PUT replaces the whole SSID (11.0.83 documents 14 required fields for STANDARD, 10 for IOT_OPTIMIZED), so this tool reads the current SSID, keeps every documented body field, overlays your changes and sends the full body — omitted fields keep their current values instead of being reset. Pass null to clear an optional config (e.g. broadcastingDeviceFilter: null broadcasts from all APs). Passphrases are kept unless you send a new one; "${REDACTED}" values are treated as "keep". dryRun shows the merged body (secrets redacted).`,
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),
@@ -283,13 +296,13 @@ export function registerWifiTools(
       try {
         const path = `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`;
         const current = asObject(await client.get(path), "the current WiFi broadcast");
-        const updates = toBodyFields(fields);
+        const updates = restoreRedacted(toBodyFields(fields), current) as JsonObject;
         const { allowed } = fieldsForType(updates.type ?? current.type);
         const body = mergeForPut(current, updates, allowed);
         checkBody(body, updates);
-        if (dryRun) return formatDryRun("PUT", path, body);
+        if (dryRun) return formatDryRun("PUT", path, redactSecrets(body));
         const data = await client.put(path, body);
-        return formatSuccess(data, { structured: true });
+        return formatSuccess(redactSecrets(data), { structured: true });
       } catch (err) {
         return formatError(err);
       }
