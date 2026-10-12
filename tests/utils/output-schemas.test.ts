@@ -313,6 +313,25 @@ describe("output schemas", () => {
     expect(schema.parse(userDefined).reportFlowEnabled).toBe(true);
   });
 
+  it("acl rule accepts explicit nulls, which the docs use to mean 'all protocols'", () => {
+    // Regression guard: protocolFilter was z.array(z.string()).optional(),
+    // so a protocol-agnostic rule returned with null hard-failed with -32602.
+    expect(() =>
+      z.object(aclRuleOutputSchema).parse({
+        id: "a1",
+        type: "IPV4",
+        name: "Block cameras",
+        enabled: true,
+        action: "BLOCK",
+        description: null,
+        protocolFilter: null,
+        sourceFilter: null,
+        destinationFilter: null,
+        enforcingDeviceFilter: null,
+      })
+    ).not.toThrow();
+  });
+
   it("dns policy accepts every record type's fields (11.0.83 response samples)", () => {
     const schema = z.object(dnsPolicyOutputSchema);
     for (const sample of [

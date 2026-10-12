@@ -472,11 +472,11 @@ describe("registerDeviceTools", () => {
         });
       });
 
-      it("should have WRITE annotations", () => {
+      it("should have WRITE_NOT_IDEMPOTENT annotations (each call re-triggers the action)", () => {
         const config = server.configs.get("unifi_restart_device");
         expect(config?.annotations.readOnlyHint).toBe(false);
         expect(config?.annotations.destructiveHint).toBe(false);
-        expect(config?.annotations.idempotentHint).toBe(true);
+        expect(config?.annotations.idempotentHint).toBe(false);
       });
 
       it("should preview action when dryRun=true", async () => {
@@ -544,11 +544,11 @@ describe("registerDeviceTools", () => {
         });
       });
 
-      it("should have WRITE annotations", () => {
+      it("should have WRITE_NOT_IDEMPOTENT annotations (each call re-triggers the action)", () => {
         const config = server.configs.get("unifi_power_cycle_port");
         expect(config?.annotations.readOnlyHint).toBe(false);
         expect(config?.annotations.destructiveHint).toBe(false);
-        expect(config?.annotations.idempotentHint).toBe(true);
+        expect(config?.annotations.idempotentHint).toBe(false);
       });
 
       it("should preview action when dryRun=true", async () => {

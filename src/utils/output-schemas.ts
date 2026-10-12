@@ -279,8 +279,11 @@ const AclRule = z
     name: z.string().optional(),
     enabled: z.boolean().optional(),
     action: z.string().optional(),
-    description: z.string().optional(),
-    protocolFilter: z.array(z.string()).optional(),
+    // The docs give null a meaning ("When null, the rule will be applied to
+    // all protocols") and ACL samples already carry explicit nulls, so both
+    // must accept null or a protocol-agnostic rule hard-fails with -32602.
+    description: z.string().nullable().optional(),
+    protocolFilter: z.array(z.string()).nullable().optional(),
     sourceFilter: z.unknown().optional(),
     destinationFilter: z.unknown().optional(),
     enforcingDeviceFilter: z.unknown().optional(),

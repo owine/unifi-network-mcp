@@ -16,6 +16,11 @@ import {
   trafficMatchingListOutputSchema,
 } from "../utils/output-schemas.js";
 
+const matchingItems = z
+  .array(z.object({ type: z.string().describe("Item type, e.g. PORT_NUMBER, IP_ADDRESS, SUBNET") }).passthrough())
+  .min(1)
+  .describe("Non-empty array of tagged item objects, e.g. [{type:'PORT_NUMBER', value:443}]");
+
 export function registerTrafficMatchingTools(
   server: McpServer,
   client: NetworkClient,
@@ -24,7 +29,7 @@ export function registerTrafficMatchingTools(
   server.registerTool(
     "unifi_list_traffic_matching_lists",
     {
-      description: "List traffic matching lists at a site — named collections of ports or IPs reused in firewall/ACL rules. Returns: id, type (PORTS/IPV4_ADDRESSES/IPV6_ADDRESSES), name, items[]. Use for: finding the matching-list ID to reference from a firewall policy.",
+      description: "List traffic matching lists at a site — named collections of ports or IPs reused in firewall/ACL rules. Returns: id, type (PORTS/IPV4_ADDRESSES/IPV6_ADDRESSES), name, items[] (tagged objects such as {type:'PORT_NUMBER', value:22} or {type:'SUBNET', value:'<cidr>'}). Use for: finding the matching-list ID to reference from a firewall policy.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -43,7 +48,7 @@ export function registerTrafficMatchingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression. Only id and name are filterable (type is rejected with HTTP 400). Example: name.like('Web*'). NOTE: totalCount ignores the filter here — page by count"),
       },
       outputSchema: listTrafficMatchingListsOutputSchema,
       annotations: READ_ONLY,
@@ -89,17 +94,14 @@ export function registerTrafficMatchingTools(
   server.registerTool(
     "unifi_create_traffic_matching_list",
     {
-      description: "Create a new traffic matching list",
+      description: "Create a new traffic matching list. Items are tagged objects, not strings (live-verified 11.0.83): PORTS lists take {type:'PORT_NUMBER', value:443} (the older 10.4.57 spec also lists {type:'PORT_NUMBER_RANGE', start, stop}); IPV4_ADDRESSES lists take {type:'IP_ADDRESS', value:'192.0.2.1'} or {type:'SUBNET', value:'192.0.2.0/24'} (spec also: IP_ADDRESS_RANGE {start, stop}); IPV6_ADDRESSES lists take IP_ADDRESS or SUBNET. Idempotency: not safe to retry — re-running creates a duplicate list.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         type: z
           .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
           .describe("List type"),
         name: z.string().min(1).describe("List name"),
-        items: z
-          .array(z.unknown())
-          .min(1)
-          .describe("List items (ports or IP addresses)"),
+        items: matchingItems,
         dryRun: z
           .boolean()
           .optional()
@@ -126,7 +128,7 @@ export function registerTrafficMatchingTools(
   server.registerTool(
     "unifi_update_traffic_matching_list",
     {
-      description: "Update a traffic matching list",
+      description: "Replace a traffic matching list (full PUT — type, name and the complete items array are all required; read the current list with unifi_get_traffic_matching_list first). Items are tagged objects, not strings (live-verified 11.0.83): PORTS lists take {type:'PORT_NUMBER', value:443} (the older 10.4.57 spec also lists {type:'PORT_NUMBER_RANGE', start, stop}); IPV4_ADDRESSES lists take {type:'IP_ADDRESS', value:'192.0.2.1'} or {type:'SUBNET', value:'192.0.2.0/24'} (spec also: IP_ADDRESS_RANGE {start, stop}); IPV6_ADDRESSES lists take IP_ADDRESS or SUBNET.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         trafficMatchingListId: z.string().describe("Traffic matching list ID"),
@@ -134,7 +136,7 @@ export function registerTrafficMatchingTools(
           .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
           .describe("List type"),
         name: z.string().min(1).describe("List name"),
-        items: z.array(z.unknown()).min(1).describe("List items"),
+        items: matchingItems,
         dryRun: z
           .boolean()
           .optional()

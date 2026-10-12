@@ -253,9 +253,19 @@ describe("traffic matching list name and items validation", () => {
         siteId: "site1",
         type: "PORTS",
         name: "Web Ports",
-        items: ["80", "443"],
+        items: [{ type: "PORT_NUMBER", value: 80 }, { type: "PORT_NUMBER", value: 443 }],
       });
       expect(result.success).toBe(true);
+    });
+
+    it("rejects plain-string items (the API takes tagged objects)", () => {
+      const result = schema.safeParse({
+        siteId: "site1",
+        type: "PORTS",
+        name: "Web Ports",
+        items: ["80", "443"],
+      });
+      expect(result.success).toBe(false);
     });
 
     it("rejects empty string name", () => {
@@ -263,7 +273,7 @@ describe("traffic matching list name and items validation", () => {
         siteId: "site1",
         type: "PORTS",
         name: "",
-        items: ["80"],
+        items: [{ type: "PORT_NUMBER", value: 80 }],
       });
       expect(result.success).toBe(false);
     });
@@ -288,7 +298,7 @@ describe("traffic matching list name and items validation", () => {
         trafficMatchingListId: "tml1",
         type: "PORTS",
         name: "Web Ports",
-        items: ["80", "443"],
+        items: [{ type: "PORT_NUMBER", value: 80 }, { type: "PORT_NUMBER", value: 443 }],
       });
       expect(result.success).toBe(true);
     });
@@ -299,7 +309,7 @@ describe("traffic matching list name and items validation", () => {
         trafficMatchingListId: "tml1",
         type: "PORTS",
         name: "",
-        items: ["80"],
+        items: [{ type: "PORT_NUMBER", value: 80 }],
       });
       expect(result.success).toBe(false);
     });
