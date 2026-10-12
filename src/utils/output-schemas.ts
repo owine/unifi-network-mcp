@@ -347,6 +347,19 @@ const DnsPolicy = z
     domain: z.string().optional(),
     ipv4Address: z.string().optional(),
     ttlSeconds: z.number().optional(),
+    // Type-specific fields from the 11.0.83 response samples (no live DNS
+    // policies to sample), so nullable to be safe.
+    ipv6Address: z.string().nullable().optional(),
+    targetDomain: z.string().nullable().optional(),
+    mailServerDomain: z.string().nullable().optional(),
+    text: z.string().nullable().optional(),
+    serverDomain: z.string().nullable().optional(),
+    service: z.string().nullable().optional(),
+    protocol: z.string().nullable().optional(),
+    port: z.number().nullable().optional(),
+    priority: z.number().nullable().optional(),
+    weight: z.number().nullable().optional(),
+    ipAddress: z.string().nullable().optional(),
     metadata: Metadata.optional(),
   })
   .passthrough();

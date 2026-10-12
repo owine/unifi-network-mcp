@@ -17,6 +17,7 @@ import {
   listWansOutputSchema,
   listVpnServersOutputSchema,
   switchStackOutputSchema,
+  dnsPolicyOutputSchema,
 } from "../../src/utils/output-schemas.js";
 
 /**
@@ -267,5 +268,19 @@ describe("output schemas", () => {
     expect(() =>
       z.object(aclRuleOutputSchema).parse({ id: "a1", index: 0 })
     ).not.toThrow();
+  });
+
+  it("dns policy accepts every record type's fields (11.0.83 response samples)", () => {
+    const schema = z.object(dnsPolicyOutputSchema);
+    for (const sample of [
+      { id: "d1", type: "AAAA_RECORD", domain: "example.com", ipv6Address: "cafe::babe", ttlSeconds: 14400 },
+      { id: "d2", type: "CNAME_RECORD", domain: "example.com", targetDomain: "target.example.com", ttlSeconds: 14400 },
+      { id: "d3", type: "MX_RECORD", domain: "example.com", mailServerDomain: "mail.example.com", priority: 255 },
+      { id: "d4", type: "TXT_RECORD", domain: "example.com", text: "example" },
+      { id: "d5", type: "SRV_RECORD", domain: "example.com", serverDomain: "s.example.com", service: "_ldap", protocol: "_tcp", port: 65535, priority: 255, weight: 255 },
+      { id: "d6", type: "FORWARD_DOMAIN", domain: "example.com", ipAddress: "8.8.4.4" },
+    ]) {
+      expect(() => schema.parse(sample)).not.toThrow();
+    }
   });
 });

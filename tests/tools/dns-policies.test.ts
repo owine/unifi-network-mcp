@@ -193,9 +193,99 @@ describe("registerDnsPolicyTools", () => {
         expect(text).toContain("POST");
         expect(text).toContain("/sites/site123/dns/policies");
       });
+
+      it.each([
+        ["AAAA_RECORD", { ipv6Address: "2001:db8::10", ttlSeconds: 300 }],
+        ["CNAME_RECORD", { targetDomain: "target.example.com", ttlSeconds: 604800 }],
+        ["MX_RECORD", { mailServerDomain: "mail.example.com", priority: 10 }],
+        ["TXT_RECORD", { text: "v=spf1 -all" }],
+        [
+          "SRV_RECORD",
+          { serverDomain: "ldap.example.com", service: "_ldap", protocol: "_tcp", port: 389, priority: 0, weight: 5 },
+        ],
+        ["FORWARD_DOMAIN", { ipAddress: "192.0.2.53" }],
+      ])("should POST the %s-specific body", async (type, specific) => {
+        mockFn(client, "post").mockResolvedValue({ id: "policy2", type });
+
+        const result = await handlers.get("unifi_create_dns_policy")({
+          siteId: "site123",
+          type,
+          enabled: true,
+          domain: "example.com",
+          ...specific,
+        });
+
+        expect(result.isError).toBeUndefined();
+        expect(mockFn(client, "post")).toHaveBeenCalledWith("/sites/site123/dns/policies", {
+          type,
+          enabled: true,
+          domain: "example.com",
+          ...specific,
+        });
+      });
+
+      it("should reject a record missing its type-specific fields", async () => {
+        const result = await handlers.get("unifi_create_dns_policy")({
+          siteId: "site123",
+          type: "SRV_RECORD",
+          enabled: true,
+          domain: "example.com",
+          serverDomain: "ldap.example.com",
+        });
+
+        expect(mockFn(client, "post")).not.toHaveBeenCalled();
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toContain(
+          "Missing required fields for type SRV_RECORD: service, protocol, port, priority, weight"
+        );
+      });
+
+      it("should reject fields that belong to another record type", async () => {
+        const result = await handlers.get("unifi_create_dns_policy")({
+          siteId: "site123",
+          type: "MX_RECORD",
+          enabled: true,
+          domain: "example.com",
+          mailServerDomain: "mail.example.com",
+          priority: 10,
+          ttlSeconds: 3600,
+        });
+
+        expect(mockFn(client, "post")).not.toHaveBeenCalled();
+        expect(result.content[0].text).toContain("Fields not accepted for type MX_RECORD: ttlSeconds");
+      });
+
+      it("should cap A/AAAA TTLs at 86400 even though CNAME allows 604800", async () => {
+        const result = await handlers.get("unifi_create_dns_policy")({
+          siteId: "site123",
+          type: "A_RECORD",
+          enabled: true,
+          domain: "example.com",
+          ipv4Address: "192.0.2.1",
+          ttlSeconds: 604800,
+        });
+
+        expect(mockFn(client, "post")).not.toHaveBeenCalled();
+        expect(result.content[0].text).toContain("ttlSeconds for A_RECORD must be 0-86400");
+      });
     });
 
     describe("unifi_update_dns_policy", () => {
+      const currentPolicy = {
+        type: "A_RECORD",
+        id: "policy1",
+        enabled: true,
+        metadata: { origin: "USER_DEFINED" },
+        domain: "nas.example.com",
+        ipv4Address: "192.0.2.10",
+        ttlSeconds: 3600,
+      };
+      const path = "/sites/site123/dns/policies/policy1";
+
+      beforeEach(() => {
+        mockFn(client, "get").mockResolvedValue(currentPolicy);
+      });
+
       it("should register the tool", () => {
         expect(handlers.has("unifi_update_dns_policy")).toBe(true);
       });
@@ -207,72 +297,85 @@ describe("registerDnsPolicyTools", () => {
         expect(config?.annotations.idempotentHint).toBe(true);
       });
 
-      it("should return success when client.put succeeds", async () => {
-        const mockData = { id: "policy1", type: "A_RECORD" };
-        mockFn(client, "put").mockResolvedValue(mockData);
+      it("should read the current policy and PUT the merged full body", async () => {
+        mockFn(client, "put").mockResolvedValue({ ...currentPolicy, ipv4Address: "192.0.2.20" });
 
-        const handler = handlers.get("unifi_update_dns_policy");
-        const result = await handler({
+        const result = await handlers.get("unifi_update_dns_policy")({
           siteId: "site123",
           dnsPolicyId: "policy1",
-          type: "A_RECORD",
-          enabled: true,
-          domain: "example.com",
-          ipv4Address: "192.168.1.2",
-          ttlSeconds: 7200,
+          ipv4Address: "192.0.2.20",
         });
 
-        expect(mockFn(client, "put")).toHaveBeenCalledWith(
-          "/sites/site123/dns/policies/policy1",
-          {
-            type: "A_RECORD",
-            enabled: true,
-            domain: "example.com",
-            ipv4Address: "192.168.1.2",
-            ttlSeconds: 7200,
-          }
-        );
-        expect(result.content).toBeDefined();
+        expect(mockFn(client, "get")).toHaveBeenCalledWith(path);
+        expect(mockFn(client, "put")).toHaveBeenCalledWith(path, {
+          type: "A_RECORD",
+          enabled: true,
+          domain: "nas.example.com",
+          ipv4Address: "192.0.2.20",
+          ttlSeconds: 3600,
+        });
         expect(result.isError).toBeUndefined();
       });
 
-      it("should return error when client.put fails", async () => {
-        const testError = new Error("Policy not found");
-        mockFn(client, "put").mockRejectedValue(testError);
+      it("should drop the old type's fields when the type changes", async () => {
+        mockFn(client, "put").mockResolvedValue({ id: "policy1" });
 
-        const handler = handlers.get("unifi_update_dns_policy");
-        const result = await handler({
+        await handlers.get("unifi_update_dns_policy")({
           siteId: "site123",
           dnsPolicyId: "policy1",
-          type: "A_RECORD",
+          type: "CNAME_RECORD",
+          targetDomain: "storage.example.com",
+        });
+
+        expect(mockFn(client, "put")).toHaveBeenCalledWith(path, {
+          type: "CNAME_RECORD",
           enabled: true,
-          domain: "example.com",
-          ipv4Address: "192.168.1.1",
+          domain: "nas.example.com",
+          targetDomain: "storage.example.com",
           ttlSeconds: 3600,
+        });
+      });
+
+      it("should reject a type change missing the new type's fields", async () => {
+        const result = await handlers.get("unifi_update_dns_policy")({
+          siteId: "site123",
+          dnsPolicyId: "policy1",
+          type: "MX_RECORD",
+        });
+
+        expect(mockFn(client, "put")).not.toHaveBeenCalled();
+        expect(result.content[0].text).toContain("Missing required fields for type MX_RECORD: mailServerDomain, priority");
+      });
+
+      it("should return error when client.put fails", async () => {
+        mockFn(client, "put").mockRejectedValue(new Error("Policy not found"));
+
+        const result = await handlers.get("unifi_update_dns_policy")({
+          siteId: "site123",
+          dnsPolicyId: "policy1",
+          enabled: false,
         });
 
         expect(result.isError).toBe(true);
+        expect(result.content[0].text).toContain("Policy not found");
       });
 
-      it("should return dry run preview when dryRun=true", async () => {
-        const handler = handlers.get("unifi_update_dns_policy");
-        const result = await handler({
+      it("should return the merged body as a dry run preview without writing", async () => {
+        const result = await handlers.get("unifi_update_dns_policy")({
           siteId: "site123",
           dnsPolicyId: "policy1",
-          type: "A_RECORD",
-          enabled: true,
-          domain: "example.com",
-          ipv4Address: "192.168.1.1",
-          ttlSeconds: 3600,
+          enabled: false,
           dryRun: true,
         });
 
         expect(mockFn(client, "put")).not.toHaveBeenCalled();
-        expect(result.content).toBeDefined();
-        const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
-        expect(text).toContain("PUT");
-        expect(text).toContain("/sites/site123/dns/policies/policy1");
+        const preview = JSON.parse(result.content[0].text);
+        expect(preview.dryRun).toBe(true);
+        expect(preview.wouldExecute).toEqual({
+          method: "PUT",
+          path,
+          body: { type: "A_RECORD", enabled: false, domain: "nas.example.com", ipv4Address: "192.0.2.10", ttlSeconds: 3600 },
+        });
       });
     });
 
