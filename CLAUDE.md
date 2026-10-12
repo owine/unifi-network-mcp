@@ -69,6 +69,8 @@ src/
     responses.ts      # formatSuccess() / formatError() helpers
     query.ts          # buildQuery() for pagination/filter params
     safety.ts         # Tool annotations, formatDryRun(), requireConfirmation()
+    full-put.ts       # mergeForPut() read-merge-write for full-replacement PUTs
+    secrets.ts        # redactSecrets() / restoreRedacted() for WiFi passphrases
     output-schemas.ts # Zod output schemas for tools' structuredContent (60 tools)
 ```
 
@@ -79,9 +81,10 @@ src/
 3. Set appropriate annotations from `utils/safety.ts`: `READ_ONLY`, `WRITE`, `WRITE_NOT_IDEMPOTENT`, `DESTRUCTIVE`
 4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource. Follow the loose strategy in that file: non-key fields optional, nested objects `.passthrough()`
 5. For write tools: register them after `if (readOnly) return;` at the function level, add optional `dryRun` parameter
-6. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`
-7. Wire it into `src/tools/index.ts` via `registerAllTools()`
-8. Add tests in `tests/tools/<domain>.test.ts` using `createMockServer()` and `createMockClient()` from `tests/tools/_helpers.ts`
+6. If the endpoint is a full-replacement PUT, GET the current resource and build the body with `mergeForPut()` from `utils/full-put.ts`, using the field allowlist from the docs' request schema (per variant, if the body is discriminated). Never send a sparse body to a full PUT
+7. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`
+8. Wire it into `src/tools/index.ts` via `registerAllTools()`
+9. Add tests in `tests/tools/<domain>.test.ts` using `createMockServer()` and `createMockClient()` from `tests/tools/_helpers.ts`
 
 ## Tool safety
 
@@ -106,7 +109,7 @@ Tests mock `NetworkClient` methods and capture tool handlers via `createMockServ
 
 ## API version bumps
 
-Aligned with UniFi Network API **10.6.106**. Tool descriptions and `src/utils/output-schemas.ts` are verified against that version; a few notes still cite an older version where that endpoint has not been re-verified live since.
+Aligned with UniFi Network API **11.0.83**. Tool descriptions and `src/utils/output-schemas.ts` are verified against that version; a few notes still cite an older version where that endpoint has not been re-verified live since.
 
 For updating tools to match a new UniFi Network API version, follow the skill at `~/.claude/skills/unifi-api-update/SKILL.md`.
 

@@ -15,7 +15,7 @@ const siteReference = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)
 
 export function registerClientHistoryTools(server: McpServer, client: NetworkClient) {
   server.registerTool("unifi_list_client_history", {
-    description: "List historical/offline client inventory using the controller v2 API. Includes names, MACs, first_seen and last_seen epoch seconds when available. This is inventory, not session history; use unifi_list_client_sessions for past connections. Requires controller history API-key support; errors never mean zero activity. Retention depends on the controller.",
+    description: "List historical/offline client inventory using the controller v2 API. Returns OFFLINE clients only — currently connected clients are excluded, so merge with unifi_list_clients for a full inventory. Includes names, MACs, first_seen and last_seen epoch seconds when available. This is inventory, not session history; use unifi_list_client_sessions for past connections. Requires controller history API-key support; errors never mean zero activity. Retention depends on the controller.",
     inputSchema: { siteReference, withinHours: z.number().int().min(1).max(8760).default(168).describe("Lookback in hours, up to one year; does not extend controller retention") },
     outputSchema: listClientHistoryOutputSchema,
     annotations: READ_ONLY,

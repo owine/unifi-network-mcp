@@ -22,7 +22,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_wans",
     {
-      description: "List WAN interface definitions at a site. Returns: id, name only (verified against 10.6.106 — the Integration API exposes no live link status or throughput rates here). Use for: WAN inventory, multi-WAN topology.",
+      description: "List WAN interface definitions at a site. Returns: id, name only (verified against 11.0.83 — the Integration API exposes no live link status or throughput rates here). Use for: WAN inventory, multi-WAN topology.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -56,7 +56,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_vpn_tunnels",
     {
-      description: "List site-to-site VPN tunnels (IPsec, WireGuard, OpenVPN site-to-site) at a site. Returns: tunnel definitions per row (per-row schema not rendered in 10.6.106 docs — call to inspect). For roaming client VPN servers, see unifi_list_vpn_servers.",
+      description: "List site-to-site VPN tunnels (IPsec, WireGuard, OpenVPN site-to-site) at a site. Returns: tunnel definitions per row (per-row schema not rendered in 11.0.83 docs and no tunnels to sample live; the older 10.4.57 spec lists id, type (IPSEC/OPENVPN/WIREGUARD), name, metadata.origin/source — call to inspect). For roaming client VPN servers, see unifi_list_vpn_servers.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -75,7 +75,7 @@ export function registerSupportingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression, e.g. metadata.source.isNull()"),
       },
       outputSchema: listVpnTunnelsOutputSchema,
       annotations: READ_ONLY,
@@ -94,7 +94,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_vpn_servers",
     {
-      description: "List VPN servers (roaming/client-access VPNs: WireGuard, OpenVPN, L2TP, Teleport) at a site. Returns: id, type (e.g. WIREGUARD, UID), name, enabled, metadata.origin.",
+      description: "List VPN servers (roaming/client-access VPNs) at a site. Returns: id, type (L2TP, OPENVPN, PPTP, UID, WIREGUARD), name, enabled, metadata.origin.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -113,7 +113,7 @@ export function registerSupportingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression, e.g. type.eq('WIREGUARD')"),
       },
       outputSchema: listVpnServersOutputSchema,
       annotations: READ_ONLY,
@@ -151,7 +151,7 @@ export function registerSupportingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression, e.g. name.eq('Default')"),
       },
       outputSchema: listRadiusProfilesOutputSchema,
       annotations: READ_ONLY,
@@ -172,7 +172,7 @@ export function registerSupportingTools(
   server.registerTool(
     "unifi_list_device_tags",
     {
-      description: "List device tags at a site. Tags group APs/switches for selective WiFi broadcast (via broadcastingDeviceFilter on a WiFi network). Returns: id, name, deviceIds[].",
+      description: "List device tags at a site. Tags group APs/switches for selective WiFi broadcast (via broadcastingDeviceFilter on a WiFi network). Returns: id, name, deviceIds[], metadata.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -228,7 +228,7 @@ export function registerSupportingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression, e.g. name.like('Stream*') or id.eq(3). NOTE: totalCount ignores the filter here — page by count"),
       },
       outputSchema: listDpiCategoriesOutputSchema,
       annotations: READ_ONLY,
@@ -265,7 +265,7 @@ export function registerSupportingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression, e.g. name.like('Net*') or id.eq(3). NOTE: totalCount ignores the filter here — page by count"),
       },
       outputSchema: listDpiApplicationsOutputSchema,
       annotations: READ_ONLY,

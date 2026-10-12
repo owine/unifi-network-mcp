@@ -86,7 +86,7 @@ export function registerAclTools(
   server.registerTool(
     "unifi_get_acl_rule_ordering",
     {
-      description: "Get the evaluation order of user-defined ACL rules. Returns: orderedAclRuleIds[]. Rules higher in the list win.",
+      description: "Get the evaluation order of user-defined ACL rules. Returns: orderedAclRuleIds[] — rules are evaluated in list order.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
       },
@@ -134,7 +134,7 @@ export function registerAclTools(
         enforcingDeviceFilter: z
           .unknown()
           .optional()
-          .describe("IDs of the Switch-capable devices used to enforce the ACL rule. When null/omitted, the rule is provisioned to all switches on the site"),
+          .describe("Device filter object (with a type discriminator) selecting the switch-capable devices that enforce the rule. When null/omitted, the rule is provisioned to all switches on the site"),
         dryRun: z
           .boolean()
           .optional()
@@ -190,7 +190,7 @@ export function registerAclTools(
         enforcingDeviceFilter: z
           .unknown()
           .optional()
-          .describe("IDs of the Switch-capable devices used to enforce the ACL rule. When null/omitted, the rule is provisioned to all switches on the site"),
+          .describe("Device filter object (with a type discriminator) selecting the switch-capable devices that enforce the rule. When null/omitted, the rule is provisioned to all switches on the site"),
         dryRun: z
           .boolean()
           .optional()

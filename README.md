@@ -76,12 +76,14 @@ This server provides layered safety controls for responsible operation:
 - **Destructive tool warnings** — Tools that delete or irreversibly modify resources have descriptions prefixed with `DESTRUCTIVE:` to clearly signal risk
 - **Confirmation parameter** — Every tool marked `DESTRUCTIVE:` (all 10 of them, including `unifi_remove_device` and `unifi_bulk_delete_vouchers`) requires an explicit `confirm: true` parameter for the call to succeed
 - **Dry-run support** — All 33 write tools accept an optional `dryRun: true` parameter that returns a preview of the HTTP request (method, path, body) without making any changes
+- **Safe partial updates** — The UniFi PUT endpoints for WiFi broadcasts, networks, firewall policies and DNS policies replace the whole resource, and some fields reset when omitted (a missing `dhcpGuarding` disables DHCP guarding). Their update tools read the current resource, keep every documented body field, and overlay only what you pass, so a one-field change never resets the rest. Pass `null` to clear an optional field. The dry-run preview shows the merged body (the read still happens)
+- **Secret redaction** — WiFi passphrases (including per-VLAN PPSK keys) are returned as `[REDACTED]` unless the caller passes `includeSecrets: true` to `unifi_list_wifi` / `unifi_get_wifi`. Write-tool echoes and dry-run previews are always redacted, and an update that echoes back `[REDACTED]` keeps the stored passphrase
 
 ## Structured Output
 
 60 of the 76 tools (all 43 read tools, plus the 17 write tools whose API responses return the affected resource) declare an MCP `outputSchema` and return `structuredContent` alongside the usual text content. Clients that understand structured output get typed, machine-readable results instead of parsing JSON out of a text blob.
 
-The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi Network API 10.6.106. They deliberately use a **loose strategy**: every non-key field is optional and nested objects use `.passthrough()`, so firmware- and hardware-specific fields flow through unchanged rather than being stripped or triggering a validation error. This keeps the contract stable across console versions and hardware models.
+The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi Network API 11.0.83. They deliberately use a **loose strategy**: every non-key field is optional and nested objects use `.passthrough()`, so firmware- and hardware-specific fields flow through unchanged rather than being stripped or triggering a validation error. This keeps the contract stable across console versions and hardware models.
 
 ## Tools (76 total)
 
@@ -127,17 +129,17 @@ The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi
 | `unifi_list_networks` | List all networks at a site |
 | `unifi_get_network` | Get a specific network by ID |
 | `unifi_get_network_references` | Get references to a network (WiFi, firewall zones, etc.) |
-| `unifi_create_network` | Create a new network |
-| `unifi_update_network` | Update an existing network |
+| `unifi_create_network` | Create a new network (UNMANAGED, GATEWAY or SWITCH body) |
+| `unifi_update_network` | Update an existing network — partial changes are merged into the full PUT body |
 | `unifi_delete_network` | **DESTRUCTIVE:** Delete a network — disconnects all clients |
 
 ### WiFi (5)
 | Tool | Description |
 |---|---|
-| `unifi_list_wifi` | List all WiFi broadcasts (SSIDs) at a site |
-| `unifi_get_wifi` | Get a specific WiFi network by ID |
+| `unifi_list_wifi` | List all WiFi broadcasts (SSIDs) at a site (passphrases redacted by default) |
+| `unifi_get_wifi` | Get a specific WiFi network by ID (passphrases redacted unless `includeSecrets: true`) |
 | `unifi_create_wifi` | Create a new WiFi network (SSID) |
-| `unifi_update_wifi` | Update an existing WiFi network |
+| `unifi_update_wifi` | Update an existing WiFi network — partial changes are merged into the full PUT body |
 | `unifi_delete_wifi` | **DESTRUCTIVE:** Delete a WiFi network — disconnects all clients |
 
 ### Hotspot Vouchers (5)
@@ -160,8 +162,8 @@ The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi
 | `unifi_list_firewall_policies` | List all firewall policies at a site |
 | `unifi_get_firewall_policy` | Get a specific firewall policy by ID |
 | `unifi_create_firewall_policy` | Create a new firewall policy |
-| `unifi_update_firewall_policy` | Update a firewall policy |
-| `unifi_patch_firewall_policy` | Partially update a firewall policy (e.g. toggle logging) |
+| `unifi_update_firewall_policy` | Update a firewall policy — partial changes are merged into the full PUT body |
+| `unifi_patch_firewall_policy` | Partially update a firewall policy (toggle logging or Insights flow reporting) |
 | `unifi_delete_firewall_policy` | **DESTRUCTIVE:** Delete a firewall policy |
 | `unifi_get_firewall_policy_ordering` | Get user-defined firewall policy ordering for a zone pair |
 | `unifi_reorder_firewall_policies` | Reorder user-defined firewall policies for a zone pair |
@@ -192,8 +194,8 @@ The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi
 |---|---|
 | `unifi_list_dns_policies` | List all DNS policies at a site |
 | `unifi_get_dns_policy` | Get a specific DNS policy by ID |
-| `unifi_create_dns_policy` | Create a new DNS policy |
-| `unifi_update_dns_policy` | Update a DNS policy |
+| `unifi_create_dns_policy` | Create a DNS policy of any type (A, AAAA, CNAME, MX, TXT, SRV, FORWARD_DOMAIN) |
+| `unifi_update_dns_policy` | Update a DNS policy — partial changes are merged into the full PUT body |
 | `unifi_delete_dns_policy` | **DESTRUCTIVE:** Delete a DNS policy |
 
 ### Traffic Matching (5)

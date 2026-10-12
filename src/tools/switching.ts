@@ -20,7 +20,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_list_switch_stacks",
     {
-      description: "List Switch Stacks (multiple physical switches managed as one logical unit) at a site. Returns: id, deviceId (the stack's primary device), name, units[] (the stacked switches — named `members` on consoles older than 10.6.106), lags[] (LAGs spanning the stack), metadata.origin. Per-unit schema is not rendered in the 10.6.106 docs — call unifi_get_switch_stack to inspect. Use for: identifying stacked switches; individual member configs/stats still come from unifi_get_device.",
+      description: "List Switch Stacks (multiple physical switches managed as one logical unit) at a site. Returns: id, deviceId (the stack's primary device), name, units[] (the stacked switches — named `members` on consoles older than 10.6.106), lags[] (LAGs spanning the stack), metadata.origin. Per-unit schema is not rendered in the 11.0.83 docs — call unifi_get_switch_stack to inspect. Use for: identifying stacked switches; individual member configs/stats still come from unifi_get_device.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -39,7 +39,7 @@ export function registerSwitchingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression, e.g. name.like('Core*') or metadata.origin.eq('USER_DEFINED'). Device filters (members.deviceId, units.deviceId) are rejected on 11.0.83"),
       },
       outputSchema: listSwitchStacksOutputSchema,
       annotations: READ_ONLY,
@@ -83,7 +83,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_list_mc_lag_domains",
     {
-      description: "List MC-LAG (Multi-Chassis Link Aggregation) Domains — pairs of switches presenting as one for LAG redundancy. Returns: id, name, peers[], lags[] (LAGs spanning the domain), metadata.origin.",
+      description: "List MC-LAG (Multi-Chassis Link Aggregation) Domains — pairs of switches presenting as one for LAG redundancy. Returns: id, name, peers[] (per the older 10.4.57 spec: {deviceId, linkPortIdxs[], role TOP|BOTTOM}; not live-verified), lags[] (LAGs spanning the domain), metadata.origin.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -102,7 +102,7 @@ export function registerSwitchingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression, e.g. peers.deviceId.contains('<deviceId>')"),
       },
       outputSchema: listMcLagDomainsOutputSchema,
       annotations: READ_ONLY,
@@ -146,7 +146,7 @@ export function registerSwitchingTools(
   server.registerTool(
     "unifi_list_lags",
     {
-      description: "List LAGs (Link Aggregation Groups — bonded switch ports) at a site. Returns: id, type (LOCAL/SWITCH_STACK/MULTI_CHASSIS), members[], metadata.origin.",
+      description: "List LAGs (Link Aggregation Groups — bonded switch ports) at a site. Returns: id, type (LOCAL/SWITCH_STACK/MULTI_CHASSIS), members[] ({deviceId, portIdxs[]}), switchStackId (SWITCH_STACK) or mcLagDomainId (MULTI_CHASSIS), metadata.origin.",
       inputSchema: {
         siteId: z.string().describe("Site ID"),
         offset: z
@@ -165,7 +165,7 @@ export function registerSwitchingTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression"),
+          .describe("Filter expression, e.g. type.eq('LOCAL'), members.deviceId.contains('<deviceId>'), switchStackId.isNull()"),
       },
       outputSchema: listLagsOutputSchema,
       annotations: READ_ONLY,

@@ -31,7 +31,7 @@ export function registerSiteTools(
         filter: z
           .string()
           .optional()
-          .describe("Filter expression (e.g., name.like('office*'))"),
+          .describe("Filter expression. Filterable: id, internalReference, name — eq/ne/in/notIn only (like is rejected). Example: name.eq('Default')"),
       },
       outputSchema: listSitesOutputSchema,
       annotations: READ_ONLY,
