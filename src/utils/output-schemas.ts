@@ -252,6 +252,8 @@ const FirewallPolicy = z
     ipsecFilter: z.unknown().optional(),
     schedule: z.unknown().optional(),
     loggingEnabled: z.boolean().optional(),
+    // New in 11.0.83; live-verified as a boolean on every policy.
+    reportFlowEnabled: z.boolean().optional(),
     index: z.number().optional(),
     description: z.string().optional(),
     metadata: Metadata.optional(),

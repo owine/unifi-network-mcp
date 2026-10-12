@@ -270,6 +270,49 @@ describe("output schemas", () => {
     ).not.toThrow();
   });
 
+  it("firewall policy accepts live 11.0.83 rows and keeps reportFlowEnabled", () => {
+    // Captured live on 11.0.83 (ids shortened): a predefined system policy
+    // and a user-defined one. reportFlowEnabled is new in 11.0.83.
+    const predefined = {
+      id: "cb97cf8e",
+      enabled: true,
+      name: "Allow Return Traffic",
+      index: 30000,
+      action: { type: "ALLOW", allowReturnTraffic: true },
+      source: { zoneId: "z-external" },
+      destination: { zoneId: "z-internal" },
+      ipProtocolScope: { ipVersion: "IPV4_AND_IPV6" },
+      connectionStateFilter: ["RELATED", "ESTABLISHED"],
+      loggingEnabled: false,
+      reportFlowEnabled: false,
+      metadata: { origin: "SYSTEM_DEFINED", configurable: true },
+    };
+    const userDefined = {
+      id: "0702a0d8",
+      enabled: true,
+      name: "Allow DNS out",
+      description: "",
+      index: 10000,
+      action: { type: "ALLOW", allowReturnTraffic: false },
+      source: { zoneId: "z-internal" },
+      destination: {
+        zoneId: "z-external",
+        trafficFilter: {
+          type: "IP_ADDRESS",
+          ipAddressFilter: { type: "IP_ADDRESSES", matchOpposite: false, items: [{ type: "SUBNET", value: "192.0.2.0/24" }] },
+          portFilter: { type: "TRAFFIC_MATCHING_LIST", matchOpposite: false, trafficMatchingListId: "tml-1" },
+        },
+      },
+      ipProtocolScope: { ipVersion: "IPV4_AND_IPV6", protocolFilter: { type: "PRESET", preset: { name: "TCP_UDP" } } },
+      loggingEnabled: false,
+      reportFlowEnabled: true,
+      metadata: { origin: "USER_DEFINED" },
+    };
+    const schema = z.object(firewallPolicyOutputSchema);
+    expect(schema.parse(predefined).reportFlowEnabled).toBe(false);
+    expect(schema.parse(userDefined).reportFlowEnabled).toBe(true);
+  });
+
   it("dns policy accepts every record type's fields (11.0.83 response samples)", () => {
     const schema = z.object(dnsPolicyOutputSchema);
     for (const sample of [
