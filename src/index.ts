@@ -33,7 +33,7 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error("Fatal error:", err);
   process.exit(1);
 });

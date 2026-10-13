@@ -178,8 +178,8 @@ export function registerHotspotTools(
         const body: Record<string, unknown> = {
           name,
           timeLimitMinutes,
+          count,
         };
-        if (count !== undefined) body.count = count;
         if (authorizedGuestLimit !== undefined)
           body.authorizedGuestLimit = authorizedGuestLimit;
         if (dataUsageLimitMBytes !== undefined)

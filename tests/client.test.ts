@@ -52,20 +52,20 @@ describe("NetworkClient", () => {
   // ── Constructor ────────────────────────────────────────────────────
 
   describe("constructor", () => {
-    it("should build the correct base URL from host", () => {
+    it("should build the correct base URL from host", async () => {
       fetchMock.mockResolvedValue(mockResponse("{}"));
       const client = new NetworkClient(makeConfig({ host: "10.0.0.1" }));
-      client.get("/test");
+      await client.get("/test");
       expect(fetchMock).toHaveBeenCalledWith(
         "https://10.0.0.1/proxy/network/integration/v1/test",
         expect.any(Object)
       );
     });
 
-    it("should set X-API-KEY header from config", () => {
+    it("should set X-API-KEY header from config", async () => {
       fetchMock.mockResolvedValue(mockResponse("{}"));
       const client = new NetworkClient(makeConfig({ apiKey: "my-secret" }));
-      client.get("/test");
+      await client.get("/test");
       const [, options] = fetchMock.mock.calls[0];
       expect(options.headers["X-API-KEY"]).toBe("my-secret");
     });
@@ -243,7 +243,7 @@ describe("NetworkClient", () => {
 
     it("caps a JSON error message", async () => {
       fetchMock.mockResolvedValue(mockResponse(JSON.stringify({ code: "api.err", message: "x".repeat(10_000) }), { ok: false, status: 500 }));
-      const err = await client.get("/sites").catch((e: Error) => e);
+      const err = await client.get("/sites").catch((e: unknown) => e);
       expect((err as Error).message.length).toBeLessThan(600);
       expect((err as Error).message).toContain("(api.err)");
     });
@@ -251,7 +251,7 @@ describe("NetworkClient", () => {
     it("caps a non-JSON error body", async () => {
       const page = "<html><body>" + "Bad gateway ".repeat(200) + "</body></html>";
       fetchMock.mockResolvedValue(mockResponse(page, { ok: false, status: 502, contentType: "text/html" }));
-      const err = await client.get("/sites").catch((e: Error) => e);
+      const err = await client.get("/sites").catch((e: unknown) => e);
       expect((err as Error).message.length).toBeLessThan(520);
       expect((err as Error).message).toMatch(/^HTTP 502: <html><body>Bad gateway Bad gateway .*…$/);
     });
@@ -263,7 +263,7 @@ describe("NetworkClient", () => {
     // A controller that never answers: settle only when the request aborts.
     const hang = (_url: string, options: RequestInit) =>
       new Promise<Response>((_resolve, reject) => {
-        options.signal?.addEventListener("abort", () => reject(options.signal?.reason));
+        options.signal?.addEventListener("abort", () => { reject(options.signal?.reason as DOMException); });
       });
 
     it("keeps the 30s timeout alongside the call's abort signal", async () => {

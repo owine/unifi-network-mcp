@@ -80,7 +80,7 @@ src/
 1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`, `client-history`) omit the `readOnly` param entirely — there is nothing to gate
 2. Use `server.registerTool(name, { description, inputSchema, outputSchema, annotations }, handler)`
 3. Set appropriate annotations from `utils/safety.ts`: `READ_ONLY`, `WRITE`, `WRITE_NOT_IDEMPOTENT`, `DESTRUCTIVE`
-4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource, wrapped in `writeResult()` so the dry-run preview also validates (`tests/sdk-contract.test.ts` enforces this through the real SDK). Follow the loose strategy in that file: non-key fields optional, nested objects `.passthrough()`. Pass the raw shape; `registerAllTools()` publishes it as a loose object so fields the schema does not list pass SDK client validation
+4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource, wrapped in `writeResult()` so the dry-run preview also validates (`tests/sdk-contract.test.ts` enforces this through the real SDK). Follow the loose strategy in that file: non-key fields optional, nested objects `.loose()`. Pass the raw shape; `registerAllTools()` publishes it as a loose object so fields the schema does not list pass SDK client validation
 5. For write tools: register them after `if (readOnly) return;` at the function level, add optional `dryRun` parameter
 6. If the endpoint is a full-replacement PUT, GET the current resource and build the body with `mergeForPut()` from `utils/full-put.ts`, using the field allowlist from the docs' request schema (per variant, if the body is discriminated). Never send a sparse body to a full PUT
 7. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`. A non-destructive write whose particular inputs open access (an ALLOW rule, an open SSID, a large voucher batch) takes an optional `confirm` checked with `requireConfirmationIf(reason, confirm, dryRun)` instead, and gets a case in `tests/tools/security-confirm.test.ts`
@@ -104,10 +104,11 @@ Tests mock `NetworkClient` methods and capture tool handlers via `createMockServ
 
 ## Code style
 
-- ESLint with `typescript-eslint` strict + stylistic rulesets
+- ESLint with `typescript-eslint` type-checked strict + stylistic rulesets (`strictTypeChecked`, `stylisticTypeChecked`), using `tsconfig.test.json` so tests are linted with types too
 - All imports use `.js` extensions (Node16 module resolution)
 - Use `z.string().describe()` for tool parameter descriptions; any ID that ends up in a request path uses `resourceId().describe()` instead (`NetworkClient` also refuses paths that are not plain word segments)
-- `no-explicit-any` and `no-non-null-assertion` are relaxed in test files only
+- `no-explicit-any`, `no-non-null-assertion` and the `no-unsafe-*` rules are relaxed in test files only, where mocks are deliberately loosely typed
+- `pnpm run typecheck` checks `src/` and, via `tsconfig.test.json`, the tests
 
 ## API version bumps
 

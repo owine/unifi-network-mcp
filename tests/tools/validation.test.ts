@@ -399,7 +399,7 @@ describe("resource ID parameters", () => {
   // charset could smuggle a query (`?force=true`) or path into the request.
   const idParams = [...configs].flatMap(([toolName, config]) =>
     Object.keys(config.schema)
-      .filter((key) => /Id$/.test(key) && parseInputSchema(configs, toolName).shape[key].safeParse("abc").success)
+      .filter((key) => key.endsWith("Id") && parseInputSchema(configs, toolName).shape[key].safeParse("abc").success)
       .map((key) => [toolName, key] as const)
   );
 

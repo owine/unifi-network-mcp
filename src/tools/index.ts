@@ -61,13 +61,13 @@ function instrumentTools(server: McpServer): McpServer {
     server.registerTool(name, {
       ...config,
       ...(config.outputSchema ? { outputSchema: looseOutput(config.outputSchema) } : {}),
-    } as never, ((...args: unknown[]) => {
+    }, ((...args: unknown[]) => {
       const extra = args.at(-1) as { signal?: unknown } | undefined;
       const signal = extra?.signal instanceof AbortSignal ? extra.signal : undefined;
       return withCallSignal(signal, () => handler(...args));
     }) as never);
   return new Proxy(server, {
     get: (target, prop, receiver) =>
-      prop === "registerTool" ? registerTool : Reflect.get(target, prop, receiver),
+      prop === "registerTool" ? registerTool : (Reflect.get(target, prop, receiver) as unknown),
   });
 }

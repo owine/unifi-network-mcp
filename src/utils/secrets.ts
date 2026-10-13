@@ -47,7 +47,7 @@ export function restoreRedacted(value: unknown, current: unknown, path = "body")
   }
   if (Array.isArray(value)) {
     const currentItems = Array.isArray(current) ? (current as unknown[]) : [];
-    return value.map((item, i) => {
+    return (value as unknown[]).map((item, i) => {
       const itemPath = `${path}[${i}]`;
       if (!containsRedacted(item)) return item;
       if (stableStringify(redact(item)) !== stableStringify(redact(currentItems[i]))) {
@@ -80,6 +80,9 @@ export function containsRedacted(value: unknown): boolean {
 
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  // JSON.stringify returns undefined for undefined and functions, whatever
+  // its lib.d.ts signature says.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "undefined";
   const entries = Object.entries(value)
     .filter(([, entry]) => entry !== undefined)

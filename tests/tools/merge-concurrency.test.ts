@@ -89,7 +89,7 @@ describe("parallel updates to one resource", () => {
   for (const { tool, current, a, b, expected } of cases) {
     it(`${tool} keeps both changes`, async () => {
       stored = { ...current };
-      const results = await Promise.all([handlers.get(tool)!(a), handlers.get(tool)!(b)]);
+      const results = await Promise.all([handlers.get(tool)(a), handlers.get(tool)(b)]);
       expect(results.map((r) => r.isError)).toEqual([undefined, undefined]);
       expect(stored).toMatchObject(expected);
     });
@@ -102,12 +102,12 @@ describe("parallel updates to one resource", () => {
     let releaseGet!: () => void;
     mockFn(client, "get").mockImplementation(() => {
       const snapshot = { ...stored };
-      return new Promise((resolve) => (releaseGet = () => resolve(snapshot)));
+      return new Promise((resolve) => (releaseGet = () => { resolve(snapshot); }));
     });
 
-    const update = handlers.get("unifi_update_firewall_policy")!({ siteId: "s1", firewallPolicyId: "p1", policy: { name: "Renamed" } });
+    const update = handlers.get("unifi_update_firewall_policy")({ siteId: "s1", firewallPolicyId: "p1", policy: { name: "Renamed" } });
     await tick();
-    const patch = handlers.get("unifi_patch_firewall_policy")!({ siteId: "s1", firewallPolicyId: "p1", policy: { loggingEnabled: true } });
+    const patch = handlers.get("unifi_patch_firewall_policy")({ siteId: "s1", firewallPolicyId: "p1", policy: { loggingEnabled: true } });
     await tick();
     await tick();
     releaseGet();

@@ -183,7 +183,7 @@ describe("dry-run on destructive tools", () => {
 
   for (const [name, config] of destructive) {
     it(`${name} previews without confirm, since a preview changes nothing`, async () => {
-      const result = await handlers.get(name)!({ ...minimalInput(config.schema), dryRun: true });
+      const result = await handlers.get(name)({ ...minimalInput(config.schema), dryRun: true });
       expect(result.isError).toBeUndefined();
       expect(result.structuredContent).toMatchObject({ dryRun: true });
       for (const method of ["post", "put", "patch", "delete"] as const) {
@@ -192,7 +192,7 @@ describe("dry-run on destructive tools", () => {
     });
 
     it(`${name} still requires confirm to execute`, async () => {
-      const result = await handlers.get(name)!(minimalInput(config.schema));
+      const result = await handlers.get(name)(minimalInput(config.schema));
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("confirmation");
     });
@@ -207,7 +207,7 @@ describe("read-only mode, by behaviour", () => {
     const mockClient = createMockClient();
     registerAllTools(mockServer, mockClient, true);
     for (const [name, handler] of handlers) {
-      const schema = configs.get(name)!.schema as Record<string, z.ZodType>;
+      const schema = configs.get(name).schema as Record<string, z.ZodType>;
       const input = Object.fromEntries(
         Object.entries(schema)
           .filter(([, field]) => !field.safeParse(undefined).success)

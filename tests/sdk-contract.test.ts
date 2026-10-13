@@ -74,7 +74,7 @@ describe("cancellation through the SDK", () => {
       requestSignal = options.signal ?? undefined;
       // A controller that never answers: settle only when the request aborts.
       return new Promise((_resolve, reject) => {
-        options.signal?.addEventListener("abort", () => reject(options.signal?.reason));
+        options.signal?.addEventListener("abort", () => { reject(options.signal?.reason as DOMException); });
       });
     });
     const server = new McpServer({ name: "test", version: "0.0.0" });
@@ -86,11 +86,11 @@ describe("cancellation through the SDK", () => {
 
     const controller = new AbortController();
     const call = mcpClient.callTool({ name: "unifi_list_sites", arguments: {} }, undefined, { signal: controller.signal });
-    await vi.waitFor(() => expect(requestSignal).toBeDefined());
+    await vi.waitFor(() => { expect(requestSignal).toBeDefined(); });
     controller.abort();
 
     await expect(call).rejects.toThrow();
-    await vi.waitFor(() => expect(requestSignal?.aborted).toBe(true));
+    await vi.waitFor(() => { expect(requestSignal?.aborted).toBe(true); });
     await mcpClient.close();
   });
 });

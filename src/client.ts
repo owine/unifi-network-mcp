@@ -204,8 +204,8 @@ export class NetworkClient {
       throw new Error("Controller history returned non-JSON data; verify controller authentication");
     }
     // Bound the body before parsing: controller session records can be large.
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error("Controller history returned no response body");
+    if (response.body === null) throw new Error("Controller history returned no response body");
+    const reader = response.body.getReader();
     const chunks: Uint8Array[] = [];
     let bytes = 0;
     try {

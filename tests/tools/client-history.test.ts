@@ -27,7 +27,7 @@ describe("history tools", () => {
   it("returns structured inventory separately from session records", async () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientHistory").mockResolvedValue([{ mac: row.mac, last_seen: 1789990000, hostname: "iPhone" }]);
-    const result = await handlers.get("unifi_list_client_history")!({ siteReference: "default", withinHours: 336 });
+    const result = await handlers.get("unifi_list_client_history")({ siteReference: "default", withinHours: 336 });
     expect(result.structuredContent.count).toBe(1);
     expect(result.structuredContent.coverage).toContain("not a complete session log");
   });
@@ -35,7 +35,7 @@ describe("history tools", () => {
   it("flags full results for time-window splitting instead of claiming offset pagination works", async () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientSessions").mockResolvedValueOnce(envelope([row, { ...row, _id: "session-b" }])).mockResolvedValueOnce(envelope([row]));
-    const handler = handlers.get("unifi_list_client_sessions")!;
+    const handler = handlers.get("unifi_list_client_sessions");
     expect((await handler({ siteReference: "default", ...query })).structuredContent).toMatchObject({ count: 2, mayBeTruncated: true });
     expect((await handler({ siteReference: "default", ...query })).structuredContent).toMatchObject({ count: 1, mayBeTruncated: false });
   });
@@ -44,7 +44,7 @@ describe("history tools", () => {
     const { client, handlers } = setup();
     const extra = [row, { ...row, _id: "session-b" }, { ...row, _id: "session-c" }];
     mockFn(client, "getClientSessions").mockResolvedValue(envelope(extra));
-    const result = await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query });
+    const result = await handlers.get("unifi_list_client_sessions")({ siteReference: "default", ...query });
     expect(result.isError).toBeUndefined();
     expect(result.structuredContent).toMatchObject({ count: 2, limit: 2, mayBeTruncated: true });
     expect(result.structuredContent.data.map((s: { _id: string }) => s._id)).toEqual(["session-a", "session-b"]);
@@ -53,7 +53,7 @@ describe("history tools", () => {
   it("de-duplicates repeated session IDs rather than discarding a usable page", async () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientSessions").mockResolvedValue(envelope([row, row]));
-    const result = await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query });
+    const result = await handlers.get("unifi_list_client_sessions")({ siteReference: "default", ...query });
     expect(result.isError).toBeUndefined();
     // The controller filled the requested page, so more sessions may exist even
     // though duplicates leave fewer than limit after de-duplication.
@@ -63,7 +63,7 @@ describe("history tools", () => {
   it("preserves null hostnames seen on real disconnected clients", async () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientSessions").mockResolvedValue(envelope([{ ...row, hostname: null }]));
-    const result = await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query });
+    const result = await handlers.get("unifi_list_client_sessions")({ siteReference: "default", ...query });
     expect(result.isError).toBeUndefined();
     expect(result.structuredContent.data[0].hostname).toBeNull();
   });
@@ -71,7 +71,7 @@ describe("history tools", () => {
   it.each([{ data: [] }, { meta: { rc: "error" }, data: [] }])("rejects malformed session envelopes", async data => {
     const { client, handlers } = setup();
     mockFn(client, "getClientSessions").mockResolvedValue(data);
-    expect((await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query })).isError).toBe(true);
+    expect((await handlers.get("unifi_list_client_sessions")({ siteReference: "default", ...query })).isError).toBe(true);
   });
 
   it("validates milliseconds, bounds, MAC and defaults through the MCP schema", () => {
@@ -85,8 +85,8 @@ describe("history tools", () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientSessions").mockRejectedValue(new Error("HTTP 403"));
     mockFn(client, "getClientHistory").mockRejectedValue(new Error("HTTP 403"));
-    expect((await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query })).isError).toBe(true);
-    expect((await handlers.get("unifi_list_client_history")!({ siteReference: "default", withinHours: 24 })).isError).toBe(true);
+    expect((await handlers.get("unifi_list_client_sessions")({ siteReference: "default", ...query })).isError).toBe(true);
+    expect((await handlers.get("unifi_list_client_history")({ siteReference: "default", withinHours: 24 })).isError).toBe(true);
   });
 });
 
@@ -102,7 +102,7 @@ describe("history output size", () => {
   it("returns the most recently seen clients up to limit, with the total", async () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientHistory").mockResolvedValue([historyRow("a", 1), historyRow("c", 3), historyRow("b", 2)]);
-    const result = await handlers.get("unifi_list_client_history")!({ siteReference: "default", withinHours: 168, limit: 2 });
+    const result = await handlers.get("unifi_list_client_history")({ siteReference: "default", withinHours: 168, limit: 2 });
     expect(result.structuredContent).toMatchObject({ count: 2, totalCount: 3, limit: 2, truncated: true });
     expect(result.structuredContent.data.map((c: { mac: string }) => c.mac)).toEqual(["c", "b"]);
   });
@@ -110,14 +110,14 @@ describe("history output size", () => {
   it("drops controller fields outside the schema from history rows", async () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientHistory").mockResolvedValue([historyRow("a", 1)]);
-    const result = await handlers.get("unifi_list_client_history")!({ siteReference: "default", withinHours: 168, limit: 10 });
+    const result = await handlers.get("unifi_list_client_history")({ siteReference: "default", withinHours: 168, limit: 10 });
     expect(result.structuredContent.data[0]).toEqual({ mac: "a", last_seen: 1, hostname: "a" });
   });
 
   it("drops controller fields outside the schema from session rows", async () => {
     const { client, handlers } = setup();
     mockFn(client, "getClientSessions").mockResolvedValue(envelope([{ ...row, site_id: "s", qos_policy_applied: true }]));
-    const result = await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query });
+    const result = await handlers.get("unifi_list_client_sessions")({ siteReference: "default", ...query });
     expect(result.structuredContent.data[0]).toEqual(row);
   });
 
