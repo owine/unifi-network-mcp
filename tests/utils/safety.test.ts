@@ -8,6 +8,14 @@ import {
   requireConfirmation,
 } from "../../src/utils/safety.js";
 
+describe("formatDryRun text", () => {
+  it("is compact JSON", () => {
+    expect(formatDryRun("DELETE", "/sites/s1/networks/n1").content[0].text).toBe(
+      '{"dryRun":true,"wouldExecute":{"method":"DELETE","path":"/sites/s1/networks/n1"}}'
+    );
+  });
+});
+
 describe("annotation constants", () => {
   it("READ_ONLY is read-only, not destructive", () => {
     expect(READ_ONLY.readOnlyHint).toBe(true);

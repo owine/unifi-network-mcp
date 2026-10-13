@@ -189,7 +189,7 @@ describe("registerDnsPolicyTools", () => {
         expect(mockFn(client, "post")).not.toHaveBeenCalled();
         expect(result.content).toBeDefined();
         const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
+        expect(text).toContain('"dryRun":true');
         expect(text).toContain("POST");
         expect(text).toContain("/sites/site123/dns/policies");
       });
@@ -435,7 +435,7 @@ describe("registerDnsPolicyTools", () => {
         expect(mockFn(client, "delete")).not.toHaveBeenCalled();
         expect(result.content).toBeDefined();
         const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
+        expect(text).toContain('"dryRun":true');
         expect(text).toContain("DELETE");
         expect(text).toContain("/sites/site123/dns/policies/policy1");
       });

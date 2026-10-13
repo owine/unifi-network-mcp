@@ -33,7 +33,7 @@ describe("registerClientTools", () => {
           "/sites/site1/clients?offset=0&limit=25"
         );
         expect(result.content).toEqual([
-          { type: "text", text: JSON.stringify(mockData, null, 2) },
+          { type: "text", text: JSON.stringify(mockData) },
         ]);
         expect(result.structuredContent).toEqual(mockData);
       });
@@ -93,7 +93,7 @@ describe("registerClientTools", () => {
           "/sites/site1/clients/client1"
         );
         expect(result.content).toEqual([
-          { type: "text", text: JSON.stringify(mockData, null, 2) },
+          { type: "text", text: JSON.stringify(mockData) },
         ]);
         expect(result.structuredContent).toEqual(mockData);
       });
@@ -167,7 +167,7 @@ describe("registerClientTools", () => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(mockData, null, 2),
+              text: JSON.stringify(mockData),
             },
           ],
         });
@@ -201,7 +201,7 @@ describe("registerClientTools", () => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(mockData, null, 2),
+              text: JSON.stringify(mockData),
             },
           ],
         });
@@ -326,7 +326,7 @@ describe("registerClientTools", () => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(mockData, null, 2),
+              text: JSON.stringify(mockData),
             },
           ],
         });

@@ -2,18 +2,17 @@ import { describe, it, expect } from "vitest";
 import { formatSuccess, formatError } from "../../src/utils/responses.js";
 
 describe("formatSuccess", () => {
-  it("wraps data as JSON text content", () => {
+  it("wraps data as compact JSON text content", () => {
+    // Indentation adds ~20% tokens to every result and tells the model nothing.
     const result = formatSuccess({ id: "abc", name: "test" });
     expect(result).toEqual({
-      content: [
-        { type: "text", text: JSON.stringify({ id: "abc", name: "test" }, null, 2) },
-      ],
+      content: [{ type: "text", text: '{"id":"abc","name":"test"}' }],
     });
   });
 
   it("handles arrays", () => {
     const result = formatSuccess([1, 2, 3]);
-    expect(result.content[0].text).toBe(JSON.stringify([1, 2, 3], null, 2));
+    expect(result.content[0].text).toBe(JSON.stringify([1, 2, 3]));
   });
 
   it("handles null", () => {

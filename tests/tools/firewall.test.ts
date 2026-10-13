@@ -319,7 +319,7 @@ describe("registerFirewallTools", () => {
         expect(mockFn(client, "post")).not.toHaveBeenCalled();
         expect(result.content).toBeDefined();
         const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
+        expect(text).toContain('"dryRun":true');
         expect(text).toContain("POST");
         expect(text).toContain("/sites/site123/firewall/zones");
       });
@@ -385,7 +385,7 @@ describe("registerFirewallTools", () => {
         expect(mockFn(client, "put")).not.toHaveBeenCalled();
         expect(result.content).toBeDefined();
         const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
+        expect(text).toContain('"dryRun":true');
         expect(text).toContain("PUT");
       });
     });
@@ -446,7 +446,7 @@ describe("registerFirewallTools", () => {
         expect(mockFn(client, "delete")).not.toHaveBeenCalled();
         expect(result.content).toBeDefined();
         const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
+        expect(text).toContain('"dryRun":true');
         expect(text).toContain("DELETE");
       });
 
@@ -512,7 +512,7 @@ describe("registerFirewallTools", () => {
         });
 
         expect(mockFn(client, "post")).not.toHaveBeenCalled();
-        expect(result.content[0].text).toContain('"dryRun": true');
+        expect(result.content[0].text).toContain('"dryRun":true');
       });
     });
 
@@ -703,7 +703,7 @@ describe("registerFirewallTools", () => {
         });
 
         expect(mockFn(client, "patch")).not.toHaveBeenCalled();
-        expect(result.content[0].text).toContain('"dryRun": true');
+        expect(result.content[0].text).toContain('"dryRun":true');
       });
     });
 
@@ -745,7 +745,7 @@ describe("registerFirewallTools", () => {
         });
 
         expect(mockFn(client, "delete")).not.toHaveBeenCalled();
-        expect(result.content[0].text).toContain('"dryRun": true');
+        expect(result.content[0].text).toContain('"dryRun":true');
       });
 
       it("should return error when confirm is not provided", async () => {
@@ -821,7 +821,7 @@ describe("registerFirewallTools", () => {
         });
 
         expect(mockFn(client, "put")).not.toHaveBeenCalled();
-        expect(result.content[0].text).toContain('"dryRun": true');
+        expect(result.content[0].text).toContain('"dryRun":true');
       });
     });
   });

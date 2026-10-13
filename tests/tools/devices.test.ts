@@ -33,7 +33,7 @@ describe("registerDeviceTools", () => {
           "/sites/site1/devices?offset=0&limit=25"
         );
         expect(result.content).toEqual([
-          { type: "text", text: JSON.stringify(mockData, null, 2) },
+          { type: "text", text: JSON.stringify(mockData) },
         ]);
         expect(result.structuredContent).toEqual(mockData);
       });
@@ -89,7 +89,7 @@ describe("registerDeviceTools", () => {
           "/sites/site1/devices/dev1"
         );
         expect(result.content).toEqual([
-          { type: "text", text: JSON.stringify(mockData, null, 2) },
+          { type: "text", text: JSON.stringify(mockData) },
         ]);
         expect(result.structuredContent).toEqual(mockData);
       });
@@ -132,7 +132,7 @@ describe("registerDeviceTools", () => {
           "/sites/site1/devices/dev1/statistics/latest"
         );
         expect(result.content).toEqual([
-          { type: "text", text: JSON.stringify(mockData, null, 2) },
+          { type: "text", text: JSON.stringify(mockData) },
         ]);
         expect(result.structuredContent).toEqual(mockData);
       });
@@ -177,7 +177,7 @@ describe("registerDeviceTools", () => {
           "/pending-devices?offset=0&limit=25"
         );
         expect(result.content).toEqual([
-          { type: "text", text: JSON.stringify(mockData, null, 2) },
+          { type: "text", text: JSON.stringify(mockData) },
         ]);
         expect(result.structuredContent).toEqual(mockData);
       });
@@ -261,7 +261,7 @@ describe("registerDeviceTools", () => {
           }
         );
         expect(result.content).toEqual([
-          { type: "text", text: JSON.stringify(mockData, null, 2) },
+          { type: "text", text: JSON.stringify(mockData) },
         ]);
         expect(result.structuredContent).toEqual(mockData);
       });
@@ -324,7 +324,7 @@ describe("registerDeviceTools", () => {
           }
         );
         expect(result.content).toEqual([
-          { type: "text", text: JSON.stringify(mockData, null, 2) },
+          { type: "text", text: JSON.stringify(mockData) },
         ]);
         expect(result.structuredContent).toEqual(mockData);
       });
@@ -353,7 +353,7 @@ describe("registerDeviceTools", () => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(mockData, null, 2),
+              text: JSON.stringify(mockData),
             },
           ],
         });
@@ -450,7 +450,7 @@ describe("registerDeviceTools", () => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(mockData, null, 2),
+              text: JSON.stringify(mockData),
             },
           ],
         });
@@ -521,7 +521,7 @@ describe("registerDeviceTools", () => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(mockData, null, 2),
+              text: JSON.stringify(mockData),
             },
           ],
         });

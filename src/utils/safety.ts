@@ -35,7 +35,7 @@ export function formatDryRun(
   // structuredContent is required: the SDK rejects a result without it from
   // any tool that declares an outputSchema.
   return {
-    content: [{ type: "text", text: JSON.stringify(preview, null, 2) }],
+    content: [{ type: "text", text: JSON.stringify(preview) }],
     structuredContent: preview,
   };
 }

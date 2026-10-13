@@ -3,7 +3,7 @@ export function formatSuccess(data: unknown, opts?: { structured?: boolean }) {
     content: { type: "text"; text: string }[];
     structuredContent?: Record<string, unknown>;
   } = {
-    content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+    content: [{ type: "text" as const, text: JSON.stringify(data) }],
   };
 
   if (

@@ -223,7 +223,7 @@ describe("registerTrafficMatchingTools", () => {
         expect(mockFn(client, "post")).not.toHaveBeenCalled();
         expect(result.content).toBeDefined();
         const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
+        expect(text).toContain('"dryRun":true');
         expect(text).toContain("POST");
         expect(text).toContain("/sites/site123/traffic-matching-lists");
       });
@@ -301,7 +301,7 @@ describe("registerTrafficMatchingTools", () => {
         expect(mockFn(client, "put")).not.toHaveBeenCalled();
         expect(result.content).toBeDefined();
         const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
+        expect(text).toContain('"dryRun":true');
         expect(text).toContain("PUT");
         expect(text).toContain("/sites/site123/traffic-matching-lists/list1");
       });
@@ -363,7 +363,7 @@ describe("registerTrafficMatchingTools", () => {
         expect(mockFn(client, "delete")).not.toHaveBeenCalled();
         expect(result.content).toBeDefined();
         const text = result.content[0].text;
-        expect(text).toContain('"dryRun": true');
+        expect(text).toContain('"dryRun":true');
         expect(text).toContain("DELETE");
         expect(text).toContain("/sites/site123/traffic-matching-lists/list1");
       });
