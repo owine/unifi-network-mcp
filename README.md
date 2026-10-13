@@ -76,7 +76,7 @@ This server provides layered safety controls for responsible operation:
 - **Destructive tool warnings** — Tools that delete or irreversibly modify resources have descriptions prefixed with `DESTRUCTIVE:` to clearly signal risk
 - **Confirmation parameter** — Every tool marked `DESTRUCTIVE:` (all 10 of them, including `unifi_remove_device` and `unifi_bulk_delete_vouchers`) requires an explicit `confirm: true` parameter for the call to succeed
 - **Dry-run support** — All 33 write tools accept an optional `dryRun: true` parameter that returns a preview of the HTTP request (method, path, body) without making any changes
-- **Safe partial updates** — The UniFi PUT endpoints for WiFi broadcasts, networks, firewall policies and DNS policies replace the whole resource, and some fields reset when omitted (a missing `dhcpGuarding` disables DHCP guarding). Their update tools read the current resource, keep every documented body field, and overlay only what you pass, so a one-field change never resets the rest. Pass `null` to clear an optional field. The dry-run preview shows the merged body (the read still happens)
+- **Safe partial updates** — The UniFi PUT endpoints for WiFi broadcasts, networks, firewall policies, ACL rules and DNS policies replace the whole resource, and some fields reset when omitted (a missing `dhcpGuarding` disables DHCP guarding). Their update tools read the current resource, keep every documented body field, and overlay only what you pass, so a one-field change never resets the rest. Pass `null` to clear an optional field. The dry-run preview shows the merged body (the read still happens)
 - **Secret redaction** — WiFi passphrases (including per-VLAN PPSK keys) are returned as `[REDACTED]` unless the caller passes `includeSecrets: true` to `unifi_list_wifi` / `unifi_get_wifi`. Write-tool echoes and dry-run previews are always redacted, and an update that echoes back `[REDACTED]` keeps the stored passphrase
 
 ## Structured Output
@@ -175,7 +175,7 @@ The schemas live in `src/utils/output-schemas.ts` and are verified against UniFi
 | `unifi_get_acl_rule` | Get a specific ACL rule by ID |
 | `unifi_get_acl_rule_ordering` | Get user-defined ACL rule ordering |
 | `unifi_create_acl_rule` | Create a new ACL rule |
-| `unifi_update_acl_rule` | Update an ACL rule |
+| `unifi_update_acl_rule` | Update an ACL rule — partial changes are merged into the full PUT body |
 | `unifi_delete_acl_rule` | **DESTRUCTIVE:** Delete an ACL rule |
 | `unifi_reorder_acl_rules` | Reorder user-defined ACL rules |
 

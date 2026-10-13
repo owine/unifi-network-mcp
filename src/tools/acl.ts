@@ -18,6 +18,15 @@ import {
   writeResult,
 } from "../utils/output-schemas.js";
 import { resourceId } from "../utils/params.js";
+import { asObject, definedEntries, mergeForPut, missingFields } from "../utils/full-put.js";
+
+// PUT body fields per the 11.0.83 docs. index is deprecated (and read-only in
+// practice), so it stays out of the body even though GET returns it.
+const ACL_RULE_FIELDS = [
+  "type", "enabled", "name", "description", "action",
+  "enforcingDeviceFilter", "sourceFilter", "destinationFilter", "protocolFilter",
+] as const;
+const ACL_RULE_REQUIRED = ["type", "enabled", "name", "action"] as const;
 
 export function registerAclTools(
   server: McpServer,
@@ -165,20 +174,22 @@ export function registerAclTools(
   server.registerTool(
     "unifi_update_acl_rule",
     {
-      description: "Update an ACL rule",
+      description: "Update an ACL rule. Pass only the fields to change. The API's PUT replaces the whole rule, and an omitted filter means \"all\" (all protocols, sources, destinations or switches), so this tool reads the current rule, overlays your fields and sends the full body. Filters are replaced whole; null clears one. dryRun shows the merged body.",
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         aclRuleId: resourceId().describe("ACL rule ID"),
-        type: z.enum(["IPV4", "MAC"]).describe("ACL rule type"),
-        name: z.string().describe("ACL rule name"),
-        enabled: z.boolean().describe("Whether the rule is enabled"),
-        action: z.enum(["ALLOW", "BLOCK"]).describe("Rule action"),
+        type: z.enum(["IPV4", "MAC"]).optional().describe("ACL rule type"),
+        name: z.string().min(1).optional().describe("ACL rule name"),
+        enabled: z.boolean().optional().describe("Whether the rule is enabled"),
+        action: z.enum(["ALLOW", "BLOCK"]).optional().describe("Rule action"),
         description: z
           .string()
+          .nullable()
           .optional()
-          .describe("Rule description"),
+          .describe("Rule description; null clears it"),
         protocolFilter: z
           .array(z.enum(["TCP", "UDP"]))
+          .nullable()
           .optional()
           .describe("Protocols this ACL rule will be applied to (TCP, UDP). When null, applies to all protocols"),
         sourceFilter: z
@@ -196,24 +207,22 @@ export function registerAclTools(
         dryRun: z
           .boolean()
           .optional()
-          .describe("Preview this action without executing it"),
+          .describe("Preview the merged PUT body without executing it (still reads the current rule)"),
       },
       outputSchema: writeResult(aclRuleOutputSchema),
       annotations: WRITE,
     },
-    async ({ siteId, aclRuleId, type, name, enabled, action, description, protocolFilter, sourceFilter, destinationFilter, enforcingDeviceFilter, dryRun }) => {
+    async ({ siteId, aclRuleId, dryRun, ...fields }) => {
       try {
-        const body: Record<string, unknown> = { type, name, enabled, action };
-        if (description !== undefined) body.description = description;
-        if (protocolFilter !== undefined) body.protocolFilter = protocolFilter;
-        if (sourceFilter !== undefined) body.sourceFilter = sourceFilter;
-        if (destinationFilter !== undefined) body.destinationFilter = destinationFilter;
-        if (enforcingDeviceFilter !== undefined) body.enforcingDeviceFilter = enforcingDeviceFilter;
-        if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/acl-rules/${aclRuleId}`, body);
-        const data = await client.put(
-          `/sites/${siteId}/acl-rules/${aclRuleId}`,
-          body
-        );
+        const path = `/sites/${siteId}/acl-rules/${aclRuleId}`;
+        const current = asObject(await client.get(path), "the current ACL rule");
+        const body = mergeForPut(current, definedEntries(fields), ACL_RULE_FIELDS);
+        const missing = missingFields(body, ACL_RULE_REQUIRED);
+        if (missing.length > 0) {
+          throw new Error(`Missing required fields: ${missing.join(", ")}`);
+        }
+        if (dryRun) return formatDryRun("PUT", path, body);
+        const data = await client.put(path, body);
         return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
