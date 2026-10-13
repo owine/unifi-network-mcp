@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.15.0](https://github.com/owine/unifi-network-mcp/compare/2.14.2...2.15.0) (2026-10-13)
+
+
+### Features
+
+* redact WiFi passphrases by default ([29dbc55](https://github.com/owine/unifi-network-mcp/commit/29dbc5508059546e0ef476ed2d6b267de318414f))
+* support all seven DNS policy record types ([578cab8](https://github.com/owine/unifi-network-mcp/commit/578cab8f22bb1d7cc781b50cca75c2b008b48cf6))
+* support firewall policy reportFlowEnabled from Network API 11.0.83 ([f1b818d](https://github.com/owine/unifi-network-mcp/commit/f1b818d505b258e6a3d972d8939c3624b12f312e))
+
+
+### Bug Fixes
+
+* correct ACL, traffic-matching and device-action contracts ([19b9bd0](https://github.com/owine/unifi-network-mcp/commit/19b9bd0c3c482bb3220d5339d3309c745bdaaa65))
+* merge partial network and WiFi updates into the full PUT body ([0801634](https://github.com/owine/unifi-network-mcp/commit/080163405293e176a945dc9ae9fe6353a065b96f))
+
+
+### Dependencies
+
+* update dependency @modelcontextprotocol/sdk to v1.32.1 ([#284](https://github.com/owine/unifi-network-mcp/issues/284)) ([7df52aa](https://github.com/owine/unifi-network-mcp/commit/7df52aa5738739e8bf59eef5dcfebf32648f0425))
+* update dependency @types/node to v24.19.2 ([#291](https://github.com/owine/unifi-network-mcp/issues/291)) ([48329a7](https://github.com/owine/unifi-network-mcp/commit/48329a7199596e6c111a296ecf0a8f3956b68527))
+* update dependency lefthook to v2.2.1 ([#287](https://github.com/owine/unifi-network-mcp/issues/287)) ([c535120](https://github.com/owine/unifi-network-mcp/commit/c535120685665775b65be28789a531a7127d77dc))
+* update dependency typescript-eslint to v8.71.1 ([#285](https://github.com/owine/unifi-network-mcp/issues/285)) ([f42582b](https://github.com/owine/unifi-network-mcp/commit/f42582b030284a94b2559564f12dc0feed227bbd))
+* update pnpm to v12.11.0 ([#288](https://github.com/owine/unifi-network-mcp/issues/288)) ([7c7eb90](https://github.com/owine/unifi-network-mcp/commit/7c7eb901b2e13dbe96565a81366f0f3b31394d22))
+* update pnpm to v12.11.1 ([#289](https://github.com/owine/unifi-network-mcp/issues/289)) ([406ca86](https://github.com/owine/unifi-network-mcp/commit/406ca86fc9481e9c40893f50c1ceb6739ebb04b4))
+* update pnpm to v12.11.2 ([#292](https://github.com/owine/unifi-network-mcp/issues/292)) ([c15e515](https://github.com/owine/unifi-network-mcp/commit/c15e5155fc85eeaaead36afc37354eddfeeefe7b))
+* update pnpm to v12.9.0 ([#280](https://github.com/owine/unifi-network-mcp/issues/280)) ([ec365e4](https://github.com/owine/unifi-network-mcp/commit/ec365e4554b32166864b33dd9fbd9b4ec33a7824))
+
 ## [2.14.2](https://github.com/owine/unifi-network-mcp/compare/2.14.1...2.14.2) (2026-10-05)
 
 
