@@ -39,7 +39,7 @@ export function loadConfig(): Config {
   });
 
   if (!result.success) {
-    console.error("Configuration error:", result.error.format());
+    console.error(`Configuration error:\n${z.prettifyError(result.error)}`);
     process.exit(1);
   }
 

@@ -1,11 +1,11 @@
 /**
  * Output schemas for high-value read tools (loose strategy: every non-key
- * field optional, every nested object uses .passthrough() to allow
+ * field optional, every nested object uses .loose() to allow
  * firmware/hardware-specific fields to flow through unchanged).
  *
  * Verified against UniFi Network API 11.0.83. Where the docs collapse
  * nested arrays/objects (e.g. interfaces.ports[], radios[]), the schema
- * uses passthrough records so the contract doesn't lock to fields we
+ * uses loose records so the contract doesn't lock to fields we
  * haven't verified. Tools register these raw shapes, and registerAllTools()
  * publishes each as a loose object (src/tools/index.ts), so fields a schema
  * does not list never fail client-side validation.
@@ -16,7 +16,7 @@ import { z } from "zod";
 // networks and RADIUS profiles; it is absent on user-defined resources.
 const Metadata = z
   .object({ origin: z.string().optional(), configurable: z.boolean().optional() })
-  .passthrough();
+  .loose();
 
 const PaginationFields = {
   offset: z.number().int().optional(),
@@ -48,7 +48,7 @@ const DeviceListItem = z
     features: z.array(z.string()).optional(),
     interfaces: z.array(z.string()).optional(),
   })
-  .passthrough();
+  .loose();
 
 const DevicePort = z
   .object({
@@ -65,10 +65,10 @@ const DevicePort = z
         enabled: z.boolean().optional(),
         state: z.string().optional(),
       })
-      .passthrough()
+      .loose()
       .optional(),
   })
-  .passthrough();
+  .loose();
 
 const DeviceRadio = z
   .object({
@@ -77,7 +77,7 @@ const DeviceRadio = z
     channelWidthMHz: z.number().optional(),
     channel: z.number().optional(),
   })
-  .passthrough();
+  .loose();
 
 const DeviceDetail = z
   .object({
@@ -87,7 +87,7 @@ const DeviceDetail = z
     configurationId: z.string().optional(),
     uplink: z
       .object({ deviceId: z.string().optional() })
-      .passthrough()
+      .loose()
       .optional(),
     // Detail view: object keyed by capability (switching/accessPoint).
     features: z.record(z.string(), z.unknown()).optional(),
@@ -96,10 +96,10 @@ const DeviceDetail = z
         ports: z.array(DevicePort).optional(),
         radios: z.array(DeviceRadio).optional(),
       })
-      .passthrough()
+      .loose()
       .optional(),
   })
-  .passthrough();
+  .loose();
 
 const DeviceStatistics = z
   .object({
@@ -116,7 +116,7 @@ const DeviceStatistics = z
         txRateBps: z.number().optional(),
         rxRateBps: z.number().optional(),
       })
-      .passthrough()
+      .loose()
       .optional(),
     interfaces: z
       .object({
@@ -127,14 +127,14 @@ const DeviceStatistics = z
                 frequencyGHz: z.number().optional(),
                 txRetriesPct: z.number().optional(),
               })
-              .passthrough()
+              .loose()
           )
           .optional(),
       })
-      .passthrough()
+      .loose()
       .optional(),
   })
-  .passthrough();
+  .loose();
 
 const Client = z
   .object({
@@ -147,10 +147,10 @@ const Client = z
     uplinkDeviceId: z.string().optional(),
     access: z
       .object({ type: z.string().optional() })
-      .passthrough()
+      .loose()
       .optional(),
   })
-  .passthrough();
+  .loose();
 
 const WifiBroadcast = z
   .object({
@@ -170,14 +170,14 @@ const WifiBroadcast = z
     broadcastingDeviceFilter: z.unknown().optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const ApplicationInfo = z
   .object({
     // Live-verified (11.0.83): only applicationVersion is returned.
     applicationVersion: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 const Site = z
   .object({
@@ -185,7 +185,7 @@ const Site = z
     internalReference: z.string().optional(),
     name: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 const Network = z
   .object({
@@ -206,13 +206,13 @@ const Network = z
     ipv6Configuration: z.unknown().optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const NetworkReferences = z
   .object({
     referenceResources: z.array(z.unknown()).optional(),
   })
-  .passthrough();
+  .loose();
 
 const Voucher = z
   .object({
@@ -230,7 +230,7 @@ const Voucher = z
     authorizedGuestCount: z.number().optional(),
     expired: z.boolean().optional(),
   })
-  .passthrough();
+  .loose();
 
 const FirewallZone = z
   .object({
@@ -239,7 +239,7 @@ const FirewallZone = z
     networkIds: z.array(z.string()).optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const FirewallPolicy = z
   .object({
@@ -262,7 +262,7 @@ const FirewallPolicy = z
     description: z.string().optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const FirewallPolicyOrdering = z
   .object({
@@ -271,10 +271,10 @@ const FirewallPolicyOrdering = z
         beforeSystemDefined: z.array(z.string()).optional(),
         afterSystemDefined: z.array(z.string()).optional(),
       })
-      .passthrough()
+      .loose()
       .optional(),
   })
-  .passthrough();
+  .loose();
 
 const AclRule = z
   .object({
@@ -296,13 +296,13 @@ const AclRule = z
     index: z.number().int().optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const AclRuleOrdering = z
   .object({
     orderedAclRuleIds: z.array(z.string()).optional(),
   })
-  .passthrough();
+  .loose();
 
 const SwitchStack = z
   .object({
@@ -318,7 +318,7 @@ const SwitchStack = z
     lags: z.array(z.unknown()).optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const McLagDomain = z
   .object({
@@ -328,7 +328,7 @@ const McLagDomain = z
     lags: z.array(z.unknown()).optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const Lag = z
   .object({
@@ -341,12 +341,12 @@ const Lag = z
             deviceId: z.string().optional(),
             portIdxs: z.array(z.number()).optional(),
           })
-          .passthrough()
+          .loose()
       )
       .optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const DnsPolicy = z
   .object({
@@ -371,7 +371,7 @@ const DnsPolicy = z
     ipAddress: z.string().nullable().optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 const TrafficMatchingList = z
   .object({
@@ -381,7 +381,7 @@ const TrafficMatchingList = z
     items: z.array(z.unknown()).optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 // Verified against the live Integration API (11.0.83). The WAN and
 // site-to-site-tunnel list rows are intentionally minimal in the API.
@@ -390,7 +390,7 @@ const Wan = z
     id: z.string(),
     name: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 const VpnServer = z
   .object({
@@ -400,7 +400,7 @@ const VpnServer = z
     enabled: z.boolean().optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 // No tunnels present in the verification environment — keep loose.
 const VpnTunnel = z
@@ -408,7 +408,7 @@ const VpnTunnel = z
     id: z.string(),
     name: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 const RadiusProfile = z
   .object({
@@ -416,7 +416,7 @@ const RadiusProfile = z
     name: z.string().optional(),
     metadata: Metadata.optional(),
   })
-  .passthrough();
+  .loose();
 
 // No tags present in the verification environment — documented shape.
 const DeviceTag = z
@@ -425,7 +425,7 @@ const DeviceTag = z
     name: z.string().optional(),
     deviceIds: z.array(z.string()).optional(),
   })
-  .passthrough();
+  .loose();
 
 // DPI category/application ids are NUMERIC (verified live).
 const DpiCategory = z
@@ -433,14 +433,14 @@ const DpiCategory = z
     id: z.number(),
     name: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 const DpiApplication = z
   .object({
     id: z.number(),
     name: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 // Countries key on `code` (ISO alpha-2), NOT `id` (verified live).
 const Country = z
@@ -448,7 +448,7 @@ const Country = z
     code: z.string(),
     name: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 // No pending devices in the verification environment — keep loose.
 const PendingDevice = z
@@ -458,7 +458,7 @@ const PendingDevice = z
     ipAddress: z.string().optional(),
     firmwareVersion: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 // A write tool returns either the API's echo of the resource or, with dryRun,
 // a preview of the request it would send. The SDK validates both against the
@@ -468,7 +468,7 @@ const DryRunPreview = {
   dryRun: z.literal(true).optional(),
   wouldExecute: z
     .object({ method: z.string(), path: z.string(), body: z.unknown().optional() })
-    .passthrough()
+    .loose()
     .optional(),
 } as const;
 
@@ -658,7 +658,7 @@ export const HistoryClient = z
     is_wired: z.boolean().optional(),
     status: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const ClientSession = z
   .object({
@@ -672,11 +672,11 @@ export const ClientSession = z
     is_wired: z.boolean().optional(),
     roaming_sessions: z.array(z.unknown()).optional(),
   })
-  .passthrough();
+  .loose();
 
 /** Envelope returned by the controller's stat/session endpoint. */
 export const ClientSessionEnvelope = z.object({
-  meta: z.object({ rc: z.literal("ok") }).passthrough(),
+  meta: z.object({ rc: z.literal("ok") }).loose(),
   data: z.array(ClientSession),
 });
 

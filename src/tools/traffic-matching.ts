@@ -19,7 +19,7 @@ import {
 import { resourceId } from "../utils/params.js";
 
 const matchingItems = z
-  .array(z.object({ type: z.string().describe("Item type, e.g. PORT_NUMBER, IP_ADDRESS, SUBNET") }).passthrough())
+  .array(z.object({ type: z.string().describe("Item type, e.g. PORT_NUMBER, IP_ADDRESS, SUBNET") }).loose())
   .min(1)
   .describe("Non-empty array of tagged item objects, e.g. [{type:'PORT_NUMBER', value:443}]");
 
