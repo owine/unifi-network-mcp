@@ -18,6 +18,7 @@ import {
   missingFields,
   unsupportedFields,
   type JsonObject,
+  withResourceLock,
 } from "../utils/full-put.js";
 import {
   listNetworksOutputSchema,
@@ -278,14 +279,16 @@ export function registerNetworkTools(
     async ({ siteId, networkId, dryRun, ...fields }) => {
       try {
         const path = `/sites/${siteId}/networks/${networkId}`;
-        const current = asObject(await client.get(path), "the current network");
-        const updates = definedEntries(fields);
-        const { allowed } = fieldsForManagement(updates.management ?? current.management);
-        const body = mergeForPut(current, updates, allowed);
-        checkNetworkBody(body, updates);
-        if (dryRun) return formatDryRun("PUT", path, body);
-        const data = await client.put(path, body);
-        return formatSuccess(data, { structured: true });
+        return await withResourceLock(path, async () => {
+          const current = asObject(await client.get(path), "the current network");
+          const updates = definedEntries(fields);
+          const { allowed } = fieldsForManagement(updates.management ?? current.management);
+          const body = mergeForPut(current, updates, allowed);
+          checkNetworkBody(body, updates);
+          if (dryRun) return formatDryRun("PUT", path, body);
+          const data = await client.put(path, body);
+          return formatSuccess(data, { structured: true });
+        });
       } catch (err) {
         return formatError(err);
       }

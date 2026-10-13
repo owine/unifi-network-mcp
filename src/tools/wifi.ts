@@ -18,6 +18,7 @@ import {
   missingFields,
   unsupportedFields,
   type JsonObject,
+  withResourceLock,
 } from "../utils/full-put.js";
 import { containsRedacted, redactSecrets, restoreRedacted, REDACTED } from "../utils/secrets.js";
 import {
@@ -297,14 +298,16 @@ export function registerWifiTools(
     async ({ siteId, wifiBroadcastId, dryRun, ...fields }) => {
       try {
         const path = `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`;
-        const current = asObject(await client.get(path), "the current WiFi broadcast");
-        const updates = restoreRedacted(toBodyFields(fields), current) as JsonObject;
-        const { allowed } = fieldsForType(updates.type ?? current.type);
-        const body = mergeForPut(current, updates, allowed);
-        checkBody(body, updates);
-        if (dryRun) return formatDryRun("PUT", path, redactSecrets(body));
-        const data = await client.put(path, body);
-        return formatSuccess(redactSecrets(data), { structured: true });
+        return await withResourceLock(path, async () => {
+          const current = asObject(await client.get(path), "the current WiFi broadcast");
+          const updates = restoreRedacted(toBodyFields(fields), current) as JsonObject;
+          const { allowed } = fieldsForType(updates.type ?? current.type);
+          const body = mergeForPut(current, updates, allowed);
+          checkBody(body, updates);
+          if (dryRun) return formatDryRun("PUT", path, redactSecrets(body));
+          const data = await client.put(path, body);
+          return formatSuccess(redactSecrets(data), { structured: true });
+        });
       } catch (err) {
         return formatError(err);
       }

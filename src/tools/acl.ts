@@ -18,7 +18,7 @@ import {
   writeResult,
 } from "../utils/output-schemas.js";
 import { resourceId } from "../utils/params.js";
-import { asObject, definedEntries, mergeForPut, missingFields } from "../utils/full-put.js";
+import { asObject, definedEntries, mergeForPut, missingFields, withResourceLock } from "../utils/full-put.js";
 
 // PUT body fields per the 11.0.83 docs. index is deprecated (and read-only in
 // practice), so it stays out of the body even though GET returns it.
@@ -215,15 +215,17 @@ export function registerAclTools(
     async ({ siteId, aclRuleId, dryRun, ...fields }) => {
       try {
         const path = `/sites/${siteId}/acl-rules/${aclRuleId}`;
-        const current = asObject(await client.get(path), "the current ACL rule");
-        const body = mergeForPut(current, definedEntries(fields), ACL_RULE_FIELDS);
-        const missing = missingFields(body, ACL_RULE_REQUIRED);
-        if (missing.length > 0) {
-          throw new Error(`Missing required fields: ${missing.join(", ")}`);
-        }
-        if (dryRun) return formatDryRun("PUT", path, body);
-        const data = await client.put(path, body);
-        return formatSuccess(data, { structured: true });
+        return await withResourceLock(path, async () => {
+          const current = asObject(await client.get(path), "the current ACL rule");
+          const body = mergeForPut(current, definedEntries(fields), ACL_RULE_FIELDS);
+          const missing = missingFields(body, ACL_RULE_REQUIRED);
+          if (missing.length > 0) {
+            throw new Error(`Missing required fields: ${missing.join(", ")}`);
+          }
+          if (dryRun) return formatDryRun("PUT", path, body);
+          const data = await client.put(path, body);
+          return formatSuccess(data, { structured: true });
+        });
       } catch (err) {
         return formatError(err);
       }

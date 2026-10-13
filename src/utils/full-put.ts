@@ -61,3 +61,22 @@ export function definedEntries(values: JsonObject): JsonObject {
     Object.entries(values).filter(([, value]) => value !== undefined)
   );
 }
+
+const resourceQueues = new Map<string, Promise<void>>();
+
+/**
+ * Run one read-merge-write cycle at a time per resource. Agents often split
+ * "rename X and enable logging" into parallel calls; unserialised, both read
+ * the old resource and the second PUT silently reverts the first change.
+ */
+export async function withResourceLock<T>(path: string, fn: () => Promise<T>): Promise<T> {
+  const previous = resourceQueues.get(path) ?? Promise.resolve();
+  const run = previous.then(fn);
+  const settled = run.then(() => undefined, () => undefined);
+  resourceQueues.set(path, settled);
+  try {
+    return await run;
+  } finally {
+    if (resourceQueues.get(path) === settled) resourceQueues.delete(path);
+  }
+}

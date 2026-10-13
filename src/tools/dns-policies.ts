@@ -18,6 +18,7 @@ import {
   missingFields,
   unsupportedFields,
   type JsonObject,
+  withResourceLock,
 } from "../utils/full-put.js";
 import {
   listDnsPoliciesOutputSchema,
@@ -232,14 +233,16 @@ export function registerDnsPolicyTools(
     async ({ siteId, dnsPolicyId, dryRun, ...fields }) => {
       try {
         const path = `/sites/${siteId}/dns/policies/${dnsPolicyId}`;
-        const current = asObject(await client.get(path), "the current DNS policy");
-        const updates = definedEntries(fields);
-        const { allowed } = fieldsForDnsType(updates.type ?? current.type);
-        const body = mergeForPut(current, updates, allowed);
-        checkDnsBody(body, updates);
-        if (dryRun) return formatDryRun("PUT", path, body);
-        const data = await client.put(path, body);
-        return formatSuccess(data, { structured: true });
+        return await withResourceLock(path, async () => {
+          const current = asObject(await client.get(path), "the current DNS policy");
+          const updates = definedEntries(fields);
+          const { allowed } = fieldsForDnsType(updates.type ?? current.type);
+          const body = mergeForPut(current, updates, allowed);
+          checkDnsBody(body, updates);
+          if (dryRun) return formatDryRun("PUT", path, body);
+          const data = await client.put(path, body);
+          return formatSuccess(data, { structured: true });
+        });
       } catch (err) {
         return formatError(err);
       }

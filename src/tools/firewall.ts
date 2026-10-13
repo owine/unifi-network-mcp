@@ -16,6 +16,7 @@ import {
   mergeForPut,
   missingFields,
   unsupportedFields,
+  withResourceLock,
 } from "../utils/full-put.js";
 import {
   listFirewallZonesOutputSchema,
@@ -371,15 +372,17 @@ export function registerFirewallTools(
         if (rejected.length > 0) {
           throw new Error(`Fields not accepted by the firewall policy PUT body: ${rejected.join(", ")}`);
         }
-        const current = asObject(await client.get(path), "the current firewall policy");
-        const body = mergeForPut(current, updates, FIREWALL_POLICY_FIELDS);
-        const missing = missingFields(body, FIREWALL_POLICY_REQUIRED);
-        if (missing.length > 0) {
-          throw new Error(`Missing required fields: ${missing.join(", ")}`);
-        }
-        if (dryRun) return formatDryRun("PUT", path, body);
-        const data = await client.put(path, body);
-        return formatSuccess(data, { structured: true });
+        return await withResourceLock(path, async () => {
+          const current = asObject(await client.get(path), "the current firewall policy");
+          const body = mergeForPut(current, updates, FIREWALL_POLICY_FIELDS);
+          const missing = missingFields(body, FIREWALL_POLICY_REQUIRED);
+          if (missing.length > 0) {
+            throw new Error(`Missing required fields: ${missing.join(", ")}`);
+          }
+          if (dryRun) return formatDryRun("PUT", path, body);
+          const data = await client.put(path, body);
+          return formatSuccess(data, { structured: true });
+        });
       } catch (err) {
         return formatError(err);
       }
@@ -406,11 +409,11 @@ export function registerFirewallTools(
     },
     async ({ siteId, firewallPolicyId, policy, dryRun }) => {
       try {
-        if (dryRun) return formatDryRun("PATCH", `/sites/${siteId}/firewall/policies/${firewallPolicyId}`, policy);
-        const data = await client.patch(
-          `/sites/${siteId}/firewall/policies/${firewallPolicyId}`,
-          policy
-        );
+        const path = `/sites/${siteId}/firewall/policies/${firewallPolicyId}`;
+        if (dryRun) return formatDryRun("PATCH", path, policy);
+        // Queue behind any in-flight update of this policy, whose PUT would
+        // otherwise overwrite this change with the values it read earlier.
+        const data = await withResourceLock(path, () => client.patch(path, policy));
         return formatSuccess(data, { structured: true });
       } catch (err) {
         return formatError(err);
