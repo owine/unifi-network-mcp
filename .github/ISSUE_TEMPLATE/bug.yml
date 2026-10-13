@@ -1,0 +1,35 @@
+name: Bug report
+description: A tool returns the wrong result, fails, or the server does not start
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a security problem, please report privately instead: see SECURITY.md.
+        Never paste your API key or WiFi passphrases.
+  - type: input
+    id: version
+    attributes:
+      label: Server version
+      description: The npm package version you run (for example from `npm ls -g @owine/unifi-network-mcp`, or the version pinned in your MCP config).
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Node.js and UniFi versions
+      description: Output of `node --version`, and your UniFi Network application / console firmware version.
+    validations:
+      required: true
+  - type: input
+    id: settings
+    attributes:
+      label: Settings
+      description: Values of UNIFI_NETWORK_READ_ONLY and UNIFI_NETWORK_VERIFY_SSL, and whether UNIFI_NETWORK_HOST is a local console or api.ui.com.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The tool you called, its arguments (secrets removed), what you expected and what you got. Include any error text.
+    validations:
+      required: true
