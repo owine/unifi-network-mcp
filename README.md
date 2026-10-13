@@ -20,7 +20,7 @@ claude mcp add-json unifi-network '{"command":"npx","args":["-y","@owine/unifi-n
 
 Use `-s user` for global availability across all projects, or `-s project` for the current project only.
 
-`@latest` runs the newest release every time the server starts. To choose when you upgrade, pin a version instead (for example `@owine/unifi-network-mcp@2.15.0`).
+`@latest` runs the newest release every time the server starts, including a new major version. To take fixes but choose when to make breaking upgrades, pin the major version instead (for example `@owine/unifi-network-mcp@3`).
 
 ### From source
 
@@ -39,6 +39,18 @@ Then add to Claude Code:
 ```bash
 claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-network-mcp/dist/index.js"],"env":{"UNIFI_NETWORK_HOST":"192.168.1.1","UNIFI_NETWORK_API_KEY":"your-api-key"}}' -s user
 ```
+
+### Upgrading from 2.x
+
+3.0 tightens several defaults. Most setups need no change; check these:
+
+- **Cloud Connector with `UNIFI_NETWORK_VERIFY_SSL=false`**: the server now refuses to start with `UNIFI_NETWORK_HOST=api.ui.com` and verification off. Unset `UNIFI_NETWORK_VERIFY_SSL`.
+- **Writes that open access need `confirm: true`**: creating or switching a firewall policy or ACL rule to ALLOW, disabling a blocking policy or rule, creating an open SSID or changing an SSID's security type, and creating more than 10 vouchers at once. Without it the tool returns an error naming the change, and the agent can ask you before re-invoking.
+- **IDs must be IDs**: ID inputs accept only letters, digits, `-` and `_` (pass the IDs that list and get tools return).
+- **Smaller default results**: `unifi_list_client_sessions` defaults to 100 rows (was 1000), `unifi_list_vouchers` to 25 (was 100), and `unifi_list_client_history` now returns at most `limit` clients (default 100, max 500), most recently seen first, with `totalCount` and `truncated`. Rows from both history tools carry only the fields their tool descriptions list.
+- **Compact text output**: tool results are compact JSON rather than indented; `structuredContent` is unchanged.
+
+One rule is relaxed: a `dryRun: true` preview of a destructive tool no longer needs `confirm`.
 
 ### Environment Variables
 
