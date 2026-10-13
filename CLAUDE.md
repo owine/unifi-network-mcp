@@ -48,6 +48,7 @@ pnpm run test:watch  # Run tests in watch mode
 src/
   index.ts            # Entry point — creates server, connects stdio transport
   config.ts           # Loads and validates env vars with Zod
+  tls.ts              # consoleDispatcher() — per-client TLS (CA pinning, verify off) and keep-alive
   client.ts           # NetworkClient — HTTP wrapper for the Network API
   instructions.ts     # serverInstructions() — cross-tool guidance sent to MCP hosts
   tools/              # Tool handlers, one file per API domain

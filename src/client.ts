@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { Agent } from "undici";
 import { Config } from "./config.js";
+import { consoleDispatcher } from "./tls.js";
 
 // Well under undici's 300s default, so a stalled controller fails the call
 // before the MCP host gives up on it.
@@ -54,6 +56,7 @@ export class NetworkClient {
   private baseUrl: string;
   private headers: Record<string, string>;
   private networkUrl: string;
+  private dispatcher: Agent;
 
   constructor(config: Config) {
     // Cloud Connector only exists behind api.ui.com. A console ID set against a
@@ -73,9 +76,7 @@ export class NetworkClient {
       "Content-Type": "application/json",
     };
 
-    if (!config.verifySsl) {
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-    }
+    this.dispatcher = consoleDispatcher(config);
   }
 
   private async request(
@@ -84,11 +85,12 @@ export class NetworkClient {
     body?: unknown
   ): Promise<unknown> {
     const url = this.resolve(path);
-    const options: RequestInit = {
+    const options: RequestInit & { dispatcher: Agent } = {
       method,
       headers: this.headers,
       redirect: "error",
       signal: requestSignal(REQUEST_TIMEOUT_MS),
+      dispatcher: this.dispatcher,
     };
 
     if (body !== undefined) {
@@ -188,11 +190,12 @@ export class NetworkClient {
   }
 
   private async historyRequest(path: string, body?: unknown): Promise<unknown> {
-    const response = await fetch(`${this.networkUrl}${path}`, {
+    const options: RequestInit & { dispatcher: Agent } = {
       method: body === undefined ? "GET" : "POST", headers: this.headers,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      redirect: "error", signal: requestSignal(25000),
-    });
+      redirect: "error", signal: requestSignal(25000), dispatcher: this.dispatcher,
+    };
+    const response = await fetch(`${this.networkUrl}${path}`, options);
     if (!response.ok) {
       // Drain before throwing: an unread body pins the socket until GC, so a
       // run of failures (say, a mis-scoped API key) would leak connections.

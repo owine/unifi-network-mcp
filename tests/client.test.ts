@@ -31,22 +31,14 @@ function mockResponse(
 
 describe("NetworkClient", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
-  let savedTlsEnv: string | undefined;
 
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    savedTlsEnv = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-    delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    if (savedTlsEnv === undefined) {
-      delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-    } else {
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = savedTlsEnv;
-    }
   });
 
   // ── Constructor ────────────────────────────────────────────────────
@@ -70,15 +62,6 @@ describe("NetworkClient", () => {
       expect(options.headers["X-API-KEY"]).toBe("my-secret");
     });
 
-    it("should set NODE_TLS_REJECT_UNAUTHORIZED=0 when verifySsl is false", () => {
-      new NetworkClient(makeConfig({ verifySsl: false }));
-      expect(process.env.NODE_TLS_REJECT_UNAUTHORIZED).toBe("0");
-    });
-
-    it("should NOT set NODE_TLS_REJECT_UNAUTHORIZED when verifySsl is true", () => {
-      new NetworkClient(makeConfig({ verifySsl: true }));
-      expect(process.env.NODE_TLS_REJECT_UNAUTHORIZED).toBeUndefined();
-    });
   });
 
   // ── HTTP methods ───────────────────────────────────────────────────

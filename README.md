@@ -58,11 +58,20 @@ One rule is relaxed: a `dryRun: true` preview of a destructive tool no longer ne
 |---|---|---|---|
 | `UNIFI_NETWORK_HOST` | Yes | — | IP or hostname of your UniFi Network console |
 | `UNIFI_NETWORK_API_KEY` | Yes | — | API key from Network integration settings |
-| `UNIFI_NETWORK_VERIFY_SSL` | No | `true` | Set to `false` to skip TLS certificate verification for a console with a self-signed certificate. Not allowed with `api.ui.com` |
+| `UNIFI_NETWORK_CA_CERT` | No | — | Path to a PEM file with the console's certificate, to verify a self-signed console without turning verification off (see below) |
+| `UNIFI_NETWORK_VERIFY_SSL` | No | `true` | Set to `false` to skip TLS certificate verification. Not allowed with `api.ui.com` or together with `UNIFI_NETWORK_CA_CERT` |
 | `UNIFI_NETWORK_READ_ONLY` | No | `true` | Set to `false` to enable write/mutating tools (read-only by default) |
 | `UNIFI_NETWORK_CONSOLE_ID` | No | — | Cloud Connector console ID; used only when `UNIFI_NETWORK_HOST` is `api.ui.com` (see [Cloud Connector](#cloud-connector)) |
 
-UniFi consoles ship with a self-signed certificate, so against a local console the first call usually fails with a certificate error that names `UNIFI_NETWORK_VERIFY_SSL`. Setting it to `false` turns off certificate checks for the whole server process: anyone who can intercept traffic between this machine and the console can then read the API key. Only do this on a network you trust.
+UniFi consoles ship with a self-signed certificate, so against a local console the first call usually fails with a certificate error. The safe fix is to trust that one certificate: save it and point `UNIFI_NETWORK_CA_CERT` at the file.
+
+```bash
+openssl s_client -connect 192.168.1.1:443 </dev/null 2>/dev/null | openssl x509 > ~/.config/unifi-console.pem
+```
+
+The server then accepts the console only when it presents exactly that certificate, even though it is issued to a name like `unifi.local` rather than the IP you connect to. Check the fingerprint (`openssl x509 -in ~/.config/unifi-console.pem -noout -fingerprint -sha256`) against the console's if the network between you is not trusted. If the console later generates a new certificate, save it again.
+
+Setting `UNIFI_NETWORK_VERIFY_SSL=false` instead turns off certificate checks for this server's connections to the console: anyone who can intercept that traffic can then read the API key. Only do this on a network you trust.
 
 ### Choosing an API key
 

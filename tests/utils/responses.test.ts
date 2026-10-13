@@ -68,6 +68,6 @@ describe("formatError", () => {
     "CERT_HAS_EXPIRED",
   ])("points a %s failure at the TLS setting", (code) => {
     const err = new TypeError("fetch failed", { cause: Object.assign(new Error("certificate"), { code }) });
-    expect(formatError(err).content[0].text).toContain("UNIFI_NETWORK_VERIFY_SSL");
+    expect(formatError(err).content[0].text).toContain("UNIFI_NETWORK_CA_CERT");
   });
 });

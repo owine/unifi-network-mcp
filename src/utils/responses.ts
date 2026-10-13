@@ -27,7 +27,7 @@ export function formatError(err: unknown) {
   if (code) {
     message += ` (${code})`;
     if (/CERT|SELF_SIGNED|LEAF_SIGNATURE/.test(code)) {
-      message += ". The console's TLS certificate did not verify; for a local console with a self-signed certificate, set UNIFI_NETWORK_VERIFY_SSL=false";
+      message += ". The console's TLS certificate did not verify; for a local console with a self-signed certificate, save the certificate and point UNIFI_NETWORK_CA_CERT at it (or, on a trusted network only, set UNIFI_NETWORK_VERIFY_SSL=false)";
     }
   }
   return {
