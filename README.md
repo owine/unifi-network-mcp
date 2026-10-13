@@ -6,7 +6,7 @@ An MCP (Model Context Protocol) server that exposes the UniFi Network Integratio
 
 - Node.js 22.13+ or 24 (see `engines` in `package.json`)
 - A UniFi Network console with the Integration API enabled
-- An API key generated from your UniFi Network console
+- An API key generated from your UniFi Network console (see [Choosing an API key](#choosing-an-api-key))
 
 ## Setup
 
@@ -15,10 +15,12 @@ An MCP (Model Context Protocol) server that exposes the UniFi Network Integratio
 Add to Claude Code with a single command — no clone or build needed:
 
 ```bash
-claude mcp add-json unifi-network '{"command":"npx","args":["-y","@owine/unifi-network-mcp@latest"],"env":{"UNIFI_NETWORK_HOST":"192.168.1.1","UNIFI_NETWORK_API_KEY":"your-api-key","UNIFI_NETWORK_VERIFY_SSL":"false"}}' -s user
+claude mcp add-json unifi-network '{"command":"npx","args":["-y","@owine/unifi-network-mcp@latest"],"env":{"UNIFI_NETWORK_HOST":"192.168.1.1","UNIFI_NETWORK_API_KEY":"your-api-key"}}' -s user
 ```
 
 Use `-s user` for global availability across all projects, or `-s project` for the current project only.
+
+`@latest` runs the newest release every time the server starts. To choose when you upgrade, pin a version instead (for example `@owine/unifi-network-mcp@2.15.0`).
 
 ### From source
 
@@ -35,7 +37,7 @@ pnpm run build
 Then add to Claude Code:
 
 ```bash
-claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-network-mcp/dist/index.js"],"env":{"UNIFI_NETWORK_HOST":"192.168.1.1","UNIFI_NETWORK_API_KEY":"your-api-key","UNIFI_NETWORK_VERIFY_SSL":"false"}}' -s user
+claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-network-mcp/dist/index.js"],"env":{"UNIFI_NETWORK_HOST":"192.168.1.1","UNIFI_NETWORK_API_KEY":"your-api-key"}}' -s user
 ```
 
 ### Environment Variables
@@ -44,8 +46,15 @@ claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-net
 |---|---|---|---|
 | `UNIFI_NETWORK_HOST` | Yes | — | IP or hostname of your UniFi Network console |
 | `UNIFI_NETWORK_API_KEY` | Yes | — | API key from Network integration settings |
-| `UNIFI_NETWORK_VERIFY_SSL` | No | `true` | Set to `false` to skip TLS certificate verification (needed for self-signed certs) |
+| `UNIFI_NETWORK_VERIFY_SSL` | No | `true` | Set to `false` to skip TLS certificate verification for a console with a self-signed certificate. Not allowed with `api.ui.com` |
 | `UNIFI_NETWORK_READ_ONLY` | No | `true` | Set to `false` to enable write/mutating tools (read-only by default) |
+| `UNIFI_NETWORK_CONSOLE_ID` | No | — | Cloud Connector console ID; used only when `UNIFI_NETWORK_HOST` is `api.ui.com` (see [Cloud Connector](#cloud-connector)) |
+
+UniFi consoles ship with a self-signed certificate, so against a local console the first call usually fails with a certificate error that names `UNIFI_NETWORK_VERIFY_SSL`. Setting it to `false` turns off certificate checks for the whole server process: anyone who can intercept traffic between this machine and the console can then read the API key. Only do this on a network you trust.
+
+### Choosing an API key
+
+The key carries the rights of the admin who created it, and this server is driven by a model that reads data other people control (client hostnames, device names). Create the key as a dedicated admin with the least role that covers your use: for the default read-only mode, a **View Only** admin, so nothing can be changed even if a tool were misused. Use a full-access admin only when you set `UNIFI_NETWORK_READ_ONLY=false`.
 
 ### Manual Configuration
 
@@ -59,8 +68,7 @@ Alternatively, add to your `~/.claude.json` under the top-level `"mcpServers"` k
       "args": ["-y", "@owine/unifi-network-mcp@latest"],
       "env": {
         "UNIFI_NETWORK_HOST": "192.168.1.1",
-        "UNIFI_NETWORK_API_KEY": "your-api-key",
-        "UNIFI_NETWORK_VERIFY_SSL": "false"
+        "UNIFI_NETWORK_API_KEY": "your-api-key"
       }
     }
   }
