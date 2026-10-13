@@ -6,12 +6,14 @@ on:
     types: [completed]
     branches: [main]
 
-permissions:
-  contents: write
-  pull-requests: write
+# Nothing by default: release-please acts through the GitHub App token, and
+# publish asks for what it needs.
+permissions: {}
 
 jobs:
   release-please:
+    permissions:
+      contents: read
     # workflow_run's branch filter matches the head branch name, which a fork
     # PR can also call main; release only after a push to this repo's main.
     if: >-
@@ -72,7 +74,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
-          cache: pnpm
+          # No dependency cache: a poisoned cache entry would run in a job
+          # that can mint an npm publish token.
       # No lifecycle scripts in a job that can mint an npm OIDC token: a
       # compromised allowed build (lefthook) could otherwise publish with valid
       # provenance. The build needs none of them.
