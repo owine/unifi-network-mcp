@@ -6,7 +6,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { registerAllTools } from "../src/tools/index.js";
 import { NetworkClient } from "../src/client.js";
 import { formatDryRun } from "../src/utils/safety.js";
-import { createMockServer, createMockClient } from "./tools/_helpers.js";
+import { createMockServer, createMockClient, mockFn } from "./tools/_helpers.js";
 
 /**
  * Contract tests through the real MCP SDK. The per-domain tests call
@@ -56,7 +56,8 @@ describe("dry-run preview against every write tool's outputSchema", () => {
 
   for (const [name, config] of writeToolsWithOutput) {
     it(`${name} accepts the dry-run preview as structuredContent`, () => {
-      const schema = z.object(config.outputSchema as Record<string, z.ZodType>);
+      // registerAllTools publishes every outputSchema as a loose Zod object.
+      const schema = config.outputSchema as z.ZodType;
       expect(schema.safeParse(preview.structuredContent).success).toBe(true);
     });
   }
@@ -91,5 +92,50 @@ describe("cancellation through the SDK", () => {
     await expect(call).rejects.toThrow();
     await vi.waitFor(() => expect(requestSignal?.aborted).toBe(true));
     await mcpClient.close();
+  });
+});
+
+describe("output schemas through the SDK", () => {
+  let mcpClient: Client;
+  const toolClient = createMockClient();
+
+  beforeAll(async () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    registerAllTools(server, toolClient, false);
+    const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+    mcpClient = new Client({ name: "test-client", version: "0.0.0" });
+    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+  });
+
+  afterAll(async () => {
+    await mcpClient.close();
+  });
+
+  // The SDK client validates structuredContent against the published JSON
+  // Schema, and the server sends what the controller returned. A schema that
+  // forbids unlisted fields therefore breaks the tool the day a firmware
+  // update adds one.
+  it("never forbids additional properties at any depth", async () => {
+    const forbidding: string[] = [];
+    const walk = (node: unknown, where: string) => {
+      if (node === null || typeof node !== "object") return;
+      if ((node as Record<string, unknown>).additionalProperties === false) forbidding.push(where);
+      for (const [key, child] of Object.entries(node)) walk(child, `${where}.${key}`);
+    };
+    for (const tool of (await mcpClient.listTools()).tools) walk(tool.outputSchema, tool.name);
+    expect(forbidding).toEqual([]);
+  });
+
+  it("returns a resource carrying a field the schema does not list", async () => {
+    mockFn(toolClient, "get").mockResolvedValueOnce({ id: "d1", name: "AP", addedInNextFirmware: true });
+    const result = await mcpClient.callTool({ name: "unifi_get_device", arguments: { siteId: "s1", deviceId: "d1" } });
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({ id: "d1", addedInNextFirmware: true });
+  });
+
+  it("returns a list envelope carrying a field the schema does not list", async () => {
+    mockFn(toolClient, "get").mockResolvedValueOnce({ offset: 0, limit: 25, count: 1, totalCount: 1, data: [{ id: "n1", name: "LAN" }], nextCursor: "c2" });
+    const result = await mcpClient.callTool({ name: "unifi_list_networks", arguments: { siteId: "s1" } });
+    expect(result.isError).toBeFalsy();
   });
 });

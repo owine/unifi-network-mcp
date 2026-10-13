@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { NetworkClient, withCallSignal } from "../client.js";
 import { registerSystemTools } from "./system.js";
@@ -20,7 +21,7 @@ export function registerAllTools(
   client: NetworkClient,
   readOnly = false
 ) {
-  server = withCancellation(server);
+  server = instrumentTools(server);
   registerSystemTools(server, client);
   registerSiteTools(server, client);
   registerDeviceTools(server, client, readOnly);
@@ -38,14 +39,28 @@ export function registerAllTools(
 }
 
 /**
- * A view of server whose tool handlers run with their call's abort signal in
- * scope, so NetworkClient aborts the controller request when the MCP client
- * cancels the call. The SDK passes that signal in `extra`, the handler's last
- * argument; wrapping here saves threading it through every handler.
+ * A view of server that applies two rules to every tool it registers, so no
+ * tool module can forget them:
+ *
+ * - Handlers run with their call's abort signal in scope, so NetworkClient
+ *   aborts the controller request when the MCP client cancels the call. The
+ *   SDK passes that signal in `extra`, the handler's last argument.
+ * - The outputSchema is published as a loose object. The SDK client validates
+ *   structuredContent against the published JSON Schema, and tools pass the
+ *   controller's response through; a raw shape publishes
+ *   additionalProperties: false, so the first field a firmware update added
+ *   would make the tool fail for every client that validates.
  */
-function withCancellation(server: McpServer): McpServer {
-  const registerTool = (name: string, config: object, handler: (...args: unknown[]) => unknown) =>
-    server.registerTool(name, config as never, ((...args: unknown[]) => {
+function instrumentTools(server: McpServer): McpServer {
+  const registerTool = (
+    name: string,
+    config: { outputSchema?: z.ZodRawShape },
+    handler: (...args: unknown[]) => unknown
+  ) =>
+    server.registerTool(name, {
+      ...config,
+      ...(config.outputSchema ? { outputSchema: z.looseObject(config.outputSchema) } : {}),
+    } as never, ((...args: unknown[]) => {
       const extra = args.at(-1) as { signal?: unknown } | undefined;
       const signal = extra?.signal instanceof AbortSignal ? extra.signal : undefined;
       return withCallSignal(signal, () => handler(...args));

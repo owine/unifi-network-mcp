@@ -7,8 +7,8 @@ interface ToolConfig {
   description: string;
   annotations: Record<string, unknown>;
   schema: Record<string, unknown>;
-  /** Undefined when the tool declares no outputSchema. */
-  outputSchema?: Record<string, unknown>;
+  /** Undefined when the tool declares no outputSchema; a loose Zod object via registerAllTools. */
+  outputSchema?: unknown;
 }
 
 /**

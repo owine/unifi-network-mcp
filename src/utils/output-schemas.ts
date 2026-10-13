@@ -6,7 +6,9 @@
  * Verified against UniFi Network API 11.0.83. Where the docs collapse
  * nested arrays/objects (e.g. interfaces.ports[], radios[]), the schema
  * uses passthrough records so the contract doesn't lock to fields we
- * haven't verified.
+ * haven't verified. Tools register these raw shapes, and registerAllTools()
+ * publishes each as a loose object (src/tools/index.ts), so fields a schema
+ * does not list never fail client-side validation.
  */
 import { z } from "zod";
 
@@ -466,6 +468,7 @@ const DryRunPreview = {
   dryRun: z.literal(true).optional(),
   wouldExecute: z
     .object({ method: z.string(), path: z.string(), body: z.unknown().optional() })
+    .passthrough()
     .optional(),
 } as const;
 
