@@ -12,7 +12,7 @@ Include what you can of:
 
 - the affected version (the npm package version, or the `serverInfo.version` the server reports)
 - your Node.js version and UniFi Network / console firmware version
-- the `UNIFI_NETWORK_READ_ONLY` and `UNIFI_NETWORK_VERIFY_SSL` settings
+- the `UNIFI_NETWORK_READ_ONLY` and `UNIFI_NETWORK_VERIFY_SSL` settings, and whether `UNIFI_NETWORK_CA_CERT` is set
 - steps to reproduce, and what an attacker could achieve
 
 Please do not include API keys, passphrases or other secrets.
@@ -28,6 +28,7 @@ This server runs locally and holds a UniFi API key, driven by a language model t
 - a tool reaching a controller endpoint or action other than the one it describes
 - a write that bypasses read-only mode, `dryRun` or a required `confirm`
 - secrets (the API key, WiFi passphrases) leaking into tool output, errors or logs
+- a connection to the console that skips certificate verification while `UNIFI_NETWORK_VERIFY_SSL` is on, or accepts a certificate that neither matches `UNIFI_NETWORK_CA_CERT` nor verifies for the host
 
 Vulnerabilities in the UniFi controller itself should go to Ubiquiti.
 

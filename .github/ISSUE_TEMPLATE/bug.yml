@@ -25,7 +25,7 @@ body:
     id: settings
     attributes:
       label: Settings
-      description: Values of UNIFI_NETWORK_READ_ONLY and UNIFI_NETWORK_VERIFY_SSL, and whether UNIFI_NETWORK_HOST is a local console or api.ui.com.
+      description: Values of UNIFI_NETWORK_READ_ONLY and UNIFI_NETWORK_VERIFY_SSL, whether UNIFI_NETWORK_CA_CERT is set, and whether UNIFI_NETWORK_HOST is a local console or api.ui.com.
   - type: textarea
     id: what-happened
     attributes:

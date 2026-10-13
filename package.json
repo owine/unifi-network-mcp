@@ -1,7 +1,7 @@
 {
   "name": "@owine/unifi-network-mcp",
   "version": "2.15.0",
-  "description": "MCP server for the UniFi Network API",
+  "description": "MCP server exposing the UniFi Network Integration API as tools for Claude and other MCP clients",
   "main": "dist/index.js",
   "bin": {
     "unifi-network-mcp": "dist/index.js"
@@ -33,7 +33,9 @@
     "network",
     "mcp",
     "model-context-protocol",
-    "ubiquiti"
+    "ubiquiti",
+    "unifi-network",
+    "mcp-server"
   ],
   "author": "owine",
   "license": "MIT",
