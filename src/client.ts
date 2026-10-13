@@ -102,11 +102,10 @@ export class NetworkClient {
       response = await fetch(url, options);
     } catch (err) {
       if (err instanceof DOMException && err.name === "TimeoutError") {
-        throw new Error(
-          `UniFi controller did not respond within ${REQUEST_TIMEOUT_MS / 1000}s. ` +
-          `A ${method} may still have been applied; check the resource before retrying.`,
-          { cause: err }
-        );
+        const hint = method === "GET"
+          ? "Retry when the console responds."
+          : `The ${method} may still have been applied; check the resource before retrying.`;
+        throw new Error(`UniFi controller did not respond within ${REQUEST_TIMEOUT_MS / 1000}s. ${hint}`, { cause: err });
       }
       throw err;
     }

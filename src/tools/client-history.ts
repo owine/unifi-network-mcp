@@ -16,7 +16,7 @@ const siteReference = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)
 
 export function registerClientHistoryTools(server: McpServer, client: NetworkClient) {
   server.registerTool("unifi_list_client_history", {
-    description: "List historical/offline client inventory using the controller v2 API. Returns OFFLINE clients only — currently connected clients are excluded, so merge with unifi_list_clients for a full inventory. Includes names, MACs, first_seen and last_seen epoch seconds when available. This is inventory, not session history; use unifi_list_client_sessions for past connections. Requires controller history API-key support; errors never mean zero activity. Retention depends on the controller. Returns the most recently seen clients first, up to limit, with totalCount; if truncated is true, narrow withinHours. Rows carry only mac, hostname, display_name, first_seen, last_seen, is_wired and status.",
+    description: `List historical/offline client inventory using the controller v2 API. Returns OFFLINE clients only — currently connected clients are excluded, so merge with unifi_list_clients for a full inventory. Includes names, MACs, first_seen and last_seen epoch seconds when available. This is inventory, not session history; use unifi_list_client_sessions for past connections. Requires controller history API-key support; errors never mean zero activity. Retention depends on the controller. Returns the most recently seen clients first, up to limit, with totalCount; truncated: true means less recently seen clients were left out, so raise limit (narrowing withinHours drops those same clients). Rows carry only ${Object.keys(HistoryClient.shape).join(", ")}.`,
     inputSchema: {
       siteReference,
       withinHours: z.number().int().min(1).max(8760).default(168).describe("Lookback in hours, up to one year; does not extend controller retention"),
@@ -36,7 +36,7 @@ export function registerClientHistoryTools(server: McpServer, client: NetworkCli
   });
 
   server.registerTool("unifi_list_client_sessions", {
-    description: "Read retained past client connections, including disconnected clients, from the controller stat/session query endpoint. POST here only reads statistics. Returns controller session IDs, MACs, assoc_time (epoch seconds), duration (seconds), rx_bytes/tx_bytes (controller perspective), and roaming_sessions when available. Use an explicit UTC epoch-second window (max 31 days). If mayBeTruncated is true, split the time window (overlap boundaries and deduplicate IDs) or filter by MAC. The controller ignores offset pagination. Records reflect controller retention and may omit ongoing sessions. Wi-Fi association/bytes do not establish end-to-end Internet success. Do not interpret controller is_guest as proof of a person's identity or ownership.",
+    description: "Read retained past client connections, including disconnected clients, from the controller stat/session query endpoint. POST here only reads statistics. Rows carry only _id, mac, hostname, is_wired, assoc_time (epoch seconds), duration (seconds), rx_bytes/tx_bytes (controller perspective) and roaming_sessions when available. Use an explicit UTC epoch-second window (max 31 days). If mayBeTruncated is true, split the time window (overlap boundaries and deduplicate IDs) or filter by MAC. The controller ignores offset pagination. Records reflect controller retention and may omit ongoing sessions. Wi-Fi association/bytes do not establish end-to-end Internet success.",
     inputSchema: {
       siteReference,
       start: z.number().int().min(0).max(4102444800).describe("Start Unix epoch seconds, not milliseconds"),
@@ -65,7 +65,7 @@ export function registerClientHistoryTools(server: McpServer, client: NetworkCli
       // above say nothing about whether more sessions exist past it.
       const mayBeTruncated = rows.length >= limit;
       return formatSuccess({ data, count: data.length, limit, mayBeTruncated, start, end,
-        coverage: "Retained controller sessions; A non-truncated response does not prove retention coverage or include every ongoing connection." }, { structured: true });
+        coverage: "Retained controller sessions; a non-truncated response does not prove retention coverage or include every ongoing connection." }, { structured: true });
     } catch (err) { return formatError(err); }
   });
 }

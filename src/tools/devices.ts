@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { NetworkClient } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { buildQuery } from "../utils/query.js";
-import { READ_ONLY, WRITE_NOT_IDEMPOTENT, DESTRUCTIVE, formatDryRun, requireConfirmation } from "../utils/safety.js";
+import { READ_ONLY, WRITE_NOT_IDEMPOTENT, DESTRUCTIVE, formatDryRun, requireConfirmation, confirmDestructive } from "../utils/safety.js";
 import {
   listDevicesOutputSchema,
   getDeviceOutputSchema,
@@ -31,14 +31,14 @@ export function registerDeviceTools(
           .int()
           .nonnegative()
           .optional()
-          .describe("Number of records to skip (default: 0)"),
+          .describe("Number of records to skip"),
         limit: z
           .number()
           .int()
           .min(0)
           .max(200)
           .optional()
-          .describe("Number of records to return (default: 25, max: 200)"),
+          .describe("Number of records to return (API default: 25)"),
         filter: z.string().optional().describe("Filter expression. Filterable: name (supports like), model, state, macAddress, ipAddress, firmwareVersion, supported, firmwareUpdatable, features/interfaces (sets: contains/containsAny/containsAll). like is rejected on model. Example: features.contains('accessPoint')"),
       },
       outputSchema: listDevicesOutputSchema,
@@ -109,14 +109,14 @@ export function registerDeviceTools(
           .int()
           .nonnegative()
           .optional()
-          .describe("Number of records to skip (default: 0)"),
+          .describe("Number of records to skip"),
         limit: z
           .number()
           .int()
           .min(0)
           .max(200)
           .optional()
-          .describe("Number of records to return (default: 25, max: 200)"),
+          .describe("Number of records to return (API default: 25)"),
         filter: z.string().optional().describe("Filter expression, e.g. model.eq('U7 Pro')"),
       },
       outputSchema: listPendingDevicesOutputSchema,
@@ -174,7 +174,7 @@ export function registerDeviceTools(
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         deviceId: resourceId().describe("Device ID"),
-        confirm: z.boolean().optional().describe("Must be true to execute this destructive action"),
+        confirm: confirmDestructive(),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },
       annotations: DESTRUCTIVE,

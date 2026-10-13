@@ -198,6 +198,13 @@ describe("NetworkClient", () => {
       expect(options.signal).toBeInstanceOf(AbortSignal);
     });
 
+    it("tells a timed-out read to retry, since nothing can have changed", async () => {
+      fetchMock.mockRejectedValue(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
+      const err = await client.get("/test").catch((e: unknown) => e);
+      expect((err as Error).message).toMatch(/did not respond within 30s\. Retry/);
+      expect((err as Error).message).not.toContain("may still have been applied");
+    });
+
     it("reports a timeout as an unknown outcome rather than a failure", async () => {
       fetchMock.mockRejectedValue(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
       await expect(client.post("/test", {})).rejects.toThrow(/did not respond within 30s.*may still have been applied/);

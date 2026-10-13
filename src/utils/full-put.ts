@@ -1,8 +1,8 @@
 /**
  * Read-merge-write support for UniFi's full-replacement PUT endpoints.
  *
- * Several Integration API PUTs (WiFi broadcasts, networks, firewall policies)
- * replace the whole resource: required fields must all be present, and some
+ * Several Integration API PUTs (WiFi broadcasts, networks, firewall policies,
+ * ACL rules, DNS policies) replace the whole resource: required fields must all be present, and some
  * optional fields carry meaning when omitted (a missing `dhcpGuarding`
  * disables DHCP guarding; a missing `reportFlowEnabled` reverts to true). A
  * sparse body therefore either fails or silently resets settings.
@@ -68,6 +68,9 @@ const resourceQueues = new Map<string, Promise<void>>();
  * Run one read-merge-write cycle at a time per resource. Agents often split
  * "rename X and enable logging" into parallel calls; unserialised, both read
  * the old resource and the second PUT silently reverts the first change.
+ * The queue is per process and keyed on the exact path string, so every
+ * writer of a resource (including the firewall-policy PATCH) must lock the
+ * same path.
  */
 export async function withResourceLock<T>(path: string, fn: () => Promise<T>): Promise<T> {
   const previous = resourceQueues.get(path) ?? Promise.resolve();

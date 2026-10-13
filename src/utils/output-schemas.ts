@@ -1,5 +1,6 @@
 /**
- * Output schemas for high-value read tools (loose strategy: every non-key
+ * Output schemas for every read tool, and for write tools whose response
+ * echoes the resource (loose strategy: every non-key
  * field optional, every nested object uses .loose() to allow
  * firmware/hardware-specific fields to flow through unchanged).
  *

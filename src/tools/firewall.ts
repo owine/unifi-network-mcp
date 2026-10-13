@@ -10,6 +10,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  confirmDestructive,
   requireConfirmationIf,
 } from "../utils/safety.js";
 import {
@@ -83,7 +84,7 @@ function firewallOpening(
 const confirmOpening = z
   .boolean()
   .optional()
-  .describe("Set true to confirm a change that lets traffic through: an ALLOW action, or disabling a policy that blocks");
+  .describe("Set true to confirm a change that lets traffic through: an ALLOW action, or disabling a policy that blocks; not needed with dryRun: true");
 
 const FIREWALL_POLICY_BODY_DOC =
   "required enabled, name (non-empty), action ({type: ALLOW|BLOCK, allowReturnTraffic? on ALLOW}), source and destination ({zoneId, trafficFilter?}), ipProtocolScope ({ipVersion, protocolFilter?}), loggingEnabled; optional description, connectionStateFilter (array of NEW/INVALID/ESTABLISHED/RELATED), ipsecFilter (MATCH_ENCRYPTED/MATCH_NOT_ENCRYPTED), schedule (null = always active), reportFlowEnabled (report matches in Insights Flows; defaults to true when omitted).";
@@ -104,14 +105,14 @@ export function registerFirewallTools(
           .int()
           .nonnegative()
           .optional()
-          .describe("Number of records to skip (default: 0)"),
+          .describe("Number of records to skip"),
         limit: z
           .number()
           .int()
           .min(0)
           .max(200)
           .optional()
-          .describe("Number of records to return (default: 25, max: 200)"),
+          .describe("Number of records to return (API default: 25)"),
         filter: z
           .string()
           .optional()
@@ -165,14 +166,14 @@ export function registerFirewallTools(
           .int()
           .nonnegative()
           .optional()
-          .describe("Number of records to skip (default: 0)"),
+          .describe("Number of records to skip"),
         limit: z
           .number()
           .int()
           .min(0)
           .max(200)
           .optional()
-          .describe("Number of records to return (default: 25, max: 200)"),
+          .describe("Number of records to return (API default: 25)"),
         filter: z
           .string()
           .optional()
@@ -279,7 +280,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_update_firewall_zone",
     {
-      description: "Update a firewall zone",
+      description: "Replace a firewall zone's name and networkIds (full PUT: both are required, and networkIds replaces the zone's whole network list, so start from unifi_get_firewall_zone).",
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         firewallZoneId: resourceId().describe("Firewall zone ID"),
@@ -317,10 +318,7 @@ export function registerFirewallTools(
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         firewallZoneId: resourceId().describe("Firewall zone ID"),
-        confirm: z
-          .boolean()
-          .optional()
-          .describe("Must be true to execute this destructive action"),
+        confirm: confirmDestructive(),
         dryRun: z
           .boolean()
           .optional()
@@ -433,7 +431,10 @@ export function registerFirewallTools(
         policy: z
           .record(z.string(), z.unknown())
           .describe("Partial firewall policy fields to update (e.g. { loggingEnabled: true } or { reportFlowEnabled: false })"),
-        confirm: confirmOpening,
+        confirm: z
+          .boolean()
+          .optional()
+          .describe("Set true to confirm setting action ALLOW or enabled: false (a PATCH does not read the policy, so any disable needs it); not needed with dryRun: true"),
         dryRun: z
           .boolean()
           .optional()
@@ -469,10 +470,7 @@ export function registerFirewallTools(
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         firewallPolicyId: resourceId().describe("Firewall policy ID"),
-        confirm: z
-          .boolean()
-          .optional()
-          .describe("Must be true to execute this destructive action"),
+        confirm: confirmDestructive(),
         dryRun: z
           .boolean()
           .optional()

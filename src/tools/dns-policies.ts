@@ -10,6 +10,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  confirmDestructive,
 } from "../utils/safety.js";
 import {
   asObject,
@@ -128,14 +129,14 @@ export function registerDnsPolicyTools(
           .int()
           .nonnegative()
           .optional()
-          .describe("Number of records to skip (default: 0)"),
+          .describe("Number of records to skip"),
         limit: z
           .number()
           .int()
           .min(0)
           .max(200)
           .optional()
-          .describe("Number of records to return (default: 25, max: 200)"),
+          .describe("Number of records to return (API default: 25)"),
         filter: z
           .string()
           .optional()
@@ -256,10 +257,7 @@ export function registerDnsPolicyTools(
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         dnsPolicyId: resourceId().describe("DNS policy ID"),
-        confirm: z
-          .boolean()
-          .optional()
-          .describe("Must be true to execute this destructive action"),
+        confirm: confirmDestructive(),
         dryRun: z
           .boolean()
           .optional()

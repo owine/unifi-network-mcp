@@ -9,6 +9,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  confirmDestructive,
   requireConfirmationIf,
 } from "../utils/safety.js";
 import {
@@ -38,7 +39,7 @@ export function registerHotspotTools(
           .nonnegative()
           .optional()
           .default(0)
-          .describe("Number of records to skip (default: 0)"),
+          .describe("Number of records to skip"),
         limit: z
           .number()
           .int()
@@ -46,7 +47,7 @@ export function registerHotspotTools(
           .max(1000)
           .optional()
           .default(25)
-          .describe("Number of records to return (default: 25, max: 1000)"),
+          .describe("Number of records to return"),
         filter: z
           .string()
           .optional()
@@ -96,7 +97,7 @@ export function registerHotspotTools(
   server.registerTool(
     "unifi_create_voucher",
     {
-      description: "Create one or more hotspot vouchers (use count for batch creation, up to 1000 at once). Returns: array of created vouchers with their generated codes. Idempotency: not safe to retry — each call mints fresh codes.",
+      description: `Create one or more hotspot vouchers (use count for batch creation; more than ${VOUCHER_BATCH_WITHOUT_CONFIRM} at once needs confirm: true). Returns: vouchers[] — the created vouchers with their generated codes. Idempotency: not safe to retry — each call mints fresh codes.`,
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         name: z
@@ -146,7 +147,7 @@ export function registerHotspotTools(
         confirm: z
           .boolean()
           .optional()
-          .describe(`Set true to confirm creating more than ${VOUCHER_BATCH_WITHOUT_CONFIRM} vouchers at once`),
+          .describe(`Set true to confirm creating more than ${VOUCHER_BATCH_WITHOUT_CONFIRM} vouchers at once; not needed with dryRun: true`),
         dryRun: z
           .boolean()
           .optional()
@@ -207,10 +208,7 @@ export function registerHotspotTools(
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         voucherId: resourceId().describe("Voucher ID"),
-        confirm: z
-          .boolean()
-          .optional()
-          .describe("Must be true to execute this destructive action"),
+        confirm: confirmDestructive(),
         dryRun: z
           .boolean()
           .optional()
@@ -236,7 +234,7 @@ export function registerHotspotTools(
   server.registerTool(
     "unifi_bulk_delete_vouchers",
     {
-      description: "DESTRUCTIVE: Bulk delete hotspot vouchers based on filter criteria. Returns: vouchersDeleted (count of vouchers removed).",
+      description: "DESTRUCTIVE: Bulk delete hotspot vouchers matching a filter. The dry run shows only the request, not which vouchers match: call unifi_list_vouchers with the same filter first. Returns: vouchersDeleted (count of vouchers removed).",
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         filter: z
@@ -244,12 +242,9 @@ export function registerHotspotTools(
           .trim()
           .min(1)
           .describe(
-            "Required filter expression (e.g., 'expired.eq(true)', name.like('guest*'))"
+            "Required filter expression, e.g. expired.eq(true) or name.like('guest*')"
           ),
-        confirm: z
-          .boolean()
-          .optional()
-          .describe("Must be true to execute this destructive action"),
+        confirm: confirmDestructive(),
         dryRun: z
           .boolean()
           .optional()

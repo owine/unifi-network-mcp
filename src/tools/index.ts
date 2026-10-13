@@ -40,7 +40,7 @@ export function registerAllTools(
 }
 
 /**
- * A view of server that applies two rules to every tool it registers, so no
+ * A view of server that applies these rules to every tool it registers, so no
  * tool module can forget them:
  *
  * - Handlers run with their call's abort signal in scope, so NetworkClient

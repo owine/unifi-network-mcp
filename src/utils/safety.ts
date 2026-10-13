@@ -1,4 +1,9 @@
+import { z } from "zod";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+
+/** The confirm input of a DESTRUCTIVE tool. */
+export const confirmDestructive = () =>
+  z.boolean().optional().describe("Must be true to execute this destructive action; not needed with dryRun: true");
 
 export const READ_ONLY: ToolAnnotations = {
   readOnlyHint: true,

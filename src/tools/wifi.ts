@@ -10,6 +10,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  confirmDestructive,
   requireConfirmationIf,
 } from "../utils/safety.js";
 import {
@@ -168,7 +169,7 @@ function securityType(ssid: JsonObject): unknown {
 const confirmSecurity = z
   .boolean()
   .optional()
-  .describe("Set true to confirm creating an open SSID or changing an SSID's security type");
+  .describe("Set true to confirm creating an open SSID or changing an SSID's security type; not needed with dryRun: true");
 
 const includeSecrets = z
   .boolean()
@@ -193,14 +194,14 @@ export function registerWifiTools(
           .int()
           .nonnegative()
           .optional()
-          .describe("Number of records to skip (default: 0)"),
+          .describe("Number of records to skip"),
         limit: z
           .number()
           .int()
           .min(0)
           .max(200)
           .optional()
-          .describe("Number of records to return (default: 25, max: 200)"),
+          .describe("Number of records to return (API default: 25)"),
         filter: z
           .string()
           .optional()
@@ -299,7 +300,7 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_update_wifi",
     {
-      description: `Update an existing WiFi network. Pass only the fields to change. The API's PUT replaces the whole SSID (11.0.83 documents 14 required fields for STANDARD, 10 for IOT_OPTIMIZED), so this tool reads the current SSID, keeps every documented body field, overlays your changes and sends the full body — omitted fields keep their current values instead of being reset. Pass null to clear an optional config (e.g. broadcastingDeviceFilter: null broadcasts from all APs). Top-level objects are replaced whole: to change one security setting, start from the securityConfiguration unifi_get_wifi returns and edit it, since a partial object drops the passphrase or presharedKeys it omits. Passphrases are kept if you omit securityConfiguration or echo its "${REDACTED}" values; send a new one to change it. dryRun shows the merged body (secrets redacted).`,
+      description: `Update an existing WiFi network. Pass only the fields to change. The API's PUT replaces the whole SSID and requires every documented required field, so this tool reads the current SSID, keeps every documented body field, overlays your changes and sends the full body — omitted fields keep their current values instead of being reset. Pass null to clear an optional config (e.g. broadcastingDeviceFilter: null broadcasts from all APs). Top-level objects are replaced whole: to change one security setting, start from the securityConfiguration unifi_get_wifi returns and edit it, since a partial object drops the passphrase or presharedKeys it omits. Passphrases are kept if you omit securityConfiguration or echo its "${REDACTED}" values; send a new one to change it. dryRun shows the merged body (secrets redacted).`,
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         wifiBroadcastId: resourceId().describe("WiFi Broadcast ID"),
@@ -350,10 +351,7 @@ export function registerWifiTools(
           .optional()
           .default(false)
           .describe("Force delete (default: false)"),
-        confirm: z
-          .boolean()
-          .optional()
-          .describe("Must be true to execute this destructive action"),
+        confirm: confirmDestructive(),
         dryRun: z
           .boolean()
           .optional()

@@ -11,7 +11,7 @@ export function registerSystemTools(
   server.registerTool(
     "unifi_get_info",
     {
-      description: "Get UniFi Network application info. Returns: applicationVersion. NOTE: verified against 10.6.106 on a UniFi OS console — the Integration API returns ONLY applicationVersion here; there is no isUniFiOSConsole or other field. Use for: version checks before calling version-gated tools.",
+      description: "Get UniFi Network application info. Returns: applicationVersion only — the Integration API returns no isUniFiOSConsole or other field here. Use for: checking the Network version when a tool's description notes version-specific behaviour.",
       inputSchema: {},
       outputSchema: getInfoOutputSchema,
       annotations: READ_ONLY,
