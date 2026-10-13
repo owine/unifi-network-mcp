@@ -12,6 +12,7 @@ import {
   listLagsOutputSchema,
   lagOutputSchema,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 export function registerSwitchingTools(
   server: McpServer,
@@ -22,7 +23,7 @@ export function registerSwitchingTools(
     {
       description: "List Switch Stacks (multiple physical switches managed as one logical unit) at a site. Returns: id, deviceId (the stack's primary device), name, units[] (the stacked switches — named `members` on consoles older than 10.6.106), lags[] (LAGs spanning the stack), metadata.origin. Per-unit schema is not rendered in the 11.0.83 docs — call unifi_get_switch_stack to inspect. Use for: identifying stacked switches; individual member configs/stats still come from unifi_get_device.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -62,8 +63,8 @@ export function registerSwitchingTools(
     {
       description: "Get full details of a Switch Stack including all units and stacking topology. Returns the same fields as the list response but for a single stack: id, deviceId, name, units[] (named `members` before 10.6.106), lags[], metadata.origin.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        switchStackId: z.string().describe("Switch Stack ID"),
+        siteId: resourceId().describe("Site ID"),
+        switchStackId: resourceId().describe("Switch Stack ID"),
       },
       outputSchema: switchStackOutputSchema,
       annotations: READ_ONLY,
@@ -85,7 +86,7 @@ export function registerSwitchingTools(
     {
       description: "List MC-LAG (Multi-Chassis Link Aggregation) Domains — pairs of switches presenting as one for LAG redundancy. Returns: id, name, peers[] (per the older 10.4.57 spec: {deviceId, linkPortIdxs[], role TOP|BOTTOM}; not live-verified), lags[] (LAGs spanning the domain), metadata.origin.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -125,8 +126,8 @@ export function registerSwitchingTools(
     {
       description: "Get full details of an MC-LAG Domain (peer switches and member LAGs).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        mcLagDomainId: z.string().describe("MC-LAG Domain ID"),
+        siteId: resourceId().describe("Site ID"),
+        mcLagDomainId: resourceId().describe("MC-LAG Domain ID"),
       },
       outputSchema: mcLagDomainOutputSchema,
       annotations: READ_ONLY,
@@ -148,7 +149,7 @@ export function registerSwitchingTools(
     {
       description: "List LAGs (Link Aggregation Groups — bonded switch ports) at a site. Returns: id, type (LOCAL/SWITCH_STACK/MULTI_CHASSIS), members[] ({deviceId, portIdxs[]}), switchStackId (SWITCH_STACK) or mcLagDomainId (MULTI_CHASSIS), metadata.origin.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -188,8 +189,8 @@ export function registerSwitchingTools(
     {
       description: "Get full details of a LAG including its type (LOCAL/SWITCH_STACK/MULTI_CHASSIS) and member ports.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        lagId: z.string().describe("LAG ID"),
+        siteId: resourceId().describe("Site ID"),
+        lagId: resourceId().describe("LAG ID"),
       },
       outputSchema: lagOutputSchema,
       annotations: READ_ONLY,

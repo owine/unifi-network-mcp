@@ -71,6 +71,7 @@ src/
     safety.ts         # Tool annotations, formatDryRun(), requireConfirmation()
     full-put.ts       # mergeForPut() read-merge-write for full-replacement PUTs
     secrets.ts        # redactSecrets() / restoreRedacted() for WiFi passphrases
+    params.ts         # resourceId() — allowlisted schema for IDs interpolated into paths
     output-schemas.ts # Zod output schemas for tools' structuredContent (60 tools)
 ```
 
@@ -104,7 +105,7 @@ Tests mock `NetworkClient` methods and capture tool handlers via `createMockServ
 
 - ESLint with `typescript-eslint` strict + stylistic rulesets
 - All imports use `.js` extensions (Node16 module resolution)
-- Use `z.string().describe()` for tool parameter descriptions
+- Use `z.string().describe()` for tool parameter descriptions; any ID that ends up in a request path uses `resourceId().describe()` instead (`NetworkClient` also refuses paths that are not plain word segments)
 - `no-explicit-any` and `no-non-null-assertion` are relaxed in test files only
 
 ## API version bumps

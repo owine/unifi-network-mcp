@@ -11,6 +11,7 @@ import {
   listPendingDevicesOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 // Adopt echoes the adopted device — reuse the device detail schema.
 const adoptDeviceOutputSchema = getDeviceOutputSchema;
 
@@ -24,7 +25,7 @@ export function registerDeviceTools(
     {
       description: "List all adopted devices (gateways, switches, APs) at a site. Returns: id, name, model, macAddress, ipAddress, state (ONLINE/OFFLINE/etc), supported, firmwareVersion, firmwareUpdatable, features[] (capability tags, e.g. ['switching'] or ['accessPoint']), interfaces[] (e.g. ['ports'] or ['radios']). NOTE: features/interfaces are string arrays here; unifi_get_device expands them into objects. Use for: device inventory; pair with unifi_get_device for full config (port table, radios) and unifi_get_device_statistics for live metrics.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -59,8 +60,8 @@ export function registerDeviceTools(
     {
       description: "Get full configuration for a device. Returns (in addition to list fields): adoptedAt, provisionedAt, configurationId, uplink.deviceId (absent on the ISP modem), features (object keyed by capability: switching {lags[]} / accessPoint {}), interfaces.ports[] for switches, gateways and modems ({idx, state, connector, maxSpeedMbps, speedMbps (may be omitted on DOWN ports), poe:{standard, type, enabled, state} on PoE ports only}), interfaces.radios[] for APs ({wlanStandard, frequencyGHz, channelWidthMHz, channel}). Some devices (e.g. 5G modems) return empty features/interfaces objects. NOTE: in the LIST endpoint, features/interfaces are capability-tag string arrays instead. Use for: switch port layout/PoE state, AP radio config, uplink topology. For live throughput/CPU/memory, use unifi_get_device_statistics.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        deviceId: z.string().describe("Device ID"),
+        siteId: resourceId().describe("Site ID"),
+        deviceId: resourceId().describe("Device ID"),
       },
       outputSchema: getDeviceOutputSchema,
       annotations: READ_ONLY,
@@ -80,8 +81,8 @@ export function registerDeviceTools(
     {
       description: "Get latest live statistics for a device. Returns: uptimeSec, lastHeartbeatAt, nextHeartbeatAt, loadAverage1/5/15Min, cpuUtilizationPct, memoryUtilizationPct, uplink (txRateBps, rxRateBps; absent on e.g. the ISP modem), interfaces.radios[] for APs ({frequencyGHz, txRetriesPct}; interfaces is {} for non-AP devices). NOTE: verified against 11.0.83 — the Integration API does NOT expose per-switch-port byte/error/PoE-power counters here; port-level live stats are unavailable. Use for: device health and AP radio metrics. For config (channel, power, port assignment), use unifi_get_device.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        deviceId: z.string().describe("Device ID"),
+        siteId: resourceId().describe("Site ID"),
+        deviceId: resourceId().describe("Device ID"),
       },
       outputSchema: getDeviceStatisticsOutputSchema,
       annotations: READ_ONLY,
@@ -139,7 +140,7 @@ export function registerDeviceTools(
     {
       description: "Adopt a pending device into a site by MAC address. The device must already appear in unifi_list_pending_devices. Idempotency: not safe to retry — re-adopting may error or duplicate.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         macAddress: z.string().describe("MAC address of the device"),
         // Required by the API; kept optional here and defaulted to false below
         // so callers need not pass it explicitly.
@@ -171,8 +172,8 @@ export function registerDeviceTools(
     {
       description: "DESTRUCTIVE: Remove (unadopt) a device from a site. If the device is online, it will be reset to factory defaults",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        deviceId: z.string().describe("Device ID"),
+        siteId: resourceId().describe("Site ID"),
+        deviceId: resourceId().describe("Device ID"),
         confirm: z.boolean().optional().describe("Must be true to execute this destructive action"),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },
@@ -200,8 +201,8 @@ export function registerDeviceTools(
     {
       description: "Restart (reboot) a device. The device will be unreachable for ~1–3 minutes. Not idempotent: each call triggers a fresh reboot.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        deviceId: z.string().describe("Device ID"),
+        siteId: resourceId().describe("Site ID"),
+        deviceId: resourceId().describe("Device ID"),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },
       annotations: WRITE_NOT_IDEMPOTENT,
@@ -228,8 +229,8 @@ export function registerDeviceTools(
     {
       description: "Power-cycle PoE on a specific switch port (briefly drops then restores power). portIdx is the port number (1-based) as shown in unifi_get_device interfaces.ports[].idx. Use for: rebooting a PoE-powered camera/AP without touching the device.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        deviceId: z.string().describe("Device ID"),
+        siteId: resourceId().describe("Site ID"),
+        deviceId: resourceId().describe("Device ID"),
         portIdx: z.number().int().min(1).describe("Port index number (1-based)"),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },

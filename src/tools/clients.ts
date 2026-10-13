@@ -8,6 +8,7 @@ import {
   listClientsOutputSchema,
   getClientOutputSchema,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 export function registerClientTools(
   server: McpServer,
@@ -19,7 +20,7 @@ export function registerClientTools(
     {
       description: "List currently connected clients at a site. Returns per client: id, name, type (WIRED/WIRELESS/VPN/TELEPORT), macAddress, ipAddress (may be absent), connectedAt, uplinkDeviceId (the switch/AP they're attached to), access.type. NOTE: verified against 11.0.83 (WIRED/WIRELESS; VPN/TELEPORT not live-verified) — the Integration API client schema is minimal and identical across those types; it does NOT expose signal strength, channel, or per-port binding. Use for: who's online right now. Disconnected/historical clients are NOT in the Integration API; use unifi_list_client_history and unifi_list_client_sessions for controller-retained records.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -54,8 +55,8 @@ export function registerClientTools(
     {
       description: "Get a specific connected client by ID. Returns same shape as unifi_list_clients entries.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        clientId: z.string().describe("Client ID"),
+        siteId: resourceId().describe("Site ID"),
+        clientId: resourceId().describe("Client ID"),
       },
       outputSchema: getClientOutputSchema,
       annotations: READ_ONLY,
@@ -77,8 +78,8 @@ export function registerClientTools(
     {
       description: "Authorize a guest client through a captive-portal hotspot. Optional limits override hotspot defaults. Returns (per 11.0.83 docs, not live-verified): action, grantedAuthorization and revokedAuthorization objects (authorizedAt, authorizationMethod, expiresAt, dataUsageLimitMBytes, rxRateLimitKbps, txRateLimitKbps, usage). Idempotency: not safe to retry — re-authorizing extends the session.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        clientId: z.string().describe("Client ID"),
+        siteId: resourceId().describe("Site ID"),
+        clientId: resourceId().describe("Client ID"),
         timeLimitMinutes: z
           .number()
           .int()
@@ -151,8 +152,8 @@ export function registerClientTools(
     {
       description: "Revoke guest authorization; the client returns to the captive portal on next request. Returns (per docs; the UNAUTHORIZE response sample is not rendered in 11.0.83 and not live-verified): action plus a revokedAuthorization object. Idempotent.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        clientId: z.string().describe("Client ID"),
+        siteId: resourceId().describe("Site ID"),
+        clientId: resourceId().describe("Client ID"),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },
       annotations: WRITE,

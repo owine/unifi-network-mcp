@@ -16,6 +16,7 @@ import {
   createVouchersOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 export function registerHotspotTools(
   server: McpServer,
@@ -27,7 +28,7 @@ export function registerHotspotTools(
     {
       description: "List hotspot/guest-portal vouchers at a site. Returns: id, code, name, createdAt, activatedAt (when first guest used it), expiresAt, timeLimitMinutes, dataUsageLimitMBytes, rxRateLimitKbps, txRateLimitKbps, authorizedGuestLimit, authorizedGuestCount, expired. Use filter like 'expired.eq(true)' to bulk-find stale vouchers.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -69,8 +70,8 @@ export function registerHotspotTools(
     {
       description: "Get a specific hotspot voucher by ID (same fields as the list entry).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        voucherId: z.string().describe("Voucher ID"),
+        siteId: resourceId().describe("Site ID"),
+        voucherId: resourceId().describe("Voucher ID"),
       },
       outputSchema: voucherOutputSchema,
       annotations: READ_ONLY,
@@ -94,7 +95,7 @@ export function registerHotspotTools(
     {
       description: "Create one or more hotspot vouchers (use count for batch creation, up to 1000 at once). Returns: array of created vouchers with their generated codes. Idempotency: not safe to retry — each call mints fresh codes.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         name: z
           .string()
           .describe("Voucher note/name (duplicated across all generated vouchers)"),
@@ -189,8 +190,8 @@ export function registerHotspotTools(
     {
       description: "DESTRUCTIVE: Delete a hotspot voucher. Returns: vouchersDeleted (count of vouchers removed).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        voucherId: z.string().describe("Voucher ID"),
+        siteId: resourceId().describe("Site ID"),
+        voucherId: resourceId().describe("Voucher ID"),
         confirm: z
           .boolean()
           .optional()
@@ -222,7 +223,7 @@ export function registerHotspotTools(
     {
       description: "DESTRUCTIVE: Bulk delete hotspot vouchers based on filter criteria. Returns: vouchersDeleted (count of vouchers removed).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         filter: z
           .string()
           .describe(

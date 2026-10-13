@@ -17,6 +17,7 @@ import {
   aclRuleOrderingOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 export function registerAclTools(
   server: McpServer,
@@ -28,7 +29,7 @@ export function registerAclTools(
     {
       description: "List ACL rules (switch/AP-level access control lists, distinct from zone-based firewall policies) at a site. Returns: id, type (IPV4/MAC), name, enabled, action (ALLOW/BLOCK), description, protocolFilter, sourceFilter/destinationFilter matchers, enforcingDeviceFilter (which devices apply the rule), index (evaluation order — read-only; change it with unifi_reorder_acl_rules), metadata.origin. ACLs apply earlier in the path than firewall policies.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -66,8 +67,8 @@ export function registerAclTools(
     {
       description: "Get a specific ACL rule by ID (full match criteria and action).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        aclRuleId: z.string().describe("ACL rule ID"),
+        siteId: resourceId().describe("Site ID"),
+        aclRuleId: resourceId().describe("ACL rule ID"),
       },
       outputSchema: aclRuleOutputSchema,
       annotations: READ_ONLY,
@@ -89,7 +90,7 @@ export function registerAclTools(
     {
       description: "Get the evaluation order of user-defined ACL rules. Returns: orderedAclRuleIds[] — rules are evaluated in list order.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
       },
       outputSchema: aclRuleOrderingOutputSchema,
       annotations: READ_ONLY,
@@ -111,7 +112,7 @@ export function registerAclTools(
     {
       description: "Create a new ACL rule",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         type: z.enum(["IPV4", "MAC"]).describe("Rule type"),
         name: z.string().describe("Rule name"),
         enabled: z.boolean().describe("Enable the rule"),
@@ -166,8 +167,8 @@ export function registerAclTools(
     {
       description: "Update an ACL rule",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        aclRuleId: z.string().describe("ACL rule ID"),
+        siteId: resourceId().describe("Site ID"),
+        aclRuleId: resourceId().describe("ACL rule ID"),
         type: z.enum(["IPV4", "MAC"]).describe("ACL rule type"),
         name: z.string().describe("ACL rule name"),
         enabled: z.boolean().describe("Whether the rule is enabled"),
@@ -225,8 +226,8 @@ export function registerAclTools(
     {
       description: "DESTRUCTIVE: Delete an ACL rule",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        aclRuleId: z.string().describe("ACL rule ID"),
+        siteId: resourceId().describe("Site ID"),
+        aclRuleId: resourceId().describe("ACL rule ID"),
         confirm: z
           .boolean()
           .optional()
@@ -259,7 +260,7 @@ export function registerAclTools(
     {
       description: "Reorder user-defined ACL rules",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         orderedAclRuleIds: z
           .array(z.string())
           .describe("Ordered ACL rule IDs"),

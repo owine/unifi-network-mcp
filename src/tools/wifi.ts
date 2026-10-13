@@ -25,6 +25,7 @@ import {
   getWifiOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 // Request-body fields per broadcast type, from the 11.0.83 POST/PUT schemas.
 // IOT_OPTIMIZED accepts a strict subset of STANDARD.
@@ -174,7 +175,7 @@ export function registerWifiTools(
     {
       description: `List all WiFi broadcasts (SSIDs) at a site. Returns (sparse list view, live-verified on 11.0.83): id, name (SSID), type (STANDARD/IOT_OPTIMIZED), enabled, metadata.origin, network reference (absent on PPSK SSIDs), securityConfiguration.type, broadcastingFrequenciesGHz, hotspotConfiguration (empty object when set). Booleans such as hideName/bandSteeringEnabled/clientIsolationEnabled, the full security configuration and optional configs are only returned by unifi_get_wifi. ${readRedaction} Use for: SSID inventory. For per-AP radio state (channel, txPower), use unifi_get_device on the AP.`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -213,8 +214,8 @@ export function registerWifiTools(
     {
       description: `Get full configuration for a WiFi broadcast (SSID). Returns the list fields plus the booleans (hideName, clientIsolationEnabled, uapsdEnabled, multicastToUnicastConversionEnabled, bandSteeringEnabled, arpProxyEnabled, bssTransitionEnabled, advertiseDeviceName, channel2gLockedTo6, dtimPeriod2gLockedTo3), the full securityConfiguration (type, pmfMode, fastRoamingEnabled, saeConfiguration, presharedKeys[] on PPSK SSIDs, …), and optional configs when configured (omitted otherwise): clientFilteringPolicy, blackoutScheduleConfiguration, hotspotConfiguration, mdnsProxyConfiguration, handoffSuggestionsConfiguration, dtimPeriodByFrequencyGHzOverride, broadcastingDeviceFilter, mloEnabled. ${readRedaction}`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),
+        siteId: resourceId().describe("Site ID"),
+        wifiBroadcastId: resourceId().describe("WiFi Broadcast ID"),
         includeSecrets,
       },
       outputSchema: getWifiOutputSchema,
@@ -239,7 +240,7 @@ export function registerWifiTools(
     {
       description: `Create a new WiFi network (SSID). Required for both types: type, name, enabled, securityConfiguration, multicastToUnicastConversionEnabled, clientIsolationEnabled, hideName, uapsdEnabled, channel2gLockedTo6, dtimPeriod2gLockedTo3. STANDARD additionally requires broadcastingFrequenciesGHz, arpProxyEnabled, bssTransitionEnabled, advertiseDeviceName; fields marked "STANDARD only" are rejected for IOT_OPTIMIZED (per 11.0.83 docs). The response echo has passphrases redacted. Idempotency: not safe to retry — re-running creates a duplicate SSID.`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         ...wifiFields,
         name: z.string().min(1).describe("SSID name"),
         enabled: z.boolean().describe("Enable the WiFi network"),
@@ -282,8 +283,8 @@ export function registerWifiTools(
     {
       description: `Update an existing WiFi network. Pass only the fields to change. The API's PUT replaces the whole SSID (11.0.83 documents 14 required fields for STANDARD, 10 for IOT_OPTIMIZED), so this tool reads the current SSID, keeps every documented body field, overlays your changes and sends the full body — omitted fields keep their current values instead of being reset. Pass null to clear an optional config (e.g. broadcastingDeviceFilter: null broadcasts from all APs). Passphrases are kept unless you send a new one; "${REDACTED}" values are treated as "keep". dryRun shows the merged body (secrets redacted).`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),
+        siteId: resourceId().describe("Site ID"),
+        wifiBroadcastId: resourceId().describe("WiFi Broadcast ID"),
         ...wifiFields,
         dryRun: z
           .boolean()
@@ -315,8 +316,8 @@ export function registerWifiTools(
     {
       description: "DESTRUCTIVE: Delete a WiFi network — all clients on this SSID will be disconnected",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        wifiBroadcastId: z.string().describe("WiFi Broadcast ID"),
+        siteId: resourceId().describe("Site ID"),
+        wifiBroadcastId: resourceId().describe("WiFi Broadcast ID"),
         force: z
           .boolean()
           .optional()

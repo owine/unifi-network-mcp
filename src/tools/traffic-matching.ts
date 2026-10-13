@@ -16,6 +16,7 @@ import {
   trafficMatchingListOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 const matchingItems = z
   .array(z.object({ type: z.string().describe("Item type, e.g. PORT_NUMBER, IP_ADDRESS, SUBNET") }).passthrough())
@@ -32,7 +33,7 @@ export function registerTrafficMatchingTools(
     {
       description: "List traffic matching lists at a site — named collections of ports or IPs reused in firewall/ACL rules. Returns: id, type (PORTS/IPV4_ADDRESSES/IPV6_ADDRESSES), name, items[] (tagged objects such as {type:'PORT_NUMBER', value:22} or {type:'SUBNET', value:'<cidr>'}). Use for: finding the matching-list ID to reference from a firewall policy.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -72,8 +73,8 @@ export function registerTrafficMatchingTools(
     {
       description: "Get a specific traffic matching list by ID (full items array).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        trafficMatchingListId: z.string().describe("Traffic matching list ID"),
+        siteId: resourceId().describe("Site ID"),
+        trafficMatchingListId: resourceId().describe("Traffic matching list ID"),
       },
       outputSchema: trafficMatchingListOutputSchema,
       annotations: READ_ONLY,
@@ -97,7 +98,7 @@ export function registerTrafficMatchingTools(
     {
       description: "Create a new traffic matching list. Items are tagged objects, not strings (live-verified 11.0.83): PORTS lists take {type:'PORT_NUMBER', value:443} (the older 10.4.57 spec also lists {type:'PORT_NUMBER_RANGE', start, stop}); IPV4_ADDRESSES lists take {type:'IP_ADDRESS', value:'192.0.2.1'} or {type:'SUBNET', value:'192.0.2.0/24'} (spec also: IP_ADDRESS_RANGE {start, stop}); IPV6_ADDRESSES lists take IP_ADDRESS or SUBNET. Idempotency: not safe to retry — re-running creates a duplicate list.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         type: z
           .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
           .describe("List type"),
@@ -131,8 +132,8 @@ export function registerTrafficMatchingTools(
     {
       description: "Replace a traffic matching list (full PUT — type, name and the complete items array are all required; read the current list with unifi_get_traffic_matching_list first). Items are tagged objects, not strings (live-verified 11.0.83): PORTS lists take {type:'PORT_NUMBER', value:443} (the older 10.4.57 spec also lists {type:'PORT_NUMBER_RANGE', start, stop}); IPV4_ADDRESSES lists take {type:'IP_ADDRESS', value:'192.0.2.1'} or {type:'SUBNET', value:'192.0.2.0/24'} (spec also: IP_ADDRESS_RANGE {start, stop}); IPV6_ADDRESSES lists take IP_ADDRESS or SUBNET.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        trafficMatchingListId: z.string().describe("Traffic matching list ID"),
+        siteId: resourceId().describe("Site ID"),
+        trafficMatchingListId: resourceId().describe("Traffic matching list ID"),
         type: z
           .enum(["PORTS", "IPV4_ADDRESSES", "IPV6_ADDRESSES"])
           .describe("List type"),
@@ -166,8 +167,8 @@ export function registerTrafficMatchingTools(
     {
       description: "DESTRUCTIVE: Delete a traffic matching list",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        trafficMatchingListId: z.string().describe("Traffic matching list ID"),
+        siteId: resourceId().describe("Site ID"),
+        trafficMatchingListId: resourceId().describe("Traffic matching list ID"),
         confirm: z
           .boolean()
           .optional()

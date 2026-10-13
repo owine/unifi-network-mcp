@@ -14,6 +14,7 @@ import {
   listDpiApplicationsOutputSchema,
   listCountriesOutputSchema,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 export function registerSupportingTools(
   server: McpServer,
@@ -24,7 +25,7 @@ export function registerSupportingTools(
     {
       description: "List WAN interface definitions at a site. Returns: id, name only (verified against 11.0.83 — the Integration API exposes no live link status or throughput rates here). Use for: WAN inventory, multi-WAN topology.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -58,7 +59,7 @@ export function registerSupportingTools(
     {
       description: "List site-to-site VPN tunnels (IPsec, WireGuard, OpenVPN site-to-site) at a site. Returns: tunnel definitions per row (per-row schema not rendered in 11.0.83 docs and no tunnels to sample live; the older 10.4.57 spec lists id, type (IPSEC/OPENVPN/WIREGUARD), name, metadata.origin/source — call to inspect). For roaming client VPN servers, see unifi_list_vpn_servers.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -96,7 +97,7 @@ export function registerSupportingTools(
     {
       description: "List VPN servers (roaming/client-access VPNs) at a site. Returns: id, type (L2TP, OPENVPN, PPTP, UID, WIREGUARD), name, enabled, metadata.origin.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -134,7 +135,7 @@ export function registerSupportingTools(
     {
       description: "List RADIUS profiles (auth/accounting server configurations referenced by WiFi WPA-Enterprise, switch 802.1X port auth, VPN). Returns: id, name, metadata (origin, configurable).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -174,7 +175,7 @@ export function registerSupportingTools(
     {
       description: "List device tags at a site. Tags group APs/switches for selective WiFi broadcast (via broadcastingDeviceFilter on a WiFi network). Returns: id, name, deviceIds[], metadata.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()

@@ -24,6 +24,7 @@ import {
   dnsPolicyOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 // Type-specific request-body fields, from the 11.0.83 POST/PUT schemas (every
 // type also takes type, enabled, domain). MX/TXT/SRV/FORWARD_DOMAIN have no TTL.
@@ -120,7 +121,7 @@ export function registerDnsPolicyTools(
     {
       description: "List DNS policies (local DNS records and forward rules served by the gateway) at a site. Returns: id, type (A_RECORD, AAAA_RECORD, CNAME_RECORD, MX_RECORD, TXT_RECORD, SRV_RECORD, FORWARD_DOMAIN), enabled, domain, metadata.origin, plus type-specific fields: A ipv4Address+ttlSeconds; AAAA ipv6Address+ttlSeconds; CNAME targetDomain+ttlSeconds; MX mailServerDomain+priority; TXT text; SRV serverDomain/service/protocol/port/priority/weight; FORWARD_DOMAIN ipAddress (per 11.0.83 response samples).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -158,8 +159,8 @@ export function registerDnsPolicyTools(
     {
       description: "Get a specific DNS policy by ID (same fields as the list entry).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        dnsPolicyId: z.string().describe("DNS policy ID"),
+        siteId: resourceId().describe("Site ID"),
+        dnsPolicyId: resourceId().describe("DNS policy ID"),
       },
       outputSchema: dnsPolicyOutputSchema,
       annotations: READ_ONLY,
@@ -183,7 +184,7 @@ export function registerDnsPolicyTools(
     {
       description: `Create a new DNS policy. Every type takes type, enabled, domain; the rest depends on type (per 11.0.83 docs): ${DNS_TYPES_DOC} Fields belonging to other types are rejected. Idempotency: not safe to retry — re-running creates a duplicate record.`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         ...dnsFields,
         type: dnsType,
         enabled: z.boolean().describe("Whether the DNS policy is enabled"),
@@ -214,8 +215,8 @@ export function registerDnsPolicyTools(
     {
       description: `Update a DNS policy. Pass only the fields to change. The API's PUT replaces the whole policy, so this tool reads the current policy, keeps the documented fields for the (possibly new) type, overlays your changes and sends the full body. Changing type drops the old type's fields, so supply the new type's required fields: ${DNS_TYPES_DOC} dryRun shows the merged body.`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        dnsPolicyId: z.string().describe("DNS policy ID"),
+        siteId: resourceId().describe("Site ID"),
+        dnsPolicyId: resourceId().describe("DNS policy ID"),
         ...dnsFields,
         type: dnsType.optional(),
         enabled: z.boolean().optional().describe("Whether the DNS policy is enabled"),
@@ -250,8 +251,8 @@ export function registerDnsPolicyTools(
     {
       description: "DESTRUCTIVE: Delete a DNS policy",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        dnsPolicyId: z.string().describe("DNS policy ID"),
+        siteId: resourceId().describe("Site ID"),
+        dnsPolicyId: resourceId().describe("DNS policy ID"),
         confirm: z
           .boolean()
           .optional()

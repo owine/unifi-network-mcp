@@ -25,6 +25,7 @@ import {
   getNetworkReferencesOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 // Request-body fields per management type, from the 11.0.83 POST/PUT schemas.
 const COMMON_FIELDS = ["management", "name", "enabled", "vlanId", "dhcpGuarding"] as const;
@@ -121,8 +122,8 @@ const networkFields = {
     .nullable()
     .optional()
     .describe("Participate in mDNS forwarding; null = use the site mDNS default. GATEWAY only."),
-  zoneId: z.string().optional().describe("Firewall zone ID for this network. GATEWAY only."),
-  deviceId: z.string().optional().describe("ID of the L3 switching capable device that manages this network. SWITCH only."),
+  zoneId: resourceId().optional().describe("Firewall zone ID for this network. GATEWAY only."),
+  deviceId: resourceId().optional().describe("ID of the L3 switching capable device that manages this network. SWITCH only."),
   ipv4Configuration: config("IPv4 configuration (hostIpAddress, prefixLength, dhcpConfiguration, …) — copy the shape from unifi_get_network. GATEWAY/SWITCH.")
     .optional(),
   ipv6Configuration: config("IPv6 configuration (interfaceType, clientAddressAssignment, routerAdvertisement, …); omitted or null = IPv6 not configured. GATEWAY only.")
@@ -140,7 +141,7 @@ export function registerNetworkTools(
     {
       description: "List all networks (VLANs/LAN segments) at a site. Returns: id, name, management (UNMANAGED/GATEWAY/SWITCH), enabled, vlanId, default (true for the default network), zoneId (the firewall zone the network sits in), dhcpGuarding (only present when enabled), metadata.origin (+ metadata.configurable on the system-defined default network). NOTE: the list view is sparse — for subnet/DHCP/NTP detail (ipv4Configuration/ipv6Configuration), call unifi_get_network on a specific id. Use for: VLAN inventory; pair with unifi_get_network_references to find what consumes a network.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -178,8 +179,8 @@ export function registerNetworkTools(
     {
       description: "Get a network/VLAN by ID. Returns the list fields PLUS (live-verified) isolationEnabled, internetAccessEnabled, mdnsForwardingEnabled, cellularBackupEnabled, a full ipv4Configuration object (autoScaleEnabled, hostIpAddress, prefixLength, dhcpConfiguration with mode/ipAddressRange/leaseTimeSeconds/domainName/pingConflictDetectionEnabled/ntpServerIpAddresses — which may contain empty-string entries), and an ipv6Configuration object when IPv6 is configured (interfaceType, clientAddressAssignment, routerAdvertisement, hostIpAddress, prefixLength). NOTE: subnet/DHCP detail appears here at get-by-id but NOT in unifi_list_networks (sparse list view).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        networkId: z.string().describe("Network ID"),
+        siteId: resourceId().describe("Site ID"),
+        networkId: resourceId().describe("Network ID"),
       },
       outputSchema: networkOutputSchema,
       annotations: READ_ONLY,
@@ -199,8 +200,8 @@ export function registerNetworkTools(
     {
       description: "Get all objects that reference this network. Returns: { referenceResources: [{ resourceType (e.g. WIFI), referenceCount, references: [{ referenceId }] }] }. Use before deleting a network to find dependencies that need to be re-pointed or removed. NOTE: on 11.0.83 the controller returns HTTP 500 (api.unexpected-error) for many networks — observed on the default network and on networks used by PPSK keys. On a 500, fall back to unifi_list_wifi + unifi_get_wifi (network.networkId and securityConfiguration.presharedKeys[].network.networkId) and unifi_list_firewall_zones (networkIds).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        networkId: z.string().describe("Network ID"),
+        siteId: resourceId().describe("Site ID"),
+        networkId: resourceId().describe("Network ID"),
       },
       outputSchema: getNetworkReferencesOutputSchema,
       annotations: READ_ONLY,
@@ -224,7 +225,7 @@ export function registerNetworkTools(
     {
       description: `Create a new VLAN/network. The body depends on management (per 11.0.83 docs): ${NETWORK_VARIANTS_DOC} Idempotency: not safe to retry — re-running creates duplicates.`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         ...networkFields,
         name: z.string().describe("Network name"),
         management: z
@@ -263,8 +264,8 @@ export function registerNetworkTools(
     {
       description: `Update an existing network. Pass only the fields to change. The API's PUT replaces the whole network — omitting dhcpGuarding disables DHCP guarding, and GATEWAY networks must resend their full ipv4Configuration — so this tool reads the current network, keeps every documented body field for its management type, overlays your changes and sends the full body. Pass null to clear an optional field (e.g. ipv6Configuration: null removes IPv6). Nested objects such as ipv4Configuration are replaced whole, not deep-merged: read them with unifi_get_network and send the complete object. Variants: ${NETWORK_VARIANTS_DOC} dryRun shows the merged body.`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        networkId: z.string().describe("Network ID"),
+        siteId: resourceId().describe("Site ID"),
+        networkId: resourceId().describe("Network ID"),
         ...networkFields,
         dryRun: z
           .boolean()
@@ -296,8 +297,8 @@ export function registerNetworkTools(
     {
       description: "DESTRUCTIVE: Delete a network — all clients on this network will be disconnected",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        networkId: z.string().describe("Network ID"),
+        siteId: resourceId().describe("Site ID"),
+        networkId: resourceId().describe("Network ID"),
         force: z
           .boolean()
           .optional()

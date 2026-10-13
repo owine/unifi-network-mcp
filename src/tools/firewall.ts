@@ -25,6 +25,7 @@ import {
   firewallPolicyOrderingOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
+import { resourceId } from "../utils/params.js";
 
 // Firewall policy request-body fields, from the 11.0.83 POST/PUT schemas.
 const FIREWALL_POLICY_FIELDS = [
@@ -68,7 +69,7 @@ export function registerFirewallTools(
     {
       description: "List firewall zones (groupings of networks for zone-based firewalling) at a site. Returns: id, name, networkIds[], metadata.origin (indicates system-defined vs user-defined). Use for: zone inventory; pair with unifi_list_firewall_policies to see rules between zones.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -106,8 +107,8 @@ export function registerFirewallTools(
     {
       description: "Get a firewall zone by ID (same fields as the list entry).",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        firewallZoneId: z.string().describe("Firewall zone ID"),
+        siteId: resourceId().describe("Site ID"),
+        firewallZoneId: resourceId().describe("Firewall zone ID"),
       },
       outputSchema: firewallZoneOutputSchema,
       annotations: READ_ONLY,
@@ -129,7 +130,7 @@ export function registerFirewallTools(
     {
       description: "List firewall policies (zone-based rules) at a site. Returns: id, name, enabled, action (object with type field), source/destination (zone reference + trafficFilter), ipProtocolScope, connectionStateFilter, ipsecFilter, schedule, loggingEnabled, reportFlowEnabled (Insights Flows reporting; false on the predefined Allow Return Traffic and Block policies), index, description, metadata (origin SYSTEM_DEFINED/USER_DEFINED/DERIVED, configurable on system policies). action is {type: ALLOW|BLOCK, allowReturnTraffic on ALLOW}. The protocol lives in ipProtocolScope.protocolFilter (NAMED_PROTOCOL or PRESET); ports and addresses live in source/destination.trafficFilter, which is omitted when a side matches the whole zone. Unset optional fields (ipsecFilter, schedule, connectionStateFilter) are omitted, not null. Evaluation order within a zone pair comes from unifi_get_firewall_policy_ordering.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         offset: z
           .number()
           .int()
@@ -169,8 +170,8 @@ export function registerFirewallTools(
     {
       description: "Get a firewall policy by ID with full match criteria and action. Returns the same fields as a unifi_list_firewall_policies entry, including loggingEnabled and reportFlowEnabled.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        firewallPolicyId: z.string().describe("Firewall policy ID"),
+        siteId: resourceId().describe("Site ID"),
+        firewallPolicyId: resourceId().describe("Firewall policy ID"),
       },
       outputSchema: firewallPolicyOutputSchema,
       annotations: READ_ONLY,
@@ -192,12 +193,10 @@ export function registerFirewallTools(
     {
       description: "Get the evaluation order of user-defined firewall policies for a specific (source zone, destination zone) pair. Returns: orderedFirewallPolicyIds.beforeSystemDefined[] and orderedFirewallPolicyIds.afterSystemDefined[] arrays of policy IDs. System-defined rules sit between these two arrays.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        sourceFirewallZoneId: z
-          .string()
+        siteId: resourceId().describe("Site ID"),
+        sourceFirewallZoneId: resourceId()
           .describe("Source firewall zone ID"),
-        destinationFirewallZoneId: z
-          .string()
+        destinationFirewallZoneId: resourceId()
           .describe("Destination firewall zone ID"),
       },
       outputSchema: firewallPolicyOrderingOutputSchema,
@@ -223,7 +222,7 @@ export function registerFirewallTools(
     {
       description: "Create a new custom firewall zone",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         name: z.string().describe("Zone name"),
         networkIds: z
           .array(z.string())
@@ -253,8 +252,8 @@ export function registerFirewallTools(
     {
       description: "Update a firewall zone",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        firewallZoneId: z.string().describe("Firewall zone ID"),
+        siteId: resourceId().describe("Site ID"),
+        firewallZoneId: resourceId().describe("Firewall zone ID"),
         name: z.string().describe("Zone name"),
         networkIds: z
           .array(z.string())
@@ -287,8 +286,8 @@ export function registerFirewallTools(
     {
       description: "DESTRUCTIVE: Delete a custom firewall zone",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        firewallZoneId: z.string().describe("Firewall zone ID"),
+        siteId: resourceId().describe("Site ID"),
+        firewallZoneId: resourceId().describe("Firewall zone ID"),
         confirm: z
           .boolean()
           .optional()
@@ -321,7 +320,7 @@ export function registerFirewallTools(
     {
       description: `Create a new firewall policy. Body fields (per 11.0.83 docs): ${FIREWALL_POLICY_BODY_DOC} Copy nested shapes (trafficFilter, protocolFilter) from an existing policy via unifi_get_firewall_policy. Idempotency: not safe to retry — re-running creates a duplicate policy.`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
+        siteId: resourceId().describe("Site ID"),
         policy: z
           .record(z.string(), z.unknown())
           .describe("Firewall policy configuration (JSON object)"),
@@ -349,8 +348,8 @@ export function registerFirewallTools(
     {
       description: `Update a firewall policy. Pass only the fields to change in policy. The API's PUT replaces the whole policy — and an omitted reportFlowEnabled reverts to true — so this tool reads the current policy, keeps every documented body field, overlays your fields and sends the full body. Top-level fields are replaced whole (e.g. send the complete source object). Read-only response fields (id, index, metadata) are ignored. Body fields: ${FIREWALL_POLICY_BODY_DOC} For just logging/flow-reporting toggles, prefer unifi_patch_firewall_policy. dryRun shows the merged body.`,
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        firewallPolicyId: z.string().describe("Firewall policy ID"),
+        siteId: resourceId().describe("Site ID"),
+        firewallPolicyId: resourceId().describe("Firewall policy ID"),
         policy: z
           .record(z.string(), z.unknown())
           .describe("Firewall policy fields to change (JSON object); null clears an optional field such as schedule"),
@@ -392,8 +391,8 @@ export function registerFirewallTools(
     {
       description: "Partially update a firewall policy without resending all fields. loggingEnabled and reportFlowEnabled are the only fields documented as patchable in API 11.0.83 (reportFlowEnabled is ignored for the predefined Allow Return Traffic policies, which are never reported); other fields may be rejected — use unifi_update_firewall_policy for a full update. Idempotent for fields supplied.",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        firewallPolicyId: z.string().describe("Firewall policy ID"),
+        siteId: resourceId().describe("Site ID"),
+        firewallPolicyId: resourceId().describe("Firewall policy ID"),
         policy: z
           .record(z.string(), z.unknown())
           .describe("Partial firewall policy fields to update (e.g. { loggingEnabled: true } or { reportFlowEnabled: false })"),
@@ -424,8 +423,8 @@ export function registerFirewallTools(
     {
       description: "DESTRUCTIVE: Delete a firewall policy",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        firewallPolicyId: z.string().describe("Firewall policy ID"),
+        siteId: resourceId().describe("Site ID"),
+        firewallPolicyId: resourceId().describe("Firewall policy ID"),
         confirm: z
           .boolean()
           .optional()
@@ -458,10 +457,9 @@ export function registerFirewallTools(
     {
       description: "Reorder user-defined firewall policies for a zone pair",
       inputSchema: {
-        siteId: z.string().describe("Site ID"),
-        sourceFirewallZoneId: z.string().describe("Source firewall zone ID"),
-        destinationFirewallZoneId: z
-          .string()
+        siteId: resourceId().describe("Site ID"),
+        sourceFirewallZoneId: resourceId().describe("Source firewall zone ID"),
+        destinationFirewallZoneId: resourceId()
           .describe("Destination firewall zone ID"),
         orderedFirewallPolicyIds: z
           .record(z.string(), z.unknown())
