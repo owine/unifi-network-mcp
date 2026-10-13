@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { NetworkClient, withCallSignal } from "../client.js";
+import { looseOutput } from "../utils/output-schemas.js";
 import { registerSystemTools } from "./system.js";
 import { registerSiteTools } from "./sites.js";
 import { registerDeviceTools } from "./devices.js";
@@ -54,12 +55,12 @@ export function registerAllTools(
 function instrumentTools(server: McpServer): McpServer {
   const registerTool = (
     name: string,
-    config: { outputSchema?: z.ZodRawShape },
+    config: { outputSchema?: z.ZodRawShape | z.ZodObject },
     handler: (...args: unknown[]) => unknown
   ) =>
     server.registerTool(name, {
       ...config,
-      ...(config.outputSchema ? { outputSchema: z.looseObject(config.outputSchema) } : {}),
+      ...(config.outputSchema ? { outputSchema: looseOutput(config.outputSchema) } : {}),
     } as never, ((...args: unknown[]) => {
       const extra = args.at(-1) as { signal?: unknown } | undefined;
       const signal = extra?.signal instanceof AbortSignal ? extra.signal : undefined;

@@ -472,6 +472,16 @@ const DryRunPreview = {
     .optional(),
 } as const;
 
+/**
+ * The outputSchema to publish for a tool: always a loose object, whether the
+ * tool passed a raw shape or a Zod object (the SDK accepts both). Wrapping a
+ * Zod object in z.looseObject() would build a broken schema that makes
+ * tools/list throw for every tool.
+ */
+export function looseOutput(schema: z.ZodRawShape | z.ZodObject): z.ZodObject {
+  return schema instanceof z.ZodObject ? schema.loose() : z.looseObject(schema);
+}
+
 export function writeResult<T extends z.ZodRawShape>(shape: T) {
   return { ...z.object(shape).partial().shape, ...DryRunPreview };
 }

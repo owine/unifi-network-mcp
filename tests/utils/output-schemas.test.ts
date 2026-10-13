@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 import {
+  looseOutput,
   getDeviceOutputSchema,
   getDeviceStatisticsOutputSchema,
   listDevicesOutputSchema,
@@ -344,5 +345,17 @@ describe("output schemas", () => {
     ]) {
       expect(() => schema.parse(sample)).not.toThrow();
     }
+  });
+});
+
+describe("looseOutput", () => {
+  // Published JSON Schema is what SDK clients validate against.
+  it.each([
+    ["a raw shape", { id: z.string() }],
+    ["a Zod object", z.object({ id: z.string() })],
+  ])("publishes %s without forbidding extra properties", (_label, schema) => {
+    const published = z.toJSONSchema(looseOutput(schema)) as { additionalProperties?: unknown; properties?: object };
+    expect(published.additionalProperties).not.toBe(false);
+    expect(published.properties).toHaveProperty("id");
   });
 });
