@@ -23,6 +23,7 @@ import {
   listNetworksOutputSchema,
   networkOutputSchema,
   getNetworkReferencesOutputSchema,
+  writeResult,
 } from "../utils/output-schemas.js";
 
 // Request-body fields per management type, from the 11.0.83 POST/PUT schemas.
@@ -241,7 +242,7 @@ export function registerNetworkTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: networkOutputSchema,
+      outputSchema: writeResult(networkOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, dryRun, ...fields }) => {
@@ -270,7 +271,7 @@ export function registerNetworkTools(
           .optional()
           .describe("Preview the merged PUT body without executing it (still reads the current network)"),
       },
-      outputSchema: networkOutputSchema,
+      outputSchema: writeResult(networkOutputSchema),
       annotations: WRITE,
     },
     async ({ siteId, networkId, dryRun, ...fields }) => {

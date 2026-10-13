@@ -14,6 +14,7 @@ import {
 import {
   listTrafficMatchingListsOutputSchema,
   trafficMatchingListOutputSchema,
+  writeResult,
 } from "../utils/output-schemas.js";
 
 const matchingItems = z
@@ -107,7 +108,7 @@ export function registerTrafficMatchingTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: trafficMatchingListOutputSchema,
+      outputSchema: writeResult(trafficMatchingListOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, type, name, items, dryRun }) => {
@@ -142,7 +143,7 @@ export function registerTrafficMatchingTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: trafficMatchingListOutputSchema,
+      outputSchema: writeResult(trafficMatchingListOutputSchema),
       annotations: WRITE,
     },
     async ({ siteId, trafficMatchingListId, type, name, items, dryRun }) => {

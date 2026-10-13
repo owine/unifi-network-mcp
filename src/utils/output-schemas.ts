@@ -458,6 +458,21 @@ const PendingDevice = z
   })
   .passthrough();
 
+// A write tool returns either the API's echo of the resource or, with dryRun,
+// a preview of the request it would send. The SDK validates both against the
+// one outputSchema, so the resource's key fields relax to optional alongside
+// the preview fields; read tools keep their stricter schemas.
+const DryRunPreview = {
+  dryRun: z.literal(true).optional(),
+  wouldExecute: z
+    .object({ method: z.string(), path: z.string(), body: z.unknown().optional() })
+    .optional(),
+} as const;
+
+export function writeResult<T extends z.ZodRawShape>(shape: T) {
+  return { ...z.object(shape).partial().shape, ...DryRunPreview };
+}
+
 export const getInfoOutputSchema = ApplicationInfo.shape;
 
 export const listSitesOutputSchema = {

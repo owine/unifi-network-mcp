@@ -79,7 +79,7 @@ src/
 1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`, `client-history`) omit the `readOnly` param entirely — there is nothing to gate
 2. Use `server.registerTool(name, { description, inputSchema, outputSchema, annotations }, handler)`
 3. Set appropriate annotations from `utils/safety.ts`: `READ_ONLY`, `WRITE`, `WRITE_NOT_IDEMPOTENT`, `DESTRUCTIVE`
-4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource. Follow the loose strategy in that file: non-key fields optional, nested objects `.passthrough()`
+4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource, wrapped in `writeResult()` so the dry-run preview also validates (`tests/sdk-contract.test.ts` enforces this through the real SDK). Follow the loose strategy in that file: non-key fields optional, nested objects `.passthrough()`
 5. For write tools: register them after `if (readOnly) return;` at the function level, add optional `dryRun` parameter
 6. If the endpoint is a full-replacement PUT, GET the current resource and build the body with `mergeForPut()` from `utils/full-put.ts`, using the field allowlist from the docs' request schema (per variant, if the body is discriminated). Never send a sparse body to a full PUT
 7. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`

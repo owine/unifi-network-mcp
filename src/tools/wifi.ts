@@ -23,6 +23,7 @@ import { containsRedacted, redactSecrets, restoreRedacted, REDACTED } from "../u
 import {
   listWifiOutputSchema,
   getWifiOutputSchema,
+  writeResult,
 } from "../utils/output-schemas.js";
 
 // Request-body fields per broadcast type, from the 11.0.83 POST/PUT schemas.
@@ -257,7 +258,7 @@ export function registerWifiTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: getWifiOutputSchema,
+      outputSchema: writeResult(getWifiOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, dryRun, ...fields }) => {
@@ -289,7 +290,7 @@ export function registerWifiTools(
           .optional()
           .describe("Preview the merged PUT body without executing it (still reads the current SSID)"),
       },
-      outputSchema: getWifiOutputSchema,
+      outputSchema: writeResult(getWifiOutputSchema),
       annotations: WRITE,
     },
     async ({ siteId, wifiBroadcastId, dryRun, ...fields }) => {

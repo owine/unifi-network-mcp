@@ -9,6 +9,7 @@ import {
   getDeviceOutputSchema,
   getDeviceStatisticsOutputSchema,
   listPendingDevicesOutputSchema,
+  writeResult,
 } from "../utils/output-schemas.js";
 // Adopt echoes the adopted device — reuse the device detail schema.
 const adoptDeviceOutputSchema = getDeviceOutputSchema;
@@ -145,7 +146,7 @@ export function registerDeviceTools(
         ignoreDeviceLimit: z.boolean().optional().describe("Ignore device limit when adopting (required by the API; sent as false when omitted)"),
         dryRun: z.boolean().optional().describe("Preview this action without executing it"),
       },
-      outputSchema: adoptDeviceOutputSchema,
+      outputSchema: writeResult(adoptDeviceOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, macAddress, ignoreDeviceLimit, dryRun }) => {

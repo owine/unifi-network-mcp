@@ -23,6 +23,7 @@ import {
   listFirewallPoliciesOutputSchema,
   firewallPolicyOutputSchema,
   firewallPolicyOrderingOutputSchema,
+  writeResult,
 } from "../utils/output-schemas.js";
 
 // Firewall policy request-body fields, from the 11.0.83 POST/PUT schemas.
@@ -232,7 +233,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: firewallZoneOutputSchema,
+      outputSchema: writeResult(firewallZoneOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, name, networkIds, dryRun }) => {
@@ -263,7 +264,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: firewallZoneOutputSchema,
+      outputSchema: writeResult(firewallZoneOutputSchema),
       annotations: WRITE,
     },
     async ({ siteId, firewallZoneId, name, networkIds, dryRun }) => {
@@ -329,7 +330,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: firewallPolicyOutputSchema,
+      outputSchema: writeResult(firewallPolicyOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, policy, dryRun }) => {
@@ -358,7 +359,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview the merged PUT body without executing it (still reads the current policy)"),
       },
-      outputSchema: firewallPolicyOutputSchema,
+      outputSchema: writeResult(firewallPolicyOutputSchema),
       annotations: WRITE,
     },
     async ({ siteId, firewallPolicyId, policy, dryRun }) => {
@@ -401,7 +402,7 @@ export function registerFirewallTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: firewallPolicyOutputSchema,
+      outputSchema: writeResult(firewallPolicyOutputSchema),
       annotations: WRITE,
     },
     async ({ siteId, firewallPolicyId, policy, dryRun }) => {

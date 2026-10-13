@@ -22,6 +22,7 @@ import {
 import {
   listDnsPoliciesOutputSchema,
   dnsPolicyOutputSchema,
+  writeResult,
 } from "../utils/output-schemas.js";
 
 // Type-specific request-body fields, from the 11.0.83 POST/PUT schemas (every
@@ -192,7 +193,7 @@ export function registerDnsPolicyTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: dnsPolicyOutputSchema,
+      outputSchema: writeResult(dnsPolicyOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, dryRun, ...fields }) => {
@@ -224,7 +225,7 @@ export function registerDnsPolicyTools(
           .optional()
           .describe("Preview the merged PUT body without executing it (still reads the current policy)"),
       },
-      outputSchema: dnsPolicyOutputSchema,
+      outputSchema: writeResult(dnsPolicyOutputSchema),
       annotations: WRITE,
     },
     async ({ siteId, dnsPolicyId, dryRun, ...fields }) => {

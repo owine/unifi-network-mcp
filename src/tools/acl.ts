@@ -15,6 +15,7 @@ import {
   listAclRulesOutputSchema,
   aclRuleOutputSchema,
   aclRuleOrderingOutputSchema,
+  writeResult,
 } from "../utils/output-schemas.js";
 
 export function registerAclTools(
@@ -140,7 +141,7 @@ export function registerAclTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: aclRuleOutputSchema,
+      outputSchema: writeResult(aclRuleOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({ siteId, type, name, enabled, action, description, protocolFilter, sourceFilter, destinationFilter, enforcingDeviceFilter, dryRun }) => {
@@ -196,7 +197,7 @@ export function registerAclTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: aclRuleOutputSchema,
+      outputSchema: writeResult(aclRuleOutputSchema),
       annotations: WRITE,
     },
     async ({ siteId, aclRuleId, type, name, enabled, action, description, protocolFilter, sourceFilter, destinationFilter, enforcingDeviceFilter, dryRun }) => {

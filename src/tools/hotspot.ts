@@ -14,6 +14,7 @@ import {
   listVouchersOutputSchema,
   voucherOutputSchema,
   createVouchersOutputSchema,
+  writeResult,
 } from "../utils/output-schemas.js";
 
 export function registerHotspotTools(
@@ -143,7 +144,7 @@ export function registerHotspotTools(
           .optional()
           .describe("Preview this action without executing it"),
       },
-      outputSchema: createVouchersOutputSchema,
+      outputSchema: writeResult(createVouchersOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
     async ({

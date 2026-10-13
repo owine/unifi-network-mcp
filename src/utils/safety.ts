@@ -27,13 +27,16 @@ export function formatDryRun(
   method: string,
   path: string,
   body?: unknown
-): { content: { type: "text"; text: string }[] } {
+): { content: { type: "text"; text: string }[]; structuredContent: Record<string, unknown> } {
   const preview = {
     dryRun: true,
     wouldExecute: { method, path, ...(body !== undefined ? { body } : {}) },
   };
+  // structuredContent is required: the SDK rejects a result without it from
+  // any tool that declares an outputSchema.
   return {
     content: [{ type: "text", text: JSON.stringify(preview, null, 2) }],
+    structuredContent: preview,
   };
 }
 
