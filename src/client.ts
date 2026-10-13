@@ -1,5 +1,9 @@
 import { Config } from "./config.js";
 
+// Well under undici's 300s default, so a stalled controller fails the call
+// before the MCP host gives up on it.
+const REQUEST_TIMEOUT_MS = 30_000;
+
 export class NetworkClient {
   private baseUrl: string;
   private headers: Record<string, string>;
@@ -33,17 +37,31 @@ export class NetworkClient {
     path: string,
     body?: unknown
   ): Promise<unknown> {
-    const url = `${this.baseUrl}${path}`;
+    const url = this.resolve(path);
     const options: RequestInit = {
       method,
       headers: this.headers,
+      redirect: "error",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     };
 
     if (body !== undefined) {
       options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url, options);
+    let response: Response;
+    try {
+      response = await fetch(url, options);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "TimeoutError") {
+        throw new Error(
+          `UniFi controller did not respond within ${REQUEST_TIMEOUT_MS / 1000}s. ` +
+          `A ${method} may still have been applied; check the resource before retrying.`,
+          { cause: err }
+        );
+      }
+      throw err;
+    }
 
     if (!response.ok) {
       const text = await response.text();
@@ -55,6 +73,22 @@ export class NetworkClient {
       return response.json();
     }
     return response.text();
+  }
+
+  /**
+   * Path segments come from model-supplied IDs. URL parsing folds `..`
+   * (and `%2e%2e`, and `\`) out of the path and `#` truncates it, which would
+   * let an ID reach any endpoint on the console — legacy controller API
+   * included — with this API key. Every tool path is plain word segments, so
+   * allow only those; the query string is built by URLSearchParams.
+   */
+  private resolve(path: string): string {
+    const queryStart = path.indexOf("?");
+    const pathname = queryStart === -1 ? path : path.slice(0, queryStart);
+    if (!/^(\/[A-Za-z0-9_-]+)+$/.test(pathname) || path.includes("#")) {
+      throw new Error(`Refusing a request path outside the Integration API: ${pathname}`);
+    }
+    return `${this.baseUrl}${path}`;
   }
 
   async get(path: string): Promise<unknown> {

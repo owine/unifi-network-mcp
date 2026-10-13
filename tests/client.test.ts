@@ -200,5 +200,54 @@ describe("NetworkClient", () => {
       fetchMock.mockRejectedValue(new TypeError("fetch failed"));
       await expect(client.delete("/test")).rejects.toThrow("fetch failed");
     });
+
+    it("refuses redirects so the API key is never re-sent elsewhere", async () => {
+      fetchMock.mockResolvedValue(mockResponse("{}"));
+      await client.get("/test");
+      const [, options] = fetchMock.mock.calls[0];
+      expect(options.redirect).toBe("error");
+    });
+
+    it("bounds every request with a timeout signal", async () => {
+      fetchMock.mockResolvedValue(mockResponse("{}"));
+      await client.post("/test", {});
+      const [, options] = fetchMock.mock.calls[0];
+      expect(options.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it("reports a timeout as an unknown outcome rather than a failure", async () => {
+      fetchMock.mockRejectedValue(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
+      await expect(client.post("/test", {})).rejects.toThrow(/did not respond within 30s.*may still have been applied/);
+    });
+  });
+
+  // ── Path guard ────────────────────────────────────────────────────
+
+  describe("path guard", () => {
+    let client: NetworkClient;
+
+    beforeEach(() => {
+      client = new NetworkClient(makeConfig());
+      fetchMock.mockResolvedValue(mockResponse("{}"));
+    });
+
+    it.each([
+      ["dot-segments", "/sites/../../../api/s/default/cmd/sitemgr"],
+      ["encoded dot-segments", "/sites/s/devices/%2e%2e/%2e%2e/networks/n"],
+      ["backslashes", "/sites/s/devices/x\\..\\..\\networks"],
+      ["a fragment", "/sites/s/firewall/policies/x#/ignored"],
+      ["an empty segment", "/sites//devices"],
+    ])("rejects a path containing %s without sending it", async (_label, path) => {
+      await expect(client.post(path, {})).rejects.toThrow(/outside the Integration API/);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("allows ordinary resource paths with an encoded query", async () => {
+      await client.get("/sites/abc-123/devices/d_1/interfaces/ports/3/actions?offset=0&filter=name.eq%28%27a%27%29");
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://192.168.1.1/proxy/network/integration/v1/sites/abc-123/devices/d_1/interfaces/ports/3/actions?offset=0&filter=name.eq%28%27a%27%29",
+        expect.any(Object)
+      );
+    });
   });
 });
