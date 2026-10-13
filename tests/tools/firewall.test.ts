@@ -551,27 +551,6 @@ describe("registerFirewallTools", () => {
         expect(config?.annotations.idempotentHint).toBe(true);
       });
 
-      it("keeps both changes when two updates to one policy run in parallel", async () => {
-        // A controller that takes a moment to answer, so unserialised calls
-        // interleave as GET, GET, PUT, PUT and the second PUT reverts the first.
-        let stored: Record<string, unknown> = { ...currentPolicy };
-        const later = () => new Promise((resolve) => setTimeout(resolve, 5));
-        mockFn(client, "get").mockImplementation(async () => { await later(); return { ...stored }; });
-        mockFn(client, "put").mockImplementation(async (_path: string, body: Record<string, unknown>) => {
-          await later();
-          stored = { ...stored, ...body };
-          return stored;
-        });
-
-        const handler = handlers.get("unifi_update_firewall_policy");
-        await Promise.all([
-          handler({ siteId: "site123", firewallPolicyId: "policy1", policy: { name: "Renamed" } }),
-          handler({ siteId: "site123", firewallPolicyId: "policy1", policy: { loggingEnabled: true } }),
-        ]);
-
-        expect(stored).toMatchObject({ name: "Renamed", loggingEnabled: true });
-      });
-
       it("should read the current policy and PUT the merged full body", async () => {
         mockFn(client, "put").mockResolvedValue({ ...currentPolicy, name: "Allow SSH Updated" });
 

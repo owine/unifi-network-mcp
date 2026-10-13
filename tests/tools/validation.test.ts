@@ -414,7 +414,7 @@ describe("resource ID parameters", () => {
       expect(schema.safeParse("3f2b6c1e-8a4d-4c2e-9b7a-1d2e3f4a5b6c").success).toBe(true);
     });
 
-    it.each(["x?force=true", "../x", "x#", "x/y", "%2e%2e", ""])(`${toolName}.${key} rejects %j`, (value) => {
+    it.each(["x?force=true", "../x", "..", ".", "x#", "x/y", "%2e%2e", ""])(`${toolName}.${key} rejects %j`, (value) => {
       expect(schema.safeParse(value).success).toBe(false);
     });
   }

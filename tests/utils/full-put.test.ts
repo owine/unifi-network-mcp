@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { withResourceLock } from "../../src/utils/full-put.js";
+import { asObject, mergeForPut, missingFields, withResourceLock } from "../../src/utils/full-put.js";
 
 describe("withResourceLock", () => {
   it("does not let a failed cycle block one queued behind it", async () => {
@@ -26,5 +26,27 @@ describe("withResourceLock", () => {
     await expect(withResourceLock("/r/4", () => Promise.resolve("done"))).resolves.toBe("done");
     releaseSlow();
     await slow;
+  });
+});
+
+describe("mergeForPut", () => {
+  it("keeps current fields, overlays updates, sends null and drops the rest", () => {
+    expect(mergeForPut(
+      { id: "r1", name: "a", enabled: true, note: "x", metadata: { origin: "USER" } },
+      { name: undefined, enabled: false, note: null, metadata: {} },
+      ["name", "enabled", "note"]
+    )).toEqual({ name: "a", enabled: false, note: null });
+  });
+});
+
+describe("missingFields", () => {
+  it("treats null as missing, since a required field cannot be cleared", () => {
+    expect(missingFields({ a: null, b: 1 }, ["a", "b", "c"])).toEqual(["a", "c"]);
+  });
+});
+
+describe("asObject", () => {
+  it.each([["an array", []], ["null", null], ["a string", "x"]])("rejects %s", (_label, value) => {
+    expect(() => asObject(value, "the current rule")).toThrow(/the current rule/);
   });
 });

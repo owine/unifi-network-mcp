@@ -198,3 +198,25 @@ describe("dry-run on destructive tools", () => {
     });
   }
 });
+
+describe("read-only mode, by behaviour", () => {
+  // Annotations can be wrong; what matters is that nothing registered in
+  // read-only mode can send anything but a read to the controller.
+  it("registers no handler that sends a non-GET request", async () => {
+    const { server: mockServer, handlers, configs } = createMockServer();
+    const mockClient = createMockClient();
+    registerAllTools(mockServer, mockClient, true);
+    for (const [name, handler] of handlers) {
+      const schema = configs.get(name)!.schema as Record<string, z.ZodType>;
+      const input = Object.fromEntries(
+        Object.entries(schema)
+          .filter(([, field]) => !field.safeParse(undefined).success)
+          .map(([key, field]) => [key, field.safeParse("id1").success ? "id1" : 1])
+      );
+      await handler(input, {});
+    }
+    for (const method of ["post", "put", "patch", "delete"] as const) {
+      expect(mockFn(mockClient, method)).not.toHaveBeenCalled();
+    }
+  });
+});
