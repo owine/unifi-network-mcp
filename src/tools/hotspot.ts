@@ -9,6 +9,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  requireConfirmationIf,
 } from "../utils/safety.js";
 import {
   listVouchersOutputSchema,
@@ -17,6 +18,8 @@ import {
   writeResult,
 } from "../utils/output-schemas.js";
 import { resourceId } from "../utils/params.js";
+
+const VOUCHER_BATCH_WITHOUT_CONFIRM = 10;
 
 export function registerHotspotTools(
   server: McpServer,
@@ -140,6 +143,10 @@ export function registerHotspotTools(
           .max(100000)
           .optional()
           .describe("Upload rate limit in kbps (2-100000)"),
+        confirm: z
+          .boolean()
+          .optional()
+          .describe(`Set true to confirm creating more than ${VOUCHER_BATCH_WITHOUT_CONFIRM} vouchers at once`),
         dryRun: z
           .boolean()
           .optional()
@@ -157,8 +164,16 @@ export function registerHotspotTools(
       dataUsageLimitMBytes,
       rxRateLimitKbps,
       txRateLimitKbps,
+      confirm,
       dryRun,
     }) => {
+      // Each voucher is a guest credential; a large batch is a lot of access
+      // to hand out on one unchecked call.
+      const guard = requireConfirmationIf(
+        count > VOUCHER_BATCH_WITHOUT_CONFIRM ? `This creates ${count} guest access codes` : undefined,
+        confirm, dryRun
+      );
+      if (guard) return guard;
       try {
         const body: Record<string, unknown> = {
           name,

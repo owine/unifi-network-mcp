@@ -83,7 +83,7 @@ src/
 4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource, wrapped in `writeResult()` so the dry-run preview also validates (`tests/sdk-contract.test.ts` enforces this through the real SDK). Follow the loose strategy in that file: non-key fields optional, nested objects `.passthrough()`
 5. For write tools: register them after `if (readOnly) return;` at the function level, add optional `dryRun` parameter
 6. If the endpoint is a full-replacement PUT, GET the current resource and build the body with `mergeForPut()` from `utils/full-put.ts`, using the field allowlist from the docs' request schema (per variant, if the body is discriminated). Never send a sparse body to a full PUT
-7. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`
+7. For dangerous/destructive tools: add `confirm` parameter validated via `requireConfirmation()`, prefix description with `DESTRUCTIVE:`. A non-destructive write whose particular inputs open access (an ALLOW rule, an open SSID, a large voucher batch) takes an optional `confirm` checked with `requireConfirmationIf(reason, confirm, dryRun)` instead, and gets a case in `tests/tools/security-confirm.test.ts`
 8. Wire it into `src/tools/index.ts` via `registerAllTools()`
 9. Add tests in `tests/tools/<domain>.test.ts` using `createMockServer()` and `createMockClient()` from `tests/tools/_helpers.ts`
 
@@ -95,6 +95,7 @@ All tool files follow a consistent pattern:
 2. `if (readOnly) return;` exits before write tools are registered
 3. Write tools include `dryRun` parameter for preview mode
 4. Destructive tools include `confirm` parameter and `DESTRUCTIVE:` description prefix
+   - Writes that open access require `confirm` only for those changes (`requireConfirmationIf`); a dry run never needs `confirm`
 5. Every tool has MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`)
 
 ## Testing patterns

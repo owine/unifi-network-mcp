@@ -177,6 +177,7 @@ describe("registerAclTools", () => {
           name: "Allow HTTP",
           enabled: true,
           action: "ALLOW",
+          confirm: true,
           description: "Allow HTTP traffic",
           protocolFilter: ["TCP"],
         });
@@ -207,6 +208,7 @@ describe("registerAclTools", () => {
           name: "Allow HTTP",
           enabled: true,
           action: "ALLOW",
+          confirm: true,
         });
 
         const callArgs = mockFn(client, "post").mock.calls[0];

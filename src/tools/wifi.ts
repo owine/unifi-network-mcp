@@ -10,6 +10,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  requireConfirmationIf,
 } from "../utils/safety.js";
 import {
   asObject,
@@ -159,6 +160,16 @@ function checkBody(body: JsonObject, updates: JsonObject) {
   }
 }
 
+function securityType(ssid: JsonObject): unknown {
+  const security = ssid.securityConfiguration;
+  return security !== null && typeof security === "object" && "type" in security ? security.type : undefined;
+}
+
+const confirmSecurity = z
+  .boolean()
+  .optional()
+  .describe("Set true to confirm creating an open SSID or changing an SSID's security type");
+
 const includeSecrets = z
   .boolean()
   .optional()
@@ -255,6 +266,7 @@ export function registerWifiTools(
         uapsdEnabled: z.boolean().describe("Enable Unscheduled Automatic Power Save Delivery"),
         channel2gLockedTo6: z.boolean().describe("Lock 2.4GHz channel to 6 on all broadcasting devices"),
         dtimPeriod2gLockedTo3: z.boolean().describe("Lock 2.4GHz DTIM period to 3"),
+        confirm: confirmSecurity,
         dryRun: z
           .boolean()
           .optional()
@@ -263,10 +275,15 @@ export function registerWifiTools(
       outputSchema: writeResult(getWifiOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
-    async ({ siteId, dryRun, ...fields }) => {
+    async ({ siteId, confirm, dryRun, ...fields }) => {
       try {
         const body = toBodyFields(fields);
         checkBody(body, body);
+        const guard = requireConfirmationIf(
+          securityType(body) === "OPEN" ? "This creates an open SSID with no encryption" : undefined,
+          confirm, dryRun
+        );
+        if (guard) return guard;
         if (containsRedacted(body)) {
           throw new Error(`securityConfiguration contains "${REDACTED}" — a new SSID needs the real passphrase`);
         }
@@ -287,6 +304,7 @@ export function registerWifiTools(
         siteId: resourceId().describe("Site ID"),
         wifiBroadcastId: resourceId().describe("WiFi Broadcast ID"),
         ...wifiFields,
+        confirm: confirmSecurity,
         dryRun: z
           .boolean()
           .optional()
@@ -295,7 +313,7 @@ export function registerWifiTools(
       outputSchema: writeResult(getWifiOutputSchema),
       annotations: WRITE,
     },
-    async ({ siteId, wifiBroadcastId, dryRun, ...fields }) => {
+    async ({ siteId, wifiBroadcastId, confirm, dryRun, ...fields }) => {
       try {
         const path = `/sites/${siteId}/wifi/broadcasts/${wifiBroadcastId}`;
         return await withResourceLock(path, async () => {
@@ -304,6 +322,12 @@ export function registerWifiTools(
           const { allowed } = fieldsForType(updates.type ?? current.type);
           const body = mergeForPut(current, updates, allowed);
           checkBody(body, updates);
+          const [before, after] = [securityType(current), securityType(body)];
+          const guard = requireConfirmationIf(
+            before === after ? undefined : `This changes the SSID's security from ${String(before)} to ${String(after)}`,
+            confirm, dryRun
+          );
+          if (guard) return guard;
           if (dryRun) return formatDryRun("PUT", path, redactSecrets(body));
           const data = await client.put(path, body);
           return formatSuccess(redactSecrets(data), { structured: true });

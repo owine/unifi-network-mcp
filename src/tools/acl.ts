@@ -10,6 +10,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  requireConfirmationIf,
 } from "../utils/safety.js";
 import {
   listAclRulesOutputSchema,
@@ -27,6 +28,28 @@ const ACL_RULE_FIELDS = [
   "enforcingDeviceFilter", "sourceFilter", "destinationFilter", "protocolFilter",
 ] as const;
 const ACL_RULE_REQUIRED = ["type", "enabled", "name", "action"] as const;
+
+/**
+ * What an ACL rule write would open, if anything: a new or changed ALLOW,
+ * or a BLOCK rule switched off. before is undefined on create.
+ */
+function aclOpening(
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown>
+): string | undefined {
+  if (after.action === "ALLOW" && before?.action !== "ALLOW") {
+    return before ? "This changes the ACL rule's action to ALLOW" : "This creates an ACL rule that ALLOWs traffic";
+  }
+  if (before?.enabled === true && after.enabled === false && before.action === "BLOCK") {
+    return "This disables an ACL rule that blocks traffic";
+  }
+  return undefined;
+}
+
+const confirmOpening = z
+  .boolean()
+  .optional()
+  .describe("Set true to confirm a change that lets traffic through: an ALLOW action, or disabling a BLOCK rule");
 
 export function registerAclTools(
   server: McpServer,
@@ -146,6 +169,7 @@ export function registerAclTools(
           .unknown()
           .optional()
           .describe("Device filter object (with a type discriminator) selecting the switch-capable devices that enforce the rule. When null/omitted, the rule is provisioned to all switches on the site"),
+        confirm: confirmOpening,
         dryRun: z
           .boolean()
           .optional()
@@ -154,7 +178,9 @@ export function registerAclTools(
       outputSchema: writeResult(aclRuleOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
-    async ({ siteId, type, name, enabled, action, description, protocolFilter, sourceFilter, destinationFilter, enforcingDeviceFilter, dryRun }) => {
+    async ({ siteId, type, name, enabled, action, description, protocolFilter, sourceFilter, destinationFilter, enforcingDeviceFilter, confirm, dryRun }) => {
+      const guard = requireConfirmationIf(aclOpening(undefined, { action }), confirm, dryRun);
+      if (guard) return guard;
       try {
         const body: Record<string, unknown> = { type, name, enabled, action };
         if (description !== undefined) body.description = description;
@@ -204,6 +230,7 @@ export function registerAclTools(
           .unknown()
           .optional()
           .describe("Device filter object (with a type discriminator) selecting the switch-capable devices that enforce the rule. When null/omitted, the rule is provisioned to all switches on the site"),
+        confirm: confirmOpening,
         dryRun: z
           .boolean()
           .optional()
@@ -212,7 +239,7 @@ export function registerAclTools(
       outputSchema: writeResult(aclRuleOutputSchema),
       annotations: WRITE,
     },
-    async ({ siteId, aclRuleId, dryRun, ...fields }) => {
+    async ({ siteId, aclRuleId, confirm, dryRun, ...fields }) => {
       try {
         const path = `/sites/${siteId}/acl-rules/${aclRuleId}`;
         return await withResourceLock(path, async () => {
@@ -222,6 +249,8 @@ export function registerAclTools(
           if (missing.length > 0) {
             throw new Error(`Missing required fields: ${missing.join(", ")}`);
           }
+          const guard = requireConfirmationIf(aclOpening(current, body), confirm, dryRun);
+          if (guard) return guard;
           if (dryRun) return formatDryRun("PUT", path, body);
           const data = await client.put(path, body);
           return formatSuccess(data, { structured: true });

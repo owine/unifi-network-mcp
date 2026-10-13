@@ -165,7 +165,9 @@ describe("dry-run on destructive tools", () => {
   const { server: mockServer, handlers, configs } = createMockServer();
   const mockClient = createMockClient();
   registerAllTools(mockServer, mockClient, false);
-  const destructive = [...configs].filter(([, config]) => "confirm" in config.schema);
+  // Only destructive tools always need confirm; others ask for it only when
+  // a particular change opens access (tests/tools/security-confirm.test.ts).
+  const destructive = [...configs].filter(([, config]) => config.annotations.destructiveHint === true);
 
   // Fill every required input with an ID-shaped string; the tools that take
   // confirm need nothing else.

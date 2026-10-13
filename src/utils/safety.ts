@@ -40,6 +40,20 @@ export function formatDryRun(
   };
 }
 
+/**
+ * Confirmation for a write that is routine in general but, with these inputs,
+ * opens access — an ALLOW rule, an open SSID, a batch of guest codes. reason
+ * says what opens, or is undefined when nothing does; a dry run changes
+ * nothing, so it never needs confirming.
+ */
+export function requireConfirmationIf(
+  reason: string | undefined,
+  confirm: boolean | undefined,
+  dryRun: boolean | undefined
+) {
+  return reason === undefined || dryRun ? null : requireConfirmation(confirm, reason);
+}
+
 export function requireConfirmation(
   confirm: boolean | undefined,
   action: string

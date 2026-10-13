@@ -10,6 +10,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  requireConfirmationIf,
 } from "../utils/safety.js";
 import {
   asObject,
@@ -56,6 +57,33 @@ const FIREWALL_POLICY_REQUIRED = [
 
 // Present in responses but not part of the request body.
 const FIREWALL_POLICY_READ_ONLY: readonly string[] = ["id", "index", "metadata"];
+
+function actionType(policy: Record<string, unknown>): unknown {
+  const action = policy.action;
+  return action !== null && typeof action === "object" && "type" in action ? action.type : undefined;
+}
+
+/**
+ * What a firewall policy write would open, if anything: a new or changed
+ * ALLOW, or a blocking policy switched off. before is undefined on create.
+ */
+function firewallOpening(
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown>
+): string | undefined {
+  if (actionType(after) === "ALLOW" && (before === undefined || actionType(before) !== "ALLOW")) {
+    return before ? "This changes the firewall policy's action to ALLOW" : "This creates a firewall policy that ALLOWs traffic";
+  }
+  if (before?.enabled === true && after.enabled === false && actionType(before) !== "ALLOW") {
+    return "This disables a firewall policy that blocks traffic";
+  }
+  return undefined;
+}
+
+const confirmOpening = z
+  .boolean()
+  .optional()
+  .describe("Set true to confirm a change that lets traffic through: an ALLOW action, or disabling a policy that blocks");
 
 const FIREWALL_POLICY_BODY_DOC =
   "required enabled, name (non-empty), action ({type: ALLOW|BLOCK, allowReturnTraffic? on ALLOW}), source and destination ({zoneId, trafficFilter?}), ipProtocolScope ({ipVersion, protocolFilter?}), loggingEnabled; optional description, connectionStateFilter (array of NEW/INVALID/ESTABLISHED/RELATED), ipsecFilter (MATCH_ENCRYPTED/MATCH_NOT_ENCRYPTED), schedule (null = always active), reportFlowEnabled (report matches in Insights Flows; defaults to true when omitted).";
@@ -325,6 +353,7 @@ export function registerFirewallTools(
         policy: z
           .record(z.string(), z.unknown())
           .describe("Firewall policy configuration (JSON object)"),
+        confirm: confirmOpening,
         dryRun: z
           .boolean()
           .optional()
@@ -333,7 +362,9 @@ export function registerFirewallTools(
       outputSchema: writeResult(firewallPolicyOutputSchema),
       annotations: WRITE_NOT_IDEMPOTENT,
     },
-    async ({ siteId, policy, dryRun }) => {
+    async ({ siteId, policy, confirm, dryRun }) => {
+      const guard = requireConfirmationIf(firewallOpening(undefined, policy), confirm, dryRun);
+      if (guard) return guard;
       try {
         if (dryRun) return formatDryRun("POST", `/sites/${siteId}/firewall/policies`, policy);
         const data = await client.post(`/sites/${siteId}/firewall/policies`, policy);
@@ -354,6 +385,7 @@ export function registerFirewallTools(
         policy: z
           .record(z.string(), z.unknown())
           .describe("Firewall policy fields to change (JSON object); null clears an optional field such as schedule"),
+        confirm: confirmOpening,
         dryRun: z
           .boolean()
           .optional()
@@ -362,7 +394,7 @@ export function registerFirewallTools(
       outputSchema: writeResult(firewallPolicyOutputSchema),
       annotations: WRITE,
     },
-    async ({ siteId, firewallPolicyId, policy, dryRun }) => {
+    async ({ siteId, firewallPolicyId, policy, confirm, dryRun }) => {
       try {
         const path = `/sites/${siteId}/firewall/policies/${firewallPolicyId}`;
         const updates = Object.fromEntries(
@@ -379,6 +411,8 @@ export function registerFirewallTools(
           if (missing.length > 0) {
             throw new Error(`Missing required fields: ${missing.join(", ")}`);
           }
+          const guard = requireConfirmationIf(firewallOpening(current, body), confirm, dryRun);
+          if (guard) return guard;
           if (dryRun) return formatDryRun("PUT", path, body);
           const data = await client.put(path, body);
           return formatSuccess(data, { structured: true });
@@ -399,6 +433,7 @@ export function registerFirewallTools(
         policy: z
           .record(z.string(), z.unknown())
           .describe("Partial firewall policy fields to update (e.g. { loggingEnabled: true } or { reportFlowEnabled: false })"),
+        confirm: confirmOpening,
         dryRun: z
           .boolean()
           .optional()
@@ -407,7 +442,13 @@ export function registerFirewallTools(
       outputSchema: writeResult(firewallPolicyOutputSchema),
       annotations: WRITE,
     },
-    async ({ siteId, firewallPolicyId, policy, dryRun }) => {
+    async ({ siteId, firewallPolicyId, policy, confirm, dryRun }) => {
+      // A PATCH reads nothing first, so judge it by what it sets.
+      const opening = policy.enabled === false
+        ? "This disables the firewall policy"
+        : firewallOpening(undefined, policy);
+      const guard = requireConfirmationIf(opening, confirm, dryRun);
+      if (guard) return guard;
       try {
         const path = `/sites/${siteId}/firewall/policies/${firewallPolicyId}`;
         if (dryRun) return formatDryRun("PATCH", path, policy);
