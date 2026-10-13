@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createMockServer, createMockClient, mockFn } from "./_helpers.js";
+import { createMockServer, createMockClient, mockFn, parseInputSchema } from "./_helpers.js";
 import { registerHotspotTools } from "../../src/tools/hotspot.js";
 
 describe("registerHotspotTools", () => {
@@ -486,5 +486,18 @@ describe("registerHotspotTools", () => {
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Delete failed");
     });
+  });
+});
+
+describe("voucher input bounds", () => {
+  const { server, configs } = createMockServer();
+  registerHotspotTools(server, createMockClient(), false);
+
+  it("lists 25 vouchers by default, like the other list tools", () => {
+    expect(parseInputSchema(configs, "unifi_list_vouchers").parse({ siteId: "site1" }).limit).toBe(25);
+  });
+
+  it.each(["", "   "])("rejects bulk delete with a blank filter %j", (filter) => {
+    expect(parseInputSchema(configs, "unifi_bulk_delete_vouchers").safeParse({ siteId: "site1", filter }).success).toBe(false);
   });
 });

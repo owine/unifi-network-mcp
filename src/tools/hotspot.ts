@@ -42,8 +42,8 @@ export function registerHotspotTools(
           .min(0)
           .max(1000)
           .optional()
-          .default(100)
-          .describe("Number of records to return (default: 100, max: 1000)"),
+          .default(25)
+          .describe("Number of records to return (default: 25, max: 1000)"),
         filter: z
           .string()
           .optional()
@@ -226,6 +226,8 @@ export function registerHotspotTools(
         siteId: resourceId().describe("Site ID"),
         filter: z
           .string()
+          .trim()
+          .min(1)
           .describe(
             "Required filter expression (e.g., 'expired.eq(true)', name.like('guest*'))"
           ),
