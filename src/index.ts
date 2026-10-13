@@ -5,6 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { loadConfig } from "./config.js";
 import { NetworkClient } from "./client.js";
 import { registerAllTools } from "./tools/index.js";
+import { serverInstructions } from "./instructions.js";
 
 // Read at runtime rather than importing: package.json sits outside rootDir,
 // so a static import would emit dist/src/ and break the published layout.
@@ -16,10 +17,10 @@ async function main() {
   const config = loadConfig();
   const client = new NetworkClient(config);
 
-  const server = new McpServer({
-    name: "unifi-network",
-    version,
-  });
+  const server = new McpServer(
+    { name: "unifi-network", title: "UniFi Network", version },
+    { instructions: serverInstructions(config.readOnly) }
+  );
 
   registerAllTools(server, client, config.readOnly);
 

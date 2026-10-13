@@ -139,3 +139,36 @@ describe("output schemas through the SDK", () => {
     expect(result.isError).toBeFalsy();
   });
 });
+
+describe("tool metadata through the SDK", () => {
+  let tools: Awaited<ReturnType<Client["listTools"]>>["tools"];
+
+  beforeAll(async () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    registerAllTools(server, createMockClient(), false);
+    const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+    const mcpClient = new Client({ name: "test-client", version: "0.0.0" });
+    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+    tools = (await mcpClient.listTools()).tools;
+    await mcpClient.close();
+  });
+
+  it("gives every tool a readable title", () => {
+    for (const tool of tools) expect(tool.title, tool.name).toMatch(/^[A-Z][^_]*$/);
+  });
+
+  it.each([
+    ["unifi_get_acl_rule", "Get ACL rule"],
+    ["unifi_list_mc_lag_domains", "List MC-LAG domains"],
+    ["unifi_list_wifi", "List WiFi"],
+    ["unifi_list_wans", "List WANs"],
+    ["unifi_list_dpi_categories", "List DPI categories"],
+    ["unifi_list_radius_profiles", "List RADIUS profiles"],
+  ])("titles %s as %s", (name, title) => {
+    expect(tools.find((tool) => tool.name === name)?.title).toBe(title);
+  });
+
+  it("marks every tool as talking to one closed system", () => {
+    for (const tool of tools) expect(tool.annotations?.openWorldHint, tool.name).toBe(false);
+  });
+});

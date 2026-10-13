@@ -46,6 +46,7 @@ export function registerAllTools(
  * - Handlers run with their call's abort signal in scope, so NetworkClient
  *   aborts the controller request when the MCP client cancels the call. The
  *   SDK passes that signal in `extra`, the handler's last argument.
+ * - Each tool gets a human-readable title derived from its name.
  * - The outputSchema is published as a loose object. The SDK client validates
  *   structuredContent against the published JSON Schema, and tools pass the
  *   controller's response through; a raw shape publishes
@@ -55,11 +56,12 @@ export function registerAllTools(
 function instrumentTools(server: McpServer): McpServer {
   const registerTool = (
     name: string,
-    config: { outputSchema?: z.ZodRawShape | z.ZodObject },
+    config: { title?: string; outputSchema?: z.ZodRawShape | z.ZodObject },
     handler: (...args: unknown[]) => unknown
   ) =>
     server.registerTool(name, {
       ...config,
+      title: config.title ?? toolTitle(name),
       ...(config.outputSchema ? { outputSchema: looseOutput(config.outputSchema) } : {}),
     }, ((...args: unknown[]) => {
       const extra = args.at(-1) as { signal?: unknown } | undefined;
@@ -70,4 +72,17 @@ function instrumentTools(server: McpServer): McpServer {
     get: (target, prop, receiver) =>
       prop === "registerTool" ? registerTool : (Reflect.get(target, prop, receiver) as unknown),
   });
+}
+
+// Words in tool names that read wrongly in plain sentence case.
+const TITLE_WORDS: Record<string, string> = {
+  acl: "ACL", dns: "DNS", dpi: "DPI", vpn: "VPN", radius: "RADIUS",
+  wifi: "WiFi", wan: "WAN", wans: "WANs", lag: "LAG", lags: "LAGs", mc: "MC",
+};
+
+/** "unifi_list_mc_lag_domains" → "List MC-LAG domains". */
+export function toolTitle(name: string): string {
+  const words = name.replace(/^unifi_/, "").split("_").map((word) => TITLE_WORDS[word] ?? word);
+  const title = words.join(" ").replace("MC LAG", "MC-LAG");
+  return title.charAt(0).toUpperCase() + title.slice(1);
 }

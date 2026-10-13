@@ -3,24 +3,28 @@ import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 export const READ_ONLY: ToolAnnotations = {
   readOnlyHint: true,
   destructiveHint: false,
+  openWorldHint: false,
 };
 
 export const WRITE: ToolAnnotations = {
   readOnlyHint: false,
   destructiveHint: false,
   idempotentHint: true,
+  openWorldHint: false,
 };
 
 export const WRITE_NOT_IDEMPOTENT: ToolAnnotations = {
   readOnlyHint: false,
   destructiveHint: false,
   idempotentHint: false,
+  openWorldHint: false,
 };
 
 export const DESTRUCTIVE: ToolAnnotations = {
   readOnlyHint: false,
   destructiveHint: true,
   idempotentHint: false,
+  openWorldHint: false,
 };
 
 export function formatDryRun(

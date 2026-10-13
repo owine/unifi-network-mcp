@@ -49,6 +49,7 @@ src/
   index.ts            # Entry point — creates server, connects stdio transport
   config.ts           # Loads and validates env vars with Zod
   client.ts           # NetworkClient — HTTP wrapper for the Network API
+  instructions.ts     # serverInstructions() — cross-tool guidance sent to MCP hosts
   tools/              # Tool handlers, one file per API domain
     index.ts          # registerAllTools() — wires all tool modules
     system.ts         # System info (1 tool)

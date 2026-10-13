@@ -30,6 +30,7 @@ async function listTools(readOnly) {
   try {
     const served = client.getServerVersion()?.version;
     if (served !== version) throw new Error(`server reports version ${served}, package.json says ${version}`);
+    if (!client.getInstructions()) throw new Error("server sent no instructions");
     return (await client.listTools()).tools;
   } finally {
     await client.close();
