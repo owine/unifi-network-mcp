@@ -16,6 +16,12 @@ const configSchema = z.object({
     .boolean()
     .default(true)
     .describe("When true, only read-only tools are registered"),
+}).refine((config) => config.verifySsl || config.host !== "api.ui.com", {
+  // Opting out of verification is for local consoles with self-signed
+  // certificates. A Site Manager key reaches every console on the account
+  // and crosses the internet, so it never goes out unverified.
+  path: ["verifySsl"],
+  message: "TLS verification cannot be disabled for api.ui.com; unset UNIFI_NETWORK_VERIFY_SSL",
 });
 
 export type Config = z.infer<typeof configSchema>;

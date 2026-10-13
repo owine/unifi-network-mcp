@@ -71,6 +71,26 @@ describe("loadConfig", () => {
 
   // ── verifySsl boolean parsing ──────────────────────────────────────
 
+  it("should exit when TLS verification is disabled for api.ui.com", () => {
+    // The Cloud Connector key reaches every console on the account, over the
+    // internet: never send it without verifying the certificate.
+    process.env.UNIFI_NETWORK_HOST = "api.ui.com";
+    process.env.UNIFI_NETWORK_VERIFY_SSL = "false";
+    const exitMock = vi
+      .spyOn(process, "exit")
+      .mockImplementation(() => undefined as never);
+    const errorMock = vi.spyOn(console, "error").mockImplementation(vi.fn());
+
+    loadConfig();
+    expect(exitMock).toHaveBeenCalledWith(1);
+    expect(JSON.stringify(errorMock.mock.calls)).toContain("api.ui.com");
+  });
+
+  it("should allow disabling TLS verification for a local console", () => {
+    process.env.UNIFI_NETWORK_VERIFY_SSL = "false";
+    expect(loadConfig().verifySsl).toBe(false);
+  });
+
   it("should default verifySsl to true when env var is missing", () => {
     const config = loadConfig();
     expect(config.verifySsl).toBe(true);
