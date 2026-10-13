@@ -57,8 +57,17 @@ describe("formatError", () => {
     expect(formatError(err).content[0].text).toBe("Error: fetch failed (ECONNREFUSED)");
   });
 
-  it("points a certificate failure at the TLS setting", () => {
-    const err = new TypeError("fetch failed", { cause: Object.assign(new Error("self-signed certificate"), { code: "SELF_SIGNED_CERT_IN_CHAIN" }) });
+  // The codes Node raises against a console's self-signed certificate,
+  // depending on how the certificate and chain look and whether the host is an IP.
+  it.each([
+    "SELF_SIGNED_CERT_IN_CHAIN",
+    "DEPTH_ZERO_SELF_SIGNED_CERT",
+    "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+    "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+    "ERR_TLS_CERT_ALTNAME_INVALID",
+    "CERT_HAS_EXPIRED",
+  ])("points a %s failure at the TLS setting", (code) => {
+    const err = new TypeError("fetch failed", { cause: Object.assign(new Error("certificate"), { code }) });
     expect(formatError(err).content[0].text).toContain("UNIFI_NETWORK_VERIFY_SSL");
   });
 });

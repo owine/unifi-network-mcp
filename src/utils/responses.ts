@@ -26,7 +26,7 @@ export function formatError(err: unknown) {
   const code = cause instanceof Error && "code" in cause && typeof cause.code === "string" ? cause.code : undefined;
   if (code) {
     message += ` (${code})`;
-    if (/CERT|SELF_SIGNED/.test(code)) {
+    if (/CERT|SELF_SIGNED|LEAF_SIGNATURE/.test(code)) {
       message += ". The console's TLS certificate did not verify; for a local console with a self-signed certificate, set UNIFI_NETWORK_VERIFY_SSL=false";
     }
   }
