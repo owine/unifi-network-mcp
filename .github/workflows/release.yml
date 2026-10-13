@@ -21,6 +21,10 @@ jobs:
     runs-on: ubuntu-26.04
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      # The commit the release was tagged at. release-please tags main as it
+      # is when the job runs, which need not be the commit this run was
+      # triggered for.
+      sha: ${{ steps.release.outputs.sha }}
     steps:
       # Mint a GitHub App installation token so release-please's PRs/tags are
       # authored by the App, not the default GITHUB_TOKEN. PRs created by the
@@ -47,10 +51,11 @@ jobs:
       contents: read
       id-token: write
     steps:
-      # Publish the commit CI validated, not whatever main points at by now.
+      # Publish exactly the tagged commit, so the npm version matches its tag
+      # and changelog; the test steps below re-verify it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.release-please.outputs.sha }}
       # `node-version-file: false` opts out of v3's automatic .nvmrc detection.
       # Without it v3 would install Node, which setup-node below then reinstalls
       # and shadows on PATH — a wasted runtime download and two competing
@@ -59,9 +64,10 @@ jobs:
         with:
           install: false
           node-version-file: false
-      # setup-node is required here regardless of pnpm/setup: it writes the
-      # .npmrc that `registry-url` + NODE_AUTH_TOKEN need for `npm publish`.
-      # pnpm/setup's `runtime` input does not configure registry auth.
+      # setup-node's `registry-url` writes the .npmrc that points npm at the
+      # registry; `npm publish` authenticates through OIDC trusted publishing
+      # (id-token: write), so no token secret is involved. pnpm/setup's
+      # `runtime` input does not write that .npmrc.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -72,6 +78,10 @@ jobs:
       # provenance. The build needs none of them.
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run build
+      - run: pnpm test
+      # Install the packed tarball into an empty project and check the binary
+      # serves tools over stdio, before anything is published.
+      - run: sh scripts/smoke-package.sh
       # Publish stays on npm — most battle-tested OIDC provenance + scoped-package flow.
       # pnpm install/build above produces identical dist/, so the published artifact is the same.
       - run: npm publish --provenance --access public

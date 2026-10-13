@@ -3,7 +3,14 @@ import { defineConfig } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-  { ignores: ["dist/"] },
+  { ignores: ["dist/", "coverage/"] },
+  {
+    // Plain Node scripts run in CI; declare the Node globals they use.
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: { console: "readonly", process: "readonly", URL: "readonly" },
+    },
+  },
   eslint.configs.recommended,
   tseslint.configs.strict,
   tseslint.configs.stylistic,
