@@ -282,7 +282,7 @@ export function registerWifiTools(
   server.registerTool(
     "unifi_update_wifi",
     {
-      description: `Update an existing WiFi network. Pass only the fields to change. The API's PUT replaces the whole SSID (11.0.83 documents 14 required fields for STANDARD, 10 for IOT_OPTIMIZED), so this tool reads the current SSID, keeps every documented body field, overlays your changes and sends the full body — omitted fields keep their current values instead of being reset. Pass null to clear an optional config (e.g. broadcastingDeviceFilter: null broadcasts from all APs). Passphrases are kept unless you send a new one; "${REDACTED}" values are treated as "keep". dryRun shows the merged body (secrets redacted).`,
+      description: `Update an existing WiFi network. Pass only the fields to change. The API's PUT replaces the whole SSID (11.0.83 documents 14 required fields for STANDARD, 10 for IOT_OPTIMIZED), so this tool reads the current SSID, keeps every documented body field, overlays your changes and sends the full body — omitted fields keep their current values instead of being reset. Pass null to clear an optional config (e.g. broadcastingDeviceFilter: null broadcasts from all APs). Top-level objects are replaced whole: to change one security setting, start from the securityConfiguration unifi_get_wifi returns and edit it, since a partial object drops the passphrase or presharedKeys it omits. Passphrases are kept if you omit securityConfiguration or echo its "${REDACTED}" values; send a new one to change it. dryRun shows the merged body (secrets redacted).`,
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         wifiBroadcastId: resourceId().describe("WiFi Broadcast ID"),
