@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from "vitest";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { registerAllTools } from "../src/tools/index.js";
+import { NetworkClient } from "../src/client.js";
 import { formatDryRun } from "../src/utils/safety.js";
 import { createMockServer, createMockClient } from "./tools/_helpers.js";
 
@@ -59,4 +60,36 @@ describe("dry-run preview against every write tool's outputSchema", () => {
       expect(schema.safeParse(preview.structuredContent).success).toBe(true);
     });
   }
+});
+
+describe("cancellation through the SDK", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("aborts the controller request when the MCP client cancels the call", async () => {
+    let requestSignal: AbortSignal | undefined;
+    vi.stubGlobal("fetch", (_url: string, options: RequestInit) => {
+      requestSignal = options.signal ?? undefined;
+      // A controller that never answers: settle only when the request aborts.
+      return new Promise((_resolve, reject) => {
+        options.signal?.addEventListener("abort", () => reject(options.signal?.reason));
+      });
+    });
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const config = { host: "192.168.1.1", apiKey: "k", verifySsl: true, readOnly: true };
+    registerAllTools(server, new NetworkClient(config), true);
+    const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+    const mcpClient = new Client({ name: "test-client", version: "0.0.0" });
+    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+
+    const controller = new AbortController();
+    const call = mcpClient.callTool({ name: "unifi_list_sites", arguments: {} }, undefined, { signal: controller.signal });
+    await vi.waitFor(() => expect(requestSignal).toBeDefined());
+    controller.abort();
+
+    await expect(call).rejects.toThrow();
+    await vi.waitFor(() => expect(requestSignal?.aborted).toBe(true));
+    await mcpClient.close();
+  });
 });

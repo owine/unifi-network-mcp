@@ -1,8 +1,25 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { Config } from "./config.js";
 
 // Well under undici's 300s default, so a stalled controller fails the call
 // before the MCP host gives up on it.
 const REQUEST_TIMEOUT_MS = 30_000;
+
+// The abort signal of the MCP tool call a request is made for. Without it a
+// cancelled (or abandoned) call keeps its request running, and a write lands
+// after the host has already reported the call as failed.
+const callSignal = new AsyncLocalStorage<AbortSignal>();
+
+/** Run fn so that every request it makes is aborted when signal is. */
+export function withCallSignal<T>(signal: AbortSignal | undefined, fn: () => T): T {
+  return signal ? callSignal.run(signal, fn) : fn();
+}
+
+function requestSignal(timeoutMs: number): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const caller = callSignal.getStore();
+  return caller ? AbortSignal.any([caller, timeout]) : timeout;
+}
 
 export class NetworkClient {
   private baseUrl: string;
@@ -42,7 +59,7 @@ export class NetworkClient {
       method,
       headers: this.headers,
       redirect: "error",
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      signal: requestSignal(REQUEST_TIMEOUT_MS),
     };
 
     if (body !== undefined) {
@@ -146,7 +163,7 @@ export class NetworkClient {
     const response = await fetch(`${this.networkUrl}${path}`, {
       method: body === undefined ? "GET" : "POST", headers: this.headers,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      redirect: "error", signal: AbortSignal.timeout(25000),
+      redirect: "error", signal: requestSignal(25000),
     });
     if (!response.ok) {
       // Drain before throwing: an unread body pins the socket until GC, so a
