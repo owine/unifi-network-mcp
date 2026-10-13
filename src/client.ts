@@ -15,6 +15,30 @@ export function withCallSignal<T>(signal: AbortSignal | undefined, fn: () => T):
   return signal ? callSignal.run(signal, fn) : fn();
 }
 
+const ERROR_BODY_LIMIT = 500;
+
+/**
+ * The useful part of an error body for the model: the API's documented
+ * message, code and request ID, or a capped excerpt of anything else (a proxy
+ * or UniFi OS HTML error page would otherwise land in the context whole).
+ */
+function describeErrorBody(text: string): string {
+  try {
+    const body: unknown = JSON.parse(text);
+    if (body && typeof body === "object" && "message" in body && typeof body.message === "string") {
+      const details = [
+        "code" in body && typeof body.code === "string" ? body.code : undefined,
+        "requestId" in body && typeof body.requestId === "string" ? `request ${body.requestId}` : undefined,
+      ].filter((detail) => detail !== undefined);
+      return details.length > 0 ? `${body.message} (${details.join("; ")})` : body.message;
+    }
+  } catch {
+    // Not JSON: fall through to the excerpt.
+  }
+  const excerpt = text.replace(/\s+/g, " ").trim();
+  return excerpt.length > ERROR_BODY_LIMIT ? `${excerpt.slice(0, ERROR_BODY_LIMIT)}…` : excerpt;
+}
+
 function requestSignal(timeoutMs: number): AbortSignal {
   const timeout = AbortSignal.timeout(timeoutMs);
   const caller = callSignal.getStore();
@@ -81,8 +105,7 @@ export class NetworkClient {
     }
 
     if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`HTTP ${response.status}: ${text}`);
+      throw new Error(`HTTP ${response.status}: ${describeErrorBody(await response.text())}`);
     }
 
     const contentType = response.headers.get("content-type") ?? "";

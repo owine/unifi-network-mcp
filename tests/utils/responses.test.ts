@@ -51,4 +51,14 @@ describe("formatError", () => {
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toBeDefined();
   });
+
+  it("names the network cause behind a bare fetch failure", () => {
+    const err = new TypeError("fetch failed", { cause: Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }) });
+    expect(formatError(err).content[0].text).toBe("Error: fetch failed (ECONNREFUSED)");
+  });
+
+  it("points a certificate failure at the TLS setting", () => {
+    const err = new TypeError("fetch failed", { cause: Object.assign(new Error("self-signed certificate"), { code: "SELF_SIGNED_CERT_IN_CHAIN" }) });
+    expect(formatError(err).content[0].text).toContain("UNIFI_NETWORK_VERIFY_SSL");
+  });
 });

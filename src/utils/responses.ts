@@ -19,7 +19,17 @@ export function formatSuccess(data: unknown, opts?: { structured?: boolean }) {
 }
 
 export function formatError(err: unknown) {
-  const message = err instanceof Error ? err.message : String(err);
+  let message = err instanceof Error ? err.message : String(err);
+  // fetch reports every network failure as "fetch failed" and keeps the reason
+  // (ECONNREFUSED, ENOTFOUND, a certificate error) in cause.
+  const cause = err instanceof Error ? err.cause : undefined;
+  const code = cause instanceof Error && "code" in cause && typeof cause.code === "string" ? cause.code : undefined;
+  if (code) {
+    message += ` (${code})`;
+    if (/CERT|SELF_SIGNED/.test(code)) {
+      message += ". The console's TLS certificate did not verify; for a local console with a self-signed certificate, set UNIFI_NETWORK_VERIFY_SSL=false";
+    }
+  }
   return {
     content: [{ type: "text" as const, text: `Error: ${message}` }],
     isError: true,

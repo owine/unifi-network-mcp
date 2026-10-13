@@ -221,6 +221,35 @@ describe("NetworkClient", () => {
     });
   });
 
+  // ── Error bodies ──────────────────────────────────────────────────
+
+  describe("error bodies", () => {
+    let client: NetworkClient;
+
+    beforeEach(() => {
+      client = new NetworkClient(makeConfig());
+    });
+
+    it("reports the message and code of a documented API error", async () => {
+      fetchMock.mockResolvedValue(mockResponse(JSON.stringify({
+        statusCode: 400, statusName: "UNAUTHORIZED", code: "api.authentication.missing-credentials",
+        message: "Missing credentials", timestamp: "2024-11-27T08:13:46.966Z",
+        requestPath: "/integration/v1/sites/123", requestId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      }), { ok: false, status: 400 }));
+      await expect(client.get("/sites/123")).rejects.toThrow(
+        /^HTTP 400: Missing credentials \(api\.authentication\.missing-credentials; request 3fa85f64-5717-4562-b3fc-2c963f66afa6\)$/
+      );
+    });
+
+    it("caps a non-JSON error body", async () => {
+      const page = "<html><body>" + "Bad gateway ".repeat(200) + "</body></html>";
+      fetchMock.mockResolvedValue(mockResponse(page, { ok: false, status: 502, contentType: "text/html" }));
+      const err = await client.get("/sites").catch((e: Error) => e);
+      expect((err as Error).message.length).toBeLessThan(520);
+      expect((err as Error).message).toMatch(/^HTTP 502: <html><body>Bad gateway Bad gateway .*…$/);
+    });
+  });
+
   // ── Path guard ────────────────────────────────────────────────────
 
   describe("path guard", () => {
