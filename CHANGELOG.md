@@ -1,5 +1,40 @@
 # Changelog
 
+## [3.0.0](https://github.com/owine/unifi-network-mcp/compare/2.15.0...3.0.0) (2026-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* the server refuses to start with UNIFI_NETWORK_HOST=api.ui.com and UNIFI_NETWORK_VERIFY_SSL=false; writes that open access (ALLOW firewall policies and ACL rules, disabling blocking ones, open SSIDs or SSID security-type changes, more than 10 vouchers at once) need confirm: true; resource ID inputs accept only letters, digits, - and _; unifi_list_client_sessions defaults to 100 rows and unifi_list_vouchers to 25, unifi_list_client_history returns at most limit (default 100) most recently seen clients, and both history tools return only their schema fields; tool text output is compact JSON. See "Upgrading from 2.x" in the README.
+
+### Features
+
+* give MCP hosts server instructions and tool titles ([6dc9592](https://github.com/owine/unifi-network-mcp/commit/6dc9592bfeb01e76223b5a28a32f2412ea647e19))
+* verify self-signed consoles with UNIFI_NETWORK_CA_CERT and scope TLS to the client ([6b9c441](https://github.com/owine/unifi-network-mcp/commit/6b9c4411a1928708b1b7749f819a1de5e2d4ed08))
+
+
+### Bug Fixes
+
+* abort controller requests when the MCP call is cancelled ([9d9d3e3](https://github.com/owine/unifi-network-mcp/commit/9d9d3e30353ea56cf913975e090a55d44dc5638f))
+* accept only API ID characters in resource ID inputs ([9887fba](https://github.com/owine/unifi-network-mcp/commit/9887fba3f65275f7ce4424abf7ca01a7bced3598))
+* bound client history output to fit an MCP result ([41c9b10](https://github.com/owine/unifi-network-mcp/commit/41c9b10c1f551f91aaf539b0655826fecb6d09f0))
+* cap the message of a JSON error body too ([968c432](https://github.com/owine/unifi-network-mcp/commit/968c432336060b7a88b56dfd8db2d9b55baa19a4))
+* confine API requests to the Integration API and bound them in time ([7f5cc77](https://github.com/owine/unifi-network-mcp/commit/7f5cc77014acb4a58049fefe0b12d8845a45518c))
+* correct tool descriptions and server instructions from a docs audit ([cfdf370](https://github.com/owine/unifi-network-mcp/commit/cfdf3701d3e742612c87b657b8ba75a0a6dc9a01))
+* let destructive tools preview without confirm ([6009983](https://github.com/owine/unifi-network-mcp/commit/600998392308863e6a88909657a6d3ce18bfd480))
+* let tool results carry fields their output schema does not list ([996dca3](https://github.com/owine/unifi-network-mcp/commit/996dca38383291ea4245fe6bb1f3997df0cd4fc8))
+* make controller and network errors short and actionable ([346af52](https://github.com/owine/unifi-network-mcp/commit/346af527e05fa6225edd088eb72994d22628da6b))
+* merge ACL rule updates into the full PUT body ([648d6a1](https://github.com/owine/unifi-network-mcp/commit/648d6a18360dcba9f3a7fb067cf3c046c63851de))
+* name the TLS setting for every self-signed certificate error ([590f96c](https://github.com/owine/unifi-network-mcp/commit/590f96ce4ec056ed12b76ce0590d5392e9b62d84))
+* refuse to disable TLS verification for api.ui.com ([264b099](https://github.com/owine/unifi-network-mcp/commit/264b099ea1011485d2452ea2b3953cb4e1a79294))
+* reject a blank bulk-delete filter and list fewer vouchers by default ([5118cd6](https://github.com/owine/unifi-network-mcp/commit/5118cd6c7565e2d0a5dda1c826679951eef79ec0))
+* report mayBeTruncated from the controller's page, not the deduped rows ([8145774](https://github.com/owine/unifi-network-mcp/commit/8145774f22a523a073f4a2c6faf0d6a6e45f3602))
+* require confirm for writes that open access ([3d35646](https://github.com/owine/unifi-network-mcp/commit/3d35646c45980c3fe277997e9987a083ba3d0e9d))
+* return dry-run previews that pass SDK output validation ([43ed189](https://github.com/owine/unifi-network-mcp/commit/43ed189880d60720319ee38a7866bf4b72ca2199))
+* return tool results as compact JSON ([d460d10](https://github.com/owine/unifi-network-mcp/commit/d460d100268b7e609cb1d30c584b7a830982277e))
+* serialise read-merge-write updates to the same resource ([2af289a](https://github.com/owine/unifi-network-mcp/commit/2af289a4bae660bc46605c2049f6bb6d2c590ba1))
+* tighten unsafe configuration and access-opening writes for 3.0 ([03dfd33](https://github.com/owine/unifi-network-mcp/commit/03dfd33f6b589f873c4cb7b195d208c8ad08e4b1))
+
 ## [2.15.0](https://github.com/owine/unifi-network-mcp/compare/2.14.2...2.15.0) (2026-10-13)
 
 
