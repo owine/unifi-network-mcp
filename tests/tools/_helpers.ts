@@ -11,6 +11,16 @@ interface ToolConfig {
   outputSchema?: unknown;
 }
 
+/** A Map whose get() throws for an unknown tool, so a typo fails loudly and
+ * callers need no undefined check. */
+class ToolMap<V> extends Map<string, V> {
+  override get(name: string): V {
+    const value = super.get(name);
+    if (value === undefined) throw new Error(`No tool registered as ${name}`);
+    return value;
+  }
+}
+
 /**
  * Captures tool handlers registered via server.registerTool().
  * Returns maps from tool name → handler function and tool name → config.
@@ -19,8 +29,8 @@ interface ToolConfig {
  *   server.registerTool(name, { description, inputSchema, outputSchema, annotations }, handler)
  */
 export function createMockServer() {
-  const handlers = new Map<string, (...args: any[]) => any>();
-  const configs = new Map<string, ToolConfig>();
+  const handlers = new ToolMap<(...args: any[]) => any>();
+  const configs = new ToolMap<ToolConfig>();
   const server = {
     registerTool: vi.fn(
       (
