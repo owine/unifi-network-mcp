@@ -30,13 +30,18 @@ function describeErrorBody(text: string): string {
         "code" in body && typeof body.code === "string" ? body.code : undefined,
         "requestId" in body && typeof body.requestId === "string" ? `request ${body.requestId}` : undefined,
       ].filter((detail) => detail !== undefined);
-      return details.length > 0 ? `${body.message} (${details.join("; ")})` : body.message;
+      const message = capped(body.message);
+      return details.length > 0 ? `${message} (${details.join("; ")})` : message;
     }
   } catch {
     // Not JSON: fall through to the excerpt.
   }
-  const excerpt = text.replace(/\s+/g, " ").trim();
-  return excerpt.length > ERROR_BODY_LIMIT ? `${excerpt.slice(0, ERROR_BODY_LIMIT)}…` : excerpt;
+  return capped(text);
+}
+
+function capped(text: string): string {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length > ERROR_BODY_LIMIT ? `${collapsed.slice(0, ERROR_BODY_LIMIT)}…` : collapsed;
 }
 
 function requestSignal(timeoutMs: number): AbortSignal {

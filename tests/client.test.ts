@@ -241,6 +241,13 @@ describe("NetworkClient", () => {
       );
     });
 
+    it("caps a JSON error message", async () => {
+      fetchMock.mockResolvedValue(mockResponse(JSON.stringify({ code: "api.err", message: "x".repeat(10_000) }), { ok: false, status: 500 }));
+      const err = await client.get("/sites").catch((e: Error) => e);
+      expect((err as Error).message.length).toBeLessThan(600);
+      expect((err as Error).message).toContain("(api.err)");
+    });
+
     it("caps a non-JSON error body", async () => {
       const page = "<html><body>" + "Bad gateway ".repeat(200) + "</body></html>";
       fetchMock.mockResolvedValue(mockResponse(page, { ok: false, status: 502, contentType: "text/html" }));
