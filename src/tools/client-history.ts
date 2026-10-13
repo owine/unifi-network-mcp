@@ -5,6 +5,7 @@ import { formatSuccess, formatError } from "../utils/responses.js";
 import { READ_ONLY } from "../utils/safety.js";
 import {
   HistoryClient,
+  ClientSession,
   ClientSessionEnvelope,
   listClientHistoryOutputSchema,
   listClientSessionsOutputSchema,
@@ -15,14 +16,22 @@ const siteReference = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)
 
 export function registerClientHistoryTools(server: McpServer, client: NetworkClient) {
   server.registerTool("unifi_list_client_history", {
-    description: "List historical/offline client inventory using the controller v2 API. Returns OFFLINE clients only — currently connected clients are excluded, so merge with unifi_list_clients for a full inventory. Includes names, MACs, first_seen and last_seen epoch seconds when available. This is inventory, not session history; use unifi_list_client_sessions for past connections. Requires controller history API-key support; errors never mean zero activity. Retention depends on the controller.",
-    inputSchema: { siteReference, withinHours: z.number().int().min(1).max(8760).default(168).describe("Lookback in hours, up to one year; does not extend controller retention") },
+    description: "List historical/offline client inventory using the controller v2 API. Returns OFFLINE clients only — currently connected clients are excluded, so merge with unifi_list_clients for a full inventory. Includes names, MACs, first_seen and last_seen epoch seconds when available. This is inventory, not session history; use unifi_list_client_sessions for past connections. Requires controller history API-key support; errors never mean zero activity. Retention depends on the controller. Returns the most recently seen clients first, up to limit, with totalCount; if truncated is true, narrow withinHours. Rows carry only mac, hostname, display_name, first_seen, last_seen, is_wired and status.",
+    inputSchema: {
+      siteReference,
+      withinHours: z.number().int().min(1).max(8760).default(168).describe("Lookback in hours, up to one year; does not extend controller retention"),
+      limit: z.number().int().min(1).max(500).default(100).describe("Maximum clients, most recently seen first"),
+    },
     outputSchema: listClientHistoryOutputSchema,
     annotations: READ_ONLY,
-  }, async ({ siteReference, withinHours }) => {
+  }, async ({ siteReference, withinHours, limit }) => {
     try {
-      const data = z.array(HistoryClient).parse(await client.getClientHistory(siteReference, withinHours));
-      return formatSuccess({ data, count: data.length, withinHours, coverage: "Historical client inventory returned by the controller; not a complete session log." }, { structured: true });
+      // The controller returns every client in the window with no paging, so
+      // bound the result here: an unbounded inventory can run to megabytes.
+      const all = z.array(HistoryClient).parse(await client.getClientHistory(siteReference, withinHours));
+      all.sort((a, b) => (b.last_seen ?? 0) - (a.last_seen ?? 0));
+      const data = all.slice(0, limit).map((row) => HistoryClient.strip().parse(row));
+      return formatSuccess({ data, count: data.length, totalCount: all.length, limit, truncated: all.length > limit, withinHours, coverage: "Historical client inventory returned by the controller; not a complete session log." }, { structured: true });
     } catch (err) { return formatError(err); }
   });
 
@@ -33,7 +42,7 @@ export function registerClientHistoryTools(server: McpServer, client: NetworkCli
       start: z.number().int().min(0).max(4102444800).describe("Start Unix epoch seconds, not milliseconds"),
       end: z.number().int().min(1).max(4102444800).describe("End Unix epoch seconds; after start and at most 31 days later"),
       mac: z.string().regex(/^([\da-f]{2}:){5}[\da-f]{2}$/i).optional().describe("Optional client MAC address"),
-      limit: z.number().int().min(1).max(1000).default(1000).describe("Maximum records; a full result requires a narrower window or MAC filter"),
+      limit: z.number().int().min(1).max(1000).default(100).describe("Maximum records; a full result requires a narrower window or MAC filter"),
     },
     outputSchema: listClientSessionsOutputSchema,
     annotations: READ_ONLY,
@@ -51,7 +60,7 @@ export function registerClientHistoryTools(server: McpServer, client: NetworkCli
         seen.add(row._id);
         deduped.push(row);
       }
-      const data = deduped.slice(0, limit);
+      const data = deduped.slice(0, limit).map((row) => ClientSession.strip().parse(row));
       const mayBeTruncated = deduped.length >= limit;
       return formatSuccess({ data, count: data.length, limit, mayBeTruncated, start, end,
         coverage: "Retained controller sessions; A non-truncated response does not prove retention coverage or include every ongoing connection." }, { structured: true });

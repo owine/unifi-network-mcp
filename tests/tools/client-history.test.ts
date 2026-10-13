@@ -76,7 +76,7 @@ describe("history tools", () => {
     const { configs } = setup();
     const schema = parseInputSchema(configs, "unifi_list_client_sessions");
     expect(schema.safeParse({ siteReference: "default", start: query.start * 1000, end: query.end * 1000 }).success).toBe(false);
-    expect(schema.parse({ siteReference: "default", start: query.start, end: query.end })).toMatchObject({ limit: 1000 });
+    expect(schema.parse({ siteReference: "default", start: query.start, end: query.end })).toMatchObject({ limit: 100 });
   });
 
   it("propagates access failures for both tools", async () => {
@@ -85,5 +85,43 @@ describe("history tools", () => {
     mockFn(client, "getClientHistory").mockRejectedValue(new Error("HTTP 403"));
     expect((await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query })).isError).toBe(true);
     expect((await handlers.get("unifi_list_client_history")!({ siteReference: "default", withinHours: 24 })).isError).toBe(true);
+  });
+});
+
+describe("history output size", () => {
+  function setup() {
+    const server = createMockServer();
+    const client = createMockClient();
+    registerAllTools(server.server, client, true);
+    return { ...server, client };
+  }
+  const historyRow = (mac: string, last_seen: number) => ({ mac, last_seen, hostname: mac, fingerprint: { dev_id: 1, blob: "x".repeat(500) } });
+
+  it("returns the most recently seen clients up to limit, with the total", async () => {
+    const { client, handlers } = setup();
+    mockFn(client, "getClientHistory").mockResolvedValue([historyRow("a", 1), historyRow("c", 3), historyRow("b", 2)]);
+    const result = await handlers.get("unifi_list_client_history")!({ siteReference: "default", withinHours: 168, limit: 2 });
+    expect(result.structuredContent).toMatchObject({ count: 2, totalCount: 3, limit: 2, truncated: true });
+    expect(result.structuredContent.data.map((c: { mac: string }) => c.mac)).toEqual(["c", "b"]);
+  });
+
+  it("drops controller fields outside the schema from history rows", async () => {
+    const { client, handlers } = setup();
+    mockFn(client, "getClientHistory").mockResolvedValue([historyRow("a", 1)]);
+    const result = await handlers.get("unifi_list_client_history")!({ siteReference: "default", withinHours: 168, limit: 10 });
+    expect(result.structuredContent.data[0]).toEqual({ mac: "a", last_seen: 1, hostname: "a" });
+  });
+
+  it("drops controller fields outside the schema from session rows", async () => {
+    const { client, handlers } = setup();
+    mockFn(client, "getClientSessions").mockResolvedValue(envelope([{ ...row, site_id: "s", qos_policy_applied: true }]));
+    const result = await handlers.get("unifi_list_client_sessions")!({ siteReference: "default", ...query });
+    expect(result.structuredContent.data[0]).toEqual(row);
+  });
+
+  it("defaults both tools to 100 rows", () => {
+    const { configs } = setup();
+    expect(parseInputSchema(configs, "unifi_list_client_history").parse({ siteReference: "default" }).limit).toBe(100);
+    expect(parseInputSchema(configs, "unifi_list_client_sessions").parse({ siteReference: "default", start: 1, end: 2 }).limit).toBe(100);
   });
 });

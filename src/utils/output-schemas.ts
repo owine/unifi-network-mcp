@@ -670,6 +670,9 @@ export const ClientSessionEnvelope = z.object({
 export const listClientHistoryOutputSchema = {
   data: z.array(HistoryClient),
   count: z.number(),
+  totalCount: z.number(),
+  limit: z.number(),
+  truncated: z.boolean(),
   withinHours: z.number(),
   coverage: z.string(),
 } as const;
