@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { NetworkClient } from "../src/client.js";
+import { NetworkClient, withCallSignal } from "../src/client.js";
 import type { Config } from "../src/config.js";
 
 function makeConfig(overrides: Partial<Config> = {}): Config {
@@ -247,6 +247,34 @@ describe("NetworkClient", () => {
       const err = await client.get("/sites").catch((e: Error) => e);
       expect((err as Error).message.length).toBeLessThan(520);
       expect((err as Error).message).toMatch(/^HTTP 502: <html><body>Bad gateway Bad gateway .*…$/);
+    });
+  });
+
+  // ── Inside an MCP call ────────────────────────────────────────────
+
+  describe("inside an MCP call", () => {
+    // A controller that never answers: settle only when the request aborts.
+    const hang = (_url: string, options: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        options.signal?.addEventListener("abort", () => reject(options.signal?.reason));
+      });
+
+    it("keeps the 30s timeout alongside the call's abort signal", async () => {
+      const timer = new AbortController();
+      vi.spyOn(AbortSignal, "timeout").mockReturnValue(timer.signal);
+      fetchMock.mockImplementation(hang);
+      const pending = withCallSignal(new AbortController().signal, () => new NetworkClient(makeConfig()).put("/sites/s/x", {}));
+      timer.abort(new DOMException("timed out", "TimeoutError"));
+      await expect(pending).rejects.toThrow(/did not respond within 30s/);
+    });
+
+    it("aborts a controller-history request when the call is cancelled", async () => {
+      fetchMock.mockImplementation(hang);
+      const call = new AbortController();
+      const pending = withCallSignal(call.signal, () => new NetworkClient(makeConfig()).getClientHistory("default", 24));
+      call.abort();
+      await expect(pending).rejects.toThrow();
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
     });
   });
 
