@@ -204,7 +204,7 @@ export function registerHotspotTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, voucherId, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will permanently delete the voucher");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will permanently delete the voucher");
       if (guard) return guard;
 
       try {
@@ -242,7 +242,7 @@ export function registerHotspotTools(
     },
     async ({ siteId, filter, confirm, dryRun }) => {
       try {
-        const guard = requireConfirmation(
+        const guard = dryRun ? null : requireConfirmation(
           confirm,
           "This will delete all vouchers matching the filter"
         );

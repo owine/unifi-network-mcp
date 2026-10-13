@@ -180,10 +180,10 @@ export function registerDeviceTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, deviceId, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will remove the device from the site. If the device is online, it will be reset to factory defaults");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will remove the device from the site. If the device is online, it will be reset to factory defaults");
       if (guard) return guard;
 
-      if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/devices/${deviceId}`, {});
+      if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/devices/${deviceId}`);
 
       try {
         const data = await client.delete(

@@ -301,11 +301,11 @@ export function registerFirewallTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, firewallZoneId, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will delete the firewall zone");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will delete the firewall zone");
       if (guard) return guard;
 
       try {
-        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/firewall/zones/${firewallZoneId}`, {});
+        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/firewall/zones/${firewallZoneId}`);
         const data = await client.delete(
           `/sites/${siteId}/firewall/zones/${firewallZoneId}`
         );
@@ -440,11 +440,11 @@ export function registerFirewallTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, firewallPolicyId, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will delete the firewall policy");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will delete the firewall policy");
       if (guard) return guard;
 
       try {
-        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/firewall/policies/${firewallPolicyId}`, {});
+        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/firewall/policies/${firewallPolicyId}`);
         const data = await client.delete(
           `/sites/${siteId}/firewall/policies/${firewallPolicyId}`
         );

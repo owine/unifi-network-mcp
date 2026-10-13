@@ -251,11 +251,11 @@ export function registerAclTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, aclRuleId, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will delete the ACL rule");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will delete the ACL rule");
       if (guard) return guard;
 
       try {
-        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/acl-rules/${aclRuleId}`, {});
+        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/acl-rules/${aclRuleId}`);
         const data = await client.delete(
           `/sites/${siteId}/acl-rules/${aclRuleId}`
         );

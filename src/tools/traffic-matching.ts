@@ -181,11 +181,11 @@ export function registerTrafficMatchingTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, trafficMatchingListId, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will delete the traffic matching list");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will delete the traffic matching list");
       if (guard) return guard;
 
       try {
-        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/traffic-matching-lists/${trafficMatchingListId}`, {});
+        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/traffic-matching-lists/${trafficMatchingListId}`);
         const data = await client.delete(
           `/sites/${siteId}/traffic-matching-lists/${trafficMatchingListId}`
         );

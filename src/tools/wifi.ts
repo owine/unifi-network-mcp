@@ -338,7 +338,7 @@ export function registerWifiTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, wifiBroadcastId, force, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will delete the WiFi network and disconnect all clients on this SSID");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will delete the WiFi network and disconnect all clients on this SSID");
       if (guard) return guard;
 
       try {

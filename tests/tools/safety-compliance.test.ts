@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { createMockServer, createMockClient } from "./_helpers.js";
+import { z } from "zod";
+import { createMockServer, createMockClient, mockFn } from "./_helpers.js";
 import { registerAllTools } from "../../src/tools/index.js";
 
 /**
@@ -158,4 +159,40 @@ describe("safety compliance", () => {
       expect(readOnlyNames).toEqual(expectedNames);
     });
   });
+});
+
+describe("dry-run on destructive tools", () => {
+  const { server: mockServer, handlers, configs } = createMockServer();
+  const mockClient = createMockClient();
+  registerAllTools(mockServer, mockClient, false);
+  const destructive = [...configs].filter(([, config]) => "confirm" in config.schema);
+
+  // Fill every required input with an ID-shaped string; the tools that take
+  // confirm need nothing else.
+  const minimalInput = (schema: Record<string, unknown>) => Object.fromEntries(
+    Object.entries(schema as Record<string, z.ZodType>)
+      .filter(([, field]) => !field.safeParse(undefined).success)
+      .map(([key]) => [key, key === "filter" ? "expired.eq(true)" : "id1"])
+  );
+
+  it("finds the destructive tools", () => {
+    expect(destructive.length).toBeGreaterThanOrEqual(9);
+  });
+
+  for (const [name, config] of destructive) {
+    it(`${name} previews without confirm, since a preview changes nothing`, async () => {
+      const result = await handlers.get(name)!({ ...minimalInput(config.schema), dryRun: true });
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toMatchObject({ dryRun: true });
+      for (const method of ["post", "put", "patch", "delete"] as const) {
+        expect(mockFn(mockClient, method)).not.toHaveBeenCalled();
+      }
+    });
+
+    it(`${name} still requires confirm to execute`, async () => {
+      const result = await handlers.get(name)!(minimalInput(config.schema));
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("confirmation");
+    });
+  }
 });

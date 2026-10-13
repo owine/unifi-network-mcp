@@ -319,7 +319,7 @@ export function registerNetworkTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, networkId, force, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will delete the network and disconnect all clients on it");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will delete the network and disconnect all clients on it");
       if (guard) return guard;
 
       try {

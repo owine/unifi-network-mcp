@@ -268,11 +268,11 @@ export function registerDnsPolicyTools(
       annotations: DESTRUCTIVE,
     },
     async ({ siteId, dnsPolicyId, confirm, dryRun }) => {
-      const guard = requireConfirmation(confirm, "This will delete the DNS policy");
+      const guard = dryRun ? null : requireConfirmation(confirm, "This will delete the DNS policy");
       if (guard) return guard;
 
       try {
-        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/dns/policies/${dnsPolicyId}`, {});
+        if (dryRun) return formatDryRun("DELETE", `/sites/${siteId}/dns/policies/${dnsPolicyId}`);
         const data = await client.delete(
           `/sites/${siteId}/dns/policies/${dnsPolicyId}`
         );

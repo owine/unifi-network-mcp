@@ -444,7 +444,7 @@ describe("registerHotspotTools", () => {
       );
     });
 
-    it("should return confirmation error even with dryRun if confirm is missing", async () => {
+    it("should preview without confirm, since a dry run deletes nothing", async () => {
       const handler = handlers.get("unifi_bulk_delete_vouchers");
       const result = await handler({
         siteId: "site1",
@@ -453,8 +453,8 @@ describe("registerHotspotTools", () => {
       });
 
       expect(mockFn(client, "delete")).not.toHaveBeenCalled();
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain("confirmation");
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toMatchObject({ dryRun: true });
     });
 
     it("should pass filter with correct query format", async () => {
