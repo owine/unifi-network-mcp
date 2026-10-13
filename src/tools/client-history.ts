@@ -61,7 +61,9 @@ export function registerClientHistoryTools(server: McpServer, client: NetworkCli
         deduped.push(row);
       }
       const data = deduped.slice(0, limit).map((row) => ClientSession.strip().parse(row));
-      const mayBeTruncated = deduped.length >= limit;
+      // Judge truncation by the page the controller sent: duplicates removed
+      // above say nothing about whether more sessions exist past it.
+      const mayBeTruncated = rows.length >= limit;
       return formatSuccess({ data, count: data.length, limit, mayBeTruncated, start, end,
         coverage: "Retained controller sessions; A non-truncated response does not prove retention coverage or include every ongoing connection." }, { structured: true });
     } catch (err) { return formatError(err); }
