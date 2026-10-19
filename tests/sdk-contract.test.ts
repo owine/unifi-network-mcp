@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -7,6 +7,9 @@ import { registerAllTools } from "../src/tools/index.js";
 import { NetworkClient } from "../src/client.js";
 import { formatDryRun } from "../src/utils/safety.js";
 import { createMockServer, createMockClient, mockFn } from "./tools/_helpers.js";
+
+const fetchMock = vi.hoisted(() => vi.fn());
+vi.mock("undici", async (importOriginal) => ({ ...await importOriginal<typeof import("undici")>(), fetch: fetchMock }));
 
 /**
  * Contract tests through the real MCP SDK. The per-domain tests call
@@ -64,13 +67,9 @@ describe("dry-run preview against every write tool's outputSchema", () => {
 });
 
 describe("cancellation through the SDK", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("aborts the controller request when the MCP client cancels the call", async () => {
     let requestSignal: AbortSignal | undefined;
-    vi.stubGlobal("fetch", (_url: string, options: RequestInit) => {
+    fetchMock.mockImplementation((_url: string, options: RequestInit) => {
       requestSignal = options.signal ?? undefined;
       // A controller that never answers: settle only when the request aborts.
       return new Promise((_resolve, reject) => {

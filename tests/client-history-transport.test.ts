@@ -1,5 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NetworkClient } from "../src/client.js";
+
+const fetchMock = vi.hoisted(() => vi.fn());
+vi.mock("undici", async (importOriginal) => ({ ...await importOriginal<typeof import("undici")>(), fetch: fetchMock }));
 
 const config = { host: "console.example", apiKey: "test-secret", verifySsl: true, readOnly: true };
 const query = { start: 1789272000, end: 1790000000, limit: 2 };
@@ -11,9 +14,7 @@ const response = (value: unknown, status = 200) => new Response(JSON.stringify(v
 });
 
 describe("controller history transport", () => {
-  const fetchMock = vi.fn();
-  beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => { fetchMock.mockReset(); });
 
   it("uses the read-only POST session query, seconds, stable sort without the ignored offset parameter", async () => {
     fetchMock.mockResolvedValue(response(envelope([row])));

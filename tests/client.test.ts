@@ -1,5 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NetworkClient, withCallSignal } from "../src/client.js";
+
+// The client calls undici's fetch rather than the global one, so mock that;
+// the real Agent stays, since the client still builds one.
+const fetchMock = vi.hoisted(() => vi.fn());
+vi.mock("undici", async (importOriginal) => ({ ...await importOriginal<typeof import("undici")>(), fetch: fetchMock }));
 import type { Config } from "../src/config.js";
 
 function makeConfig(overrides: Partial<Config> = {}): Config {
@@ -30,15 +35,8 @@ function mockResponse(
 }
 
 describe("NetworkClient", () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
+    fetchMock.mockReset();
   });
 
   // ── Constructor ────────────────────────────────────────────────────

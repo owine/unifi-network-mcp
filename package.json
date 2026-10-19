@@ -21,7 +21,7 @@
     "test:package": "pnpm run build && sh scripts/smoke-package.sh"
   },
   "engines": {
-    "node": "^22.13.0 || ^24.0.0"
+    "node": "^22.19.0 || ^24.0.0"
   },
   "packageManager": "pnpm@12.14.0",
   "repository": {

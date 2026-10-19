@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { Agent } from "undici";
+// undici's own fetch, not the global one: Node's built-in fetch bundles an
+// older undici whose handlers the Agent from tls.ts (undici 8) rejects.
+import { fetch, type Agent, type RequestInit, type Response } from "undici";
 import { Config } from "./config.js";
 import { consoleDispatcher } from "./tls.js";
 
@@ -85,7 +87,7 @@ export class NetworkClient {
     body?: unknown
   ): Promise<unknown> {
     const url = this.resolve(path);
-    const options: RequestInit & { dispatcher: Agent } = {
+    const options: RequestInit = {
       method,
       headers: this.headers,
       redirect: "error",
@@ -189,7 +191,7 @@ export class NetworkClient {
   }
 
   private async historyRequest(path: string, body?: unknown): Promise<unknown> {
-    const options: RequestInit & { dispatcher: Agent } = {
+    const options: RequestInit = {
       method: body === undefined ? "GET" : "POST", headers: this.headers,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       redirect: "error", signal: requestSignal(25000), dispatcher: this.dispatcher,
@@ -207,7 +209,8 @@ export class NetworkClient {
     }
     // Bound the body before parsing: controller session records can be large.
     if (response.body === null) throw new Error("Controller history returned no response body");
-    const reader = response.body.getReader();
+    // undici types the body as an untyped stream; a fetch body is always bytes.
+    const reader = (response.body as ReadableStream<Uint8Array>).getReader();
     const chunks: Uint8Array[] = [];
     let bytes = 0;
     try {
