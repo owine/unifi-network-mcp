@@ -38,6 +38,20 @@ describe("controller history transport", () => {
     expect(fetchMock.mock.calls[1][0]).toBe("https://api.ui.com/v1/connector/consoles/ABC123:456/proxy/network/integration/v1/sites");
   });
 
+  it("routes through Cloud Connector however api.ui.com is written", async () => {
+    fetchMock.mockResolvedValue(response([]));
+    await new NetworkClient({ ...config, host: "API.UI.COM.", consoleId: "ABC123" }).get("/sites");
+    expect(fetchMock.mock.calls[0][0]).toContain("/v1/connector/consoles/ABC123/proxy/network");
+  });
+
+  it("reports a timed-out history read as safe to retry", async () => {
+    fetchMock.mockResolvedValue(new Response(new ReadableStream({
+      pull: () => Promise.reject(new DOMException("The operation was aborted due to timeout", "TimeoutError")),
+    }), { headers: { "Content-Type": "application/json" } }));
+    await expect(new NetworkClient(config).getClientSessions("default", query))
+      .rejects.toThrow(/did not respond within 25s\. Retry/);
+  });
+
   it("accepts hyphenated and UUID-shaped console IDs", async () => {
     fetchMock.mockResolvedValue(response([]));
     const consoleId = "70A741-A0B1C2D3-4E5F-6071";

@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 // undici's own fetch, not the global one: Node's built-in fetch bundles an
 // older undici whose handlers the Agent from tls.ts (undici 8) rejects.
-import { fetch, type Agent, type RequestInit, type Response } from "undici";
-import { Config } from "./config.js";
+import { fetch, type Dispatcher, type RequestInit, type Response } from "undici";
+import { Config, isSiteManagerHost } from "./config.js";
 import { GuardError, guardRequest, type GuardPolicy } from "./guard.js";
 import { consoleDispatcher } from "./tls.js";
 import { noteRefusal, noteWriteRequest, noteWriteStatus } from "./write-log.js";
@@ -10,6 +10,35 @@ import { noteRefusal, noteWriteRequest, noteWriteStatus } from "./write-log.js";
 // Well under undici's 300s default, so a stalled controller fails the call
 // before the MCP host gives up on it.
 const REQUEST_TIMEOUT_MS = 30_000;
+const HISTORY_TIMEOUT_MS = 25_000;
+
+// What undici reports when the console closed the connection under a
+// request, typically a kept-alive socket it had already timed out.
+const SOCKET_CLOSED: readonly string[] = ["UND_ERR_SOCKET", "ECONNRESET", "EPIPE"];
+
+function socketClosed(err: unknown): boolean {
+  const cause = err instanceof Error ? err.cause : undefined;
+  return cause instanceof Error && "code" in cause && typeof cause.code === "string" && SOCKET_CLOSED.includes(cause.code);
+}
+
+/**
+ * A request that failed in flight, worded so the model knows whether retrying
+ * is safe: a timed-out or cut-off write may already have been applied, and
+ * repeating a create would duplicate it. The timeout also covers reading the
+ * body, so this applies to the whole exchange, not only to fetch().
+ */
+function inFlightError(read: boolean, method: string, timeoutMs: number, err: unknown): unknown {
+  const hint = read
+    ? "Retry when the console responds."
+    : `The ${method} may still have been applied; check the resource before retrying.`;
+  if (err instanceof DOMException && err.name === "TimeoutError") {
+    return new Error(`UniFi controller did not respond within ${timeoutMs / 1000}s. ${hint}`, { cause: err });
+  }
+  if (!read && socketClosed(err)) {
+    return new Error(`The UniFi controller closed the connection during the ${method}. ${hint}`, { cause: err });
+  }
+  return err;
+}
 
 // The abort signal of the MCP tool call a request is made for. Without it a
 // cancelled (or abandoned) call keeps its request running, and a write lands
@@ -59,14 +88,14 @@ function requestSignal(timeoutMs: number): AbortSignal {
 export class NetworkClient {
   private headers: Record<string, string>;
   private networkUrl: string;
-  private dispatcher: Agent;
+  private dispatcher: Dispatcher;
   private policy: GuardPolicy;
 
   constructor(config: Config) {
     // Cloud Connector only exists behind api.ui.com. A console ID set against a
     // local controller is ignored rather than fatal: the other tools work fine
     // against that controller, and taking the whole server down helps nobody.
-    const useConnector = config.consoleId !== undefined && config.host === "api.ui.com";
+    const useConnector = config.consoleId !== undefined && isSiteManagerHost(config.host);
     if (config.consoleId !== undefined && !useConnector) {
       console.error(
         `Ignoring UNIFI_NETWORK_CONSOLE_ID: Cloud Connector requires host api.ui.com, but host is ${config.host}.`
@@ -96,6 +125,21 @@ export class NetworkClient {
     const canonical = `/integration/v1${path}`;
     this.guard(method, canonical);
     const url = `${this.networkUrl}${canonical}`;
+    const send = () => this.send(method, url, body).catch((err: unknown) => {
+      throw inFlightError(method === "GET", method, REQUEST_TIMEOUT_MS, err);
+    });
+    // A connection the console closed while it sat idle fails the next request
+    // on it. Nothing reached the console, and a read changes nothing anyway, so
+    // a read goes out once more on a fresh connection.
+    return method === "GET"
+      ? send().catch((err: unknown) => {
+        if (socketClosed(err)) return send();
+        throw err;
+      })
+      : send();
+  }
+
+  private async send(method: string, url: string, body?: unknown): Promise<unknown> {
     const options: RequestInit = {
       method,
       headers: this.headers,
@@ -108,18 +152,7 @@ export class NetworkClient {
       options.body = JSON.stringify(body);
     }
 
-    let response: Response;
-    try {
-      response = await fetch(url, options);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "TimeoutError") {
-        const hint = method === "GET"
-          ? "Retry when the console responds."
-          : `The ${method} may still have been applied; check the resource before retrying.`;
-        throw new Error(`UniFi controller did not respond within ${REQUEST_TIMEOUT_MS / 1000}s. ${hint}`, { cause: err });
-      }
-      throw err;
-    }
+    const response: Response = await fetch(url, options);
 
     if (method !== "GET") noteWriteStatus(response.status);
     if (!response.ok) {
@@ -198,10 +231,17 @@ export class NetworkClient {
   private async historyRequest(path: string, body?: unknown): Promise<unknown> {
     const method = body === undefined ? "GET" : "POST";
     this.guard(method, path);
+    // Both history endpoints are reads, the POST included.
+    return this.readHistory(method, path, body).catch((err: unknown) => {
+      throw inFlightError(true, method, HISTORY_TIMEOUT_MS, err);
+    });
+  }
+
+  private async readHistory(method: string, path: string, body?: unknown): Promise<unknown> {
     const options: RequestInit = {
       method, headers: this.headers,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      redirect: "error", signal: requestSignal(25000), dispatcher: this.dispatcher,
+      redirect: "error", signal: requestSignal(HISTORY_TIMEOUT_MS), dispatcher: this.dispatcher,
     };
     const response = await fetch(`${this.networkUrl}${path}`, options);
     if (!response.ok) {

@@ -34,6 +34,10 @@ function mockResponse(
   } as Response;
 }
 
+function socketError(code: string): TypeError {
+  return new TypeError("fetch failed", { cause: Object.assign(new Error("other side closed"), { code }) });
+}
+
 describe("NetworkClient", () => {
   beforeEach(() => {
     fetchMock.mockReset();
@@ -201,6 +205,38 @@ describe("NetworkClient", () => {
       const err = await client.get("/sites").catch((e: unknown) => e);
       expect((err as Error).message).toMatch(/did not respond within 30s\. Retry/);
       expect((err as Error).message).not.toContain("may still have been applied");
+    });
+
+    it("reports a timeout while reading a write's body as an unknown outcome", async () => {
+      // The 2xx headers arrived, so the write was applied; the body then stalled.
+      fetchMock.mockResolvedValue(Object.assign(mockResponse("{}"), {
+        json: () => Promise.reject(new DOMException("The operation was aborted due to timeout", "TimeoutError")),
+      }));
+      await expect(client.post("/sites/s1/networks", {})).rejects.toThrow(/did not respond within 30s.*may still have been applied/);
+    });
+
+    it("reports a write cut off by a closed connection as an unknown outcome", async () => {
+      fetchMock.mockRejectedValue(socketError("UND_ERR_SOCKET"));
+      await expect(client.put("/sites/s1/networks/n1", {})).rejects.toThrow(/closed the connection during the PUT.*may still have been applied/);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("sends a read once more when the console closed an idle connection", async () => {
+      fetchMock.mockRejectedValueOnce(socketError("ECONNRESET")).mockResolvedValueOnce(mockResponse('{"ok":true}'));
+      await expect(client.get("/sites")).resolves.toEqual({ ok: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("sends a read at most twice", async () => {
+      fetchMock.mockRejectedValue(socketError("UND_ERR_SOCKET"));
+      await expect(client.get("/sites")).rejects.toThrow("fetch failed");
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("never resends a write", async () => {
+      fetchMock.mockRejectedValue(socketError("ECONNRESET"));
+      await expect(client.post("/sites/s1/networks", {})).rejects.toThrow();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
     it("reports a timeout as an unknown outcome rather than a failure", async () => {

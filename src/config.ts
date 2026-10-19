@@ -13,6 +13,19 @@ function holdsCertificate(pem: string): boolean {
   }
 }
 
+/**
+ * Whether host is api.ui.com however it is written: URL parsing lower-cases
+ * it and drops a port, and a trailing dot names the same host. The request
+ * goes to api.ui.com in each case, so each must get the same treatment.
+ */
+export function isSiteManagerHost(host: string): boolean {
+  try {
+    return new URL(`https://${host}`).hostname.replace(/\.$/, "") === "api.ui.com";
+  } catch {
+    return false;
+  }
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const configSchema = z.object({
@@ -65,7 +78,7 @@ const configSchema = z.object({
 }).refine((config) => config.verifySsl || config.caCert === undefined, {
   path: ["caCert"],
   message: "UNIFI_NETWORK_CA_CERT pins a certificate to verify against; it cannot be combined with UNIFI_NETWORK_VERIFY_SSL=false",
-}).refine((config) => config.verifySsl || config.host !== "api.ui.com", {
+}).refine((config) => config.verifySsl || !isSiteManagerHost(config.host), {
   // Opting out of verification is for local consoles with self-signed
   // certificates. A Site Manager key reaches every console on the account
   // and crosses the internet, so it never goes out unverified.
