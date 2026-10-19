@@ -110,7 +110,7 @@ References: [official Cloud Connector API](https://developer.ui.com/site-manager
 - **Smaller default results**: `unifi_list_client_sessions` and `unifi_list_vouchers` return fewer rows by default, and `unifi_list_client_history` now returns at most `limit` clients, most recently seen first, with `totalCount` and `truncated`; pass `limit` for more. Rows from both history tools carry only the fields their tool descriptions list.
 - **Compact text output**: tool results are compact JSON rather than indented; `structuredContent` is unchanged.
 
-- **Writes that could let traffic in from the WAN are refused**: with writes enabled, a firewall policy that allows traffic from the External zone, a change to that zone or to which networks are in it, a reorder of its policies, or an edit to a traffic matching list such a policy uses now fails even with `confirm: true` (see [WAN-exposure refusals](#wan-exposure-refusals)). Set `UNIFI_NETWORK_ALLOW_WAN_EXPOSURE=true` to go back to needing only `confirm`.
+- **Writes that could let traffic in from the WAN are refused**: with writes enabled, a firewall policy that allows traffic from the External zone, a change to that zone or to which networks are in it, putting a network in a zone such a policy targets, a reorder of its policies, or an edit to a traffic matching list such a policy uses now fails even with `confirm: true` (see [WAN-exposure refusals](#wan-exposure-refusals)). Set `UNIFI_NETWORK_ALLOW_WAN_EXPOSURE=true` to go back to needing only `confirm`.
 - **Only the endpoints the tools use**: every request is checked against an allowlist before it is sent. No tool behaves differently; anything else is refused.
 
 One rule is relaxed: a `dryRun: true` preview of a destructive tool no longer needs `confirm`.
@@ -178,12 +178,13 @@ With writes enabled, the server refuses these changes, whatever `confirm` says, 
 - creating, updating or patching a firewall policy so that it allows traffic (any action but `BLOCK` or `REJECT`) from the WAN zone. A policy whose `connectionStateFilter` lists only `ESTABLISHED` and/or `RELATED` is exempt, since it only lets return traffic back in; a missing or empty filter matches every state, so it is not. An update is judged on the full body after merging, and a patch on the policy as the patch would leave it (a patch that only turns logging or flow reporting on or off, or disables the policy, is not checked)
 - changing the WAN zone (its name or networks), deleting it, or moving networks out of it into another zone
 - creating or updating a network so that it is in the WAN zone, or moving a network out of it
+- putting a network in a zone that a policy allowing traffic from the WAN targets (creating or updating a network with that `zoneId`, or adding networks to that zone), since the network becomes reachable from the WAN without any policy changing. This holds even when the policy's destination `trafficFilter` narrows it to particular hosts, as the server cannot tell whether those hosts are on the network being moved
 - reordering the policies for traffic from the WAN zone, which could put an allow ahead of a block
 - updating a traffic matching list that a policy allowing traffic from the WAN uses, since the list decides what that policy lets in
 
 Blocking traffic from the WAN, and allowing traffic from inside to the WAN, are not affected. A dry run runs the same check and reports the refusal. ACL rules are not checked: they are enforced by switches between LAN hosts and have no zone, so they cannot let WAN traffic past the gateway firewall. The Integration API has no port-forwarding endpoint.
 
-The Integration API marks zones only as system- or user-defined, and zone names can be changed, so a zone counts as the WAN when its ID is in `UNIFI_NETWORK_WAN_ZONE_IDS`, or when it is system-defined and named `External` (in any case). Set the ID list: a renamed External zone is otherwise missed. To check a change the server lists the site's firewall zones (and, for a matching list, its policies). If that fails, or the change names a zone that is not in the list, the write is refused rather than allowed unchecked.
+The Integration API marks zones only as system- or user-defined, and zone names can be changed, so a zone counts as the WAN when its ID is in `UNIFI_NETWORK_WAN_ZONE_IDS`, or when it is system-defined and named `External` (in any case). Set the ID list: a renamed External zone is otherwise missed. To check a change the server lists the site's firewall zones (and, for a matching list or a network put in a zone, its policies). If that fails, or the change names a zone that is not in the list, the write is refused rather than allowed unchecked.
 
 A refused call returns:
 

@@ -515,6 +515,71 @@ describe("WAN-exposure refusals", () => {
     });
   });
 
+  describe("networks put in a zone that the WAN can reach", () => {
+    // gatewayNetwork sits in zone-internal; these move it to zone-iot or add it to zone-iot.
+    const intoIot = (extra: Record<string, unknown> = {}) =>
+      policy("ALLOW", "zone-external", { id: "p7", name: "Web to IoT", destination: { zoneId: "zone-iot" }, ...extra });
+    const createBody = Object.fromEntries(Object.entries(gatewayNetwork).filter(([field]) => field !== "id"));
+    const moves = {
+      "creating a network in it": () => call("unifi_create_network", { siteId: "s1", ...createBody, zoneId: "zone-iot" }),
+      "moving a network into it": () => call("unifi_update_network", { siteId: "s1", networkId: "n1", zoneId: "zone-iot" }),
+      "adding a network to it": () => call("unifi_update_firewall_zone", { siteId: "s1", firewallZoneId: "zone-iot", name: "zone-iot", networkIds: ["net-servers"] }),
+    };
+    const resources = { "/sites/s1/networks/n1": gatewayNetwork };
+
+    for (const [label, move] of Object.entries(moves)) {
+      it(`refuses ${label} when an ALLOW from the External zone targets it`, async () => {
+        answer(client, { policies: [intoIot()], resources });
+        expectRefused(await move(), /zone-iot zone, which firewall policy "Web to IoT" ALLOWs traffic into from the WAN/);
+        expect(writes(client)).toEqual([]);
+      });
+    }
+
+    it("refuses when the policy's destination is narrowed by a trafficFilter, which cannot be judged", async () => {
+      answer(client, { policies: [intoIot({ destination: { zoneId: "zone-iot", trafficFilter: { type: "IP_ADDRESS", ipAddressFilter: { type: "IP_ADDRESSES", items: [{ type: "IP_ADDRESS", value: "192.0.2.10" }] } } } })], resources });
+      expectRefused(await moves["moving a network into it"](), /Web to IoT/);
+    });
+
+    it("refuses when the targeting policy's source zone is not in the zone list", async () => {
+      answer(client, { policies: [policy("ALLOW", "zone-gone", { name: "Unknown in", destination: { zoneId: "zone-iot" } })], resources });
+      expectRefused(await moves["moving a network into it"](), /Unknown in/);
+    });
+
+    it("compares the destination zone ID without regard to case", async () => {
+      answer(client, { policies: [intoIot({ destination: { zoneId: "ZONE-IOT" } })], resources });
+      expectRefused(await moves["moving a network into it"](), /Web to IoT/);
+    });
+
+    it("reports the refusal on a dry run", async () => {
+      answer(client, { policies: [intoIot()], resources });
+      expectRefused(await call("unifi_update_network", { siteId: "s1", networkId: "n1", zoneId: "zone-iot", dryRun: true }), /Web to IoT/);
+    });
+
+    it("refuses when the policies cannot be read", async () => {
+      answer(client, { policies: new Error("HTTP 403: Forbidden"), resources });
+      expectRefused(await moves["moving a network into it"](), /firewall policies that the change depends on could not be read \(HTTP 403: Forbidden\)/);
+      expect(writes(client)).toEqual([]);
+    });
+
+    it.each([
+      ["an ESTABLISHED/RELATED-only ALLOW from the External zone", intoIot({ connectionStateFilter: ["ESTABLISHED", "RELATED"] })],
+      ["a BLOCK from the External zone", intoIot({ action: { type: "BLOCK" } })],
+      ["an ALLOW from an internal zone", intoIot({ source: { zoneId: "zone-internal" } })],
+      ["an ALLOW from the External zone into another zone", intoIot({ destination: { zoneId: "zone-lan" } })],
+    ])("allows moving a network into a zone targeted only by %s", async (_label, targeting) => {
+      answer(client, { policies: [targeting], resources });
+      expect((await moves["moving a network into it"]()).isError).toBeUndefined();
+      expect(mockFn(client, "put")).toHaveBeenCalledTimes(1);
+    });
+
+    it("allows a zone update that adds no networks to a zone the WAN can reach", async () => {
+      answer(client, { policies: [policy("ALLOW", "zone-external")] });
+      // zone-internal already holds net-lan, and the policy fixture targets zone-internal.
+      const result = await call("unifi_update_firewall_zone", { siteId: "s1", firewallZoneId: "zone-internal", name: "Internal", networkIds: ["NET-LAN"] });
+      expect(result.isError).toBeUndefined();
+    });
+  });
+
   describe("traffic matching lists", () => {
     const update = { siteId: "s1", trafficMatchingListId: "list1", type: "PORTS", name: "Web", items: [{ type: "PORT_NUMBER", value: 22 }] };
     const usingList = (action: string, source: string) =>
@@ -589,7 +654,7 @@ describe("WAN-exposure refusals", () => {
 
     it("refuses when the policies cannot be read", async () => {
       answer(client, { policies: new Error("HTTP 500: boom") });
-      expectRefused(await call("unifi_update_traffic_matching_list", update), /firewall policies that might use the list could not be read/);
+      expectRefused(await call("unifi_update_traffic_matching_list", update), /firewall policies that the change depends on could not be read/);
     });
 
     it("refuses when the zones cannot be read", async () => {
@@ -645,6 +710,13 @@ describe("UNIFI_NETWORK_ALLOW_WAN_EXPOSURE=true", () => {
     const confirmed = await call("unifi_create_firewall_policy", { siteId: "s1", policy: policy("ALLOW", "zone-external"), confirm: true });
     expect(confirmed.isError).toBeUndefined();
     expect(mockFn(client, "post")).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves a network into a zone that an ALLOW from the External zone targets, reading no policies", async () => {
+    answer(client, { policies: [policy("ALLOW", "zone-external", { destination: { zoneId: "zone-iot" } })], resources: { "/sites/s1/networks/n1": gatewayNetwork } });
+    const result = await call("unifi_update_network", { siteId: "s1", networkId: "n1", zoneId: "zone-iot" });
+    expect(result.isError).toBeUndefined();
+    expect(mockFn(client, "get").mock.calls.some(([path]) => (path as string).includes("/policies?"))).toBe(false);
   });
 
   it("previews an ALLOW from the External zone", async () => {

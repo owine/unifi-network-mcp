@@ -45,6 +45,7 @@ const Policy = z.object({
   name: z.string().optional(),
   action: z.unknown().optional(),
   source: z.unknown().optional(),
+  destination: z.unknown().optional(),
 }).loose();
 
 const PAGE_LIMIT = 200;
@@ -66,9 +67,10 @@ async function listAll<T extends z.ZodType>(client: NetworkClient, path: string,
 
 class Refusal extends Error {}
 
-/** The checks for one site; zones are read at most once per call. */
+/** The checks for one site; zones and policies are read at most once per call. */
 export class WanExposure {
   private zones?: Promise<Zone[]>;
+  private policies?: Promise<z.infer<typeof Policy>[]>;
 
   constructor(
     private readonly client: NetworkClient,
@@ -101,6 +103,13 @@ export class WanExposure {
         .flatMap((zone) => zone.networkIds ?? []).map((id) => id.toLowerCase()));
       const moved = networkIds.filter((id) => wanNetworks.has(id.toLowerCase()));
       if (moved.length > 0) throw new Refusal(`the change would move networks out of the WAN zone: ${moved.join(", ")}`);
+      // A new zone has no policies yet; an existing one may be open to the WAN.
+      if (zoneId !== undefined) {
+        const zone = await this.zone(zoneId, "the zone");
+        const present = new Set((zone.networkIds ?? []).map((id) => id.toLowerCase()));
+        const added = networkIds.filter((id) => !present.has(id.toLowerCase()));
+        if (added.length > 0) await this.refuseIfWanTarget(zone, `add networks (${added.join(", ")}) to`);
+      }
     });
   }
 
@@ -123,6 +132,7 @@ export class WanExposure {
       }
       const zone = await this.zone(zoneId, "the network's zoneId");
       if (this.isWan(zone)) throw new Refusal(`the change would put the network in the ${label(zone)} zone, which is the WAN`);
+      await this.refuseIfWanTarget(zone, "put the network in");
     });
   }
 
@@ -142,12 +152,7 @@ export class WanExposure {
     if (this.wan.allowExposure) return undefined;
     return this.refusal(async () => {
       // Either lookup failing refuses the write.
-      const [zones, policies] = await Promise.all([
-        this.zoneList(),
-        listAll(this.client, `/sites/${this.siteId}/firewall/policies`, Policy).catch((err: unknown) => {
-          throw new Refusal(`the firewall policies that might use the list could not be read (${errorMessage(err)})`);
-        }),
-      ]);
+      const [zones, policies] = await Promise.all([this.zoneList(), this.policyList()]);
       const user = policies.find((policy) => {
         // IDs are compared without case: the controller may not care about it.
         if (!allowsTraffic(policy) || !JSON.stringify(policy).toLowerCase().includes(JSON.stringify(listId.toLowerCase()))) return false;
@@ -159,6 +164,26 @@ export class WanExposure {
         throw new Refusal(`the list is used by firewall policy ${JSON.stringify(user.name ?? user.id)}, which ALLOWs traffic from the WAN, so changing it changes what the WAN can reach`);
       }
     });
+  }
+
+  /**
+   * Refuse a change that puts networks in zone when a policy ALLOWs traffic
+   * from the WAN into it: the networks would be reachable from the WAN with no
+   * policy changing. A policy's destination trafficFilter may narrow it to
+   * hosts outside the networks, but telling that apart takes more of the
+   * filter's shape than the docs pin down, so it counts either way.
+   */
+  private async refuseIfWanTarget(zone: Zone, change: string): Promise<void> {
+    const [zones, policies] = await Promise.all([this.zoneList(), this.policyList()]);
+    const exposing = policies.find((policy) => {
+      if (!allowsTraffic(policy) || !sameId(zone.id, destinationZoneId(policy))) return false;
+      // A source zone that is not on the list could be the WAN: count it.
+      const source = zones.find((candidate) => sameId(candidate.id, sourceZoneId(policy)));
+      return source === undefined || this.isWan(source);
+    });
+    if (exposing) {
+      throw new Refusal(`the change would ${change} the ${label(zone)} zone, which firewall policy ${JSON.stringify(exposing.name ?? exposing.id)} ALLOWs traffic into from the WAN`);
+    }
   }
 
   private isWan(zone: Zone): boolean {
@@ -177,6 +202,13 @@ export class WanExposure {
       throw new Refusal(`the firewall zones could not be read to find the WAN zone (${errorMessage(err)})`);
     });
     return this.zones;
+  }
+
+  private policyList(): Promise<z.infer<typeof Policy>[]> {
+    this.policies ??= listAll(this.client, `/sites/${this.siteId}/firewall/policies`, Policy).catch((err: unknown) => {
+      throw new Refusal(`the firewall policies that the change depends on could not be read (${errorMessage(err)})`);
+    });
+    return this.policies;
   }
 
   private async refusal(check: () => Promise<void>): Promise<string | undefined> {
@@ -209,6 +241,12 @@ function allowsTraffic(policy: Record<string, unknown>): boolean {
 function sourceZoneId(policy: Record<string, unknown>): string | undefined {
   const source = policy.source;
   const zoneId = source !== null && typeof source === "object" && "zoneId" in source ? source.zoneId : undefined;
+  return typeof zoneId === "string" ? zoneId : undefined;
+}
+
+function destinationZoneId(policy: Record<string, unknown>): string | undefined {
+  const destination = policy.destination;
+  const zoneId = destination !== null && typeof destination === "object" && "zoneId" in destination ? destination.zoneId : undefined;
   return typeof zoneId === "string" ? zoneId : undefined;
 }
 
