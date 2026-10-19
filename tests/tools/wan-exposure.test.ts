@@ -253,10 +253,12 @@ describe("WAN-exposure refusals", () => {
         expect(writes(client)).toEqual([]);
       });
 
-      it("disables a policy without reading it", async () => {
+      it("disables a policy without checking the zones", async () => {
+        // The confirm gate reads the policy; disabling cannot expose anything to the WAN.
+        answer(client, { resources: { [path]: { id: "p1", ...policy("ALLOW", "zone-external") } } });
         const result = await call("unifi_patch_firewall_policy", { siteId: "s1", firewallPolicyId: "p1", policy: { enabled: false, loggingEnabled: true }, confirm: true });
         expect(result.isError).toBeUndefined();
-        expect(mockFn(client, "get")).not.toHaveBeenCalled();
+        expect(mockFn(client, "get").mock.calls.map(([requested]) => requested)).toEqual([path]);
       });
 
       it("patches logging without reading anything", async () => {
@@ -283,6 +285,10 @@ describe("WAN-exposure refusals", () => {
     });
 
     it("allows reordering the policies for traffic from an internal zone", async () => {
+      answer(client, { resources: {
+        "/sites/s1/firewall/policies/ordering?sourceFirewallZoneId=zone-internal&destinationFirewallZoneId=zone-external":
+          { orderedFirewallPolicyIds: { beforeSystemDefined: ["p1"], afterSystemDefined: [] } },
+      } });
       const result = await call("unifi_reorder_firewall_policies", {
         siteId: "s1", sourceFirewallZoneId: "zone-internal", destinationFirewallZoneId: "zone-external",
         orderedFirewallPolicyIds: { beforeSystemDefined: ["p1"], afterSystemDefined: [] },

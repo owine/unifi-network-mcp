@@ -471,6 +471,7 @@ const DryRunPreview = {
     .object({ method: z.string(), path: z.string(), body: z.unknown().optional() })
     .loose()
     .optional(),
+  confirmationRequired: z.string().optional(),
 } as const;
 
 /**

@@ -22,8 +22,8 @@ export function serverInstructions(
       lines.push(`The operator enabled only these write tools: ${writeTools.join(", ")}. Other changes are not possible through this server.`);
     }
     lines.push(
-      "Before a change, call the write tool with dryRun: true to preview the exact request; a preview changes nothing.",
-      "DESTRUCTIVE tools, and writes that open access (an ALLOW rule, disabling a blocking rule, an open SSID or a changed SSID security type, a large voucher batch), also need confirm: true. Ask the user before passing it.",
+      "Before a change, call the write tool with dryRun: true to preview the exact request; a preview changes nothing. When the real call will need confirm, the preview's confirmationRequired says why: show the user that reason with the preview.",
+      "DESTRUCTIVE tools, and writes that can open access (an ALLOW rule or policy created, switched on or switched to ALLOW; a blocking one disabled; an enabled one's match criteria changed; a reorder moving an ALLOW ahead of a BLOCK; an open SSID created or switched on, or its network or captive portal changed; a changed SSID security type; a large voucher batch), also need confirm: true. Ask the user before passing it.",
     );
     if (!allowWanExposure) {
       lines.push("Writes that could let traffic in from the WAN are refused outright, and confirm does not override that: a firewall policy that ALLOWs traffic from the External zone (unless its connectionStateFilter is only ESTABLISHED and/or RELATED), changing or deleting that zone, moving networks into or out of it, reordering its policies, or editing a traffic matching list such a policy uses. Do not retry a refused write; tell the user it has to be made in the UniFi console.");

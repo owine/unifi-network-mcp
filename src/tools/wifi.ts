@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { NetworkClient } from "../client.js";
@@ -166,10 +167,36 @@ function securityType(ssid: JsonObject): unknown {
   return security !== null && typeof security === "object" && "type" in security ? security.type : undefined;
 }
 
+function isOpen(ssid: JsonObject): boolean {
+  const type = securityType(ssid);
+  return typeof type === "string" && type.toUpperCase() === "OPEN";
+}
+
+// On an open SSID, these decide who can join and what joining reaches.
+const OPEN_ACCESS_FIELDS = ["network", "hotspotConfiguration", "clientIsolationEnabled", "clientFilteringPolicy"] as const;
+
+/**
+ * What a WiFi write would open, if anything. before is undefined on create.
+ * An open SSID lets anyone in range join, so switching one on, or changing
+ * what it leads to or how joining is gated, counts as well as the security
+ * type itself.
+ */
+function wifiOpening(before: JsonObject | undefined, after: JsonObject): string | undefined {
+  if (before === undefined) return isOpen(after) ? "This creates an open SSID with no encryption" : undefined;
+  const [from, to] = [securityType(before), securityType(after)];
+  if (!isDeepStrictEqual(from, to)) return `This changes the SSID's security from ${String(from)} to ${String(to)}`;
+  if (!isOpen(after) || after.enabled === false) return undefined;
+  if (before.enabled === false) return "This enables an open SSID with no encryption";
+  const changed = OPEN_ACCESS_FIELDS.filter((field) => !isDeepStrictEqual(before[field], after[field]));
+  return changed.length > 0
+    ? `This changes who can join an open SSID, or what joining reaches (${changed.join(", ")})`
+    : undefined;
+}
+
 const confirmSecurity = z
   .boolean()
   .optional()
-  .describe("Set true to confirm creating an open SSID or changing an SSID's security type; not needed with dryRun: true");
+  .describe("Set true to confirm creating or enabling an open SSID, changing an SSID's security type, or changing an open SSID's network, captive portal (hotspotConfiguration), client isolation or client filtering; not needed with dryRun: true");
 
 const includeSecrets = z
   .boolean()
@@ -280,15 +307,13 @@ export function registerWifiTools(
       try {
         const body = toBodyFields(fields);
         checkBody(body, body);
-        const guard = requireConfirmationIf(
-          securityType(body) === "OPEN" ? "This creates an open SSID with no encryption" : undefined,
-          confirm, dryRun
-        );
+        const opening = wifiOpening(undefined, body);
+        const guard = requireConfirmationIf(opening, confirm, dryRun);
         if (guard) return guard;
         if (containsRedacted(body)) {
           throw new Error(`securityConfiguration contains "${REDACTED}" — a new SSID needs the real passphrase`);
         }
-        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi/broadcasts`, redactSecrets(body));
+        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/wifi/broadcasts`, redactSecrets(body), opening);
         const data = await client.post(`/sites/${siteId}/wifi/broadcasts`, body);
         return formatSuccess(redactSecrets(data), { structured: true });
       } catch (err) {
@@ -323,13 +348,10 @@ export function registerWifiTools(
           const { allowed } = fieldsForType(updates.type ?? current.type);
           const body = mergeForPut(current, updates, allowed);
           checkBody(body, updates);
-          const [before, after] = [securityType(current), securityType(body)];
-          const guard = requireConfirmationIf(
-            before === after ? undefined : `This changes the SSID's security from ${String(before)} to ${String(after)}`,
-            confirm, dryRun
-          );
+          const opening = wifiOpening(current, body);
+          const guard = requireConfirmationIf(opening, confirm, dryRun);
           if (guard) return guard;
-          if (dryRun) return formatDryRun("PUT", path, redactSecrets(body));
+          if (dryRun) return formatDryRun("PUT", path, redactSecrets(body), opening);
           const data = await client.put(path, body);
           return formatSuccess(redactSecrets(data), { structured: true });
         });

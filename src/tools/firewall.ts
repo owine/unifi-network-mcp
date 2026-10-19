@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { NetworkClient } from "../client.js";
@@ -12,6 +13,7 @@ import {
   requireConfirmation,
   confirmDestructive,
   requireConfirmationIf,
+  reorderOpens,
 } from "../utils/safety.js";
 import {
   asObject,
@@ -63,32 +65,63 @@ const REPORTING_FIELDS: readonly string[] = ["loggingEnabled", "reportFlowEnable
 // Present in responses but not part of the request body.
 const FIREWALL_POLICY_READ_ONLY: readonly string[] = ["id", "index", "metadata"];
 
-function actionType(policy: Record<string, unknown>): unknown {
+// The fields that decide which traffic a policy applies to, and how.
+const FIREWALL_POLICY_MATCH_FIELDS = [
+  "action", "source", "destination", "ipProtocolScope", "connectionStateFilter", "ipsecFilter", "schedule",
+] as const;
+
+/**
+ * Whether a policy lets traffic through: any action but BLOCK or REJECT,
+ * including a missing one. Compared without case, since policy is a free-form
+ * object the controller may accept "allow" in.
+ */
+function letsThrough(policy: Record<string, unknown>): boolean {
   const action = policy.action;
-  return action !== null && typeof action === "object" && "type" in action ? action.type : undefined;
+  const type = action !== null && typeof action === "object" && "type" in action ? action.type : undefined;
+  return typeof type !== "string" || !["BLOCK", "REJECT"].includes(type.toUpperCase());
 }
 
 /**
- * What a firewall policy write would open, if anything: a new or changed
- * ALLOW, or a blocking policy switched off. before is undefined on create.
+ * What a firewall policy write would open, if anything. before is undefined
+ * on create. Changing what an enabled policy matches counts whatever its
+ * action: widening an ALLOW and narrowing a BLOCK both let more through, and
+ * which of the two a change does cannot be told from here.
  */
 function firewallOpening(
   before: Record<string, unknown> | undefined,
   after: Record<string, unknown>
 ): string | undefined {
-  if (actionType(after) === "ALLOW" && (before === undefined || actionType(before) !== "ALLOW")) {
-    return before ? "This changes the firewall policy's action to ALLOW" : "This creates a firewall policy that ALLOWs traffic";
+  if (before === undefined) {
+    return letsThrough(after) ? "This creates a firewall policy that ALLOWs traffic" : undefined;
   }
-  if (before?.enabled === true && after.enabled === false && actionType(before) !== "ALLOW") {
-    return "This disables a firewall policy that blocks traffic";
+  if (letsThrough(after) && !letsThrough(before)) return "This changes the firewall policy's action to ALLOW";
+  if (after.enabled === false) {
+    return before.enabled !== false && !letsThrough(before) ? "This disables a firewall policy that blocks traffic" : undefined;
   }
-  return undefined;
+  if (before.enabled === false) {
+    return letsThrough(after) ? "This enables a firewall policy that ALLOWs traffic" : undefined;
+  }
+  const changed = FIREWALL_POLICY_MATCH_FIELDS.filter((field) => !isDeepStrictEqual(before[field], after[field]));
+  return changed.length > 0
+    ? `This changes what an enabled firewall policy matches (${changed.join(", ")}), which can let more traffic through`
+    : undefined;
+}
+
+// Stands for the system-defined policies in an evaluation order; not an ID
+// the API can return, since IDs never contain spaces.
+const SYSTEM_DEFINED = "system defined";
+
+/** A zone pair's policies in evaluation order, the system-defined ones as a single entry. */
+function evaluationOrder(ordering: unknown): string[] {
+  const ids = (list: unknown) => Array.isArray(list) ? list.filter((id) => typeof id === "string") : [];
+  const lists = ordering !== null && typeof ordering === "object" ? ordering as Record<string, unknown> : {};
+  return [...ids(lists.beforeSystemDefined), SYSTEM_DEFINED, ...ids(lists.afterSystemDefined)];
 }
 
 const confirmOpening = z
   .boolean()
   .optional()
-  .describe("Set true to confirm a change that lets traffic through: an ALLOW action, or disabling a policy that blocks; not needed with dryRun: true");
+  .describe("Set true to confirm a change that can let traffic through: an ALLOW action, enabling an ALLOW policy, disabling a policy that blocks, or changing what an enabled policy matches; not needed with dryRun: true");
 
 const FIREWALL_POLICY_BODY_DOC =
   "required enabled, name (non-empty), action ({type: ALLOW|BLOCK, allowReturnTraffic? on ALLOW}), source and destination ({zoneId, trafficFilter?}), ipProtocolScope ({ipVersion, protocolFilter?}), loggingEnabled; optional description, connectionStateFilter (array of NEW/INVALID/ESTABLISHED/RELATED), ipsecFilter (MATCH_ENCRYPTED/MATCH_NOT_ENCRYPTED), schedule (null = always active), reportFlowEnabled (report matches in Insights Flows; defaults to true when omitted).";
@@ -373,9 +406,10 @@ export function registerFirewallTools(
       try {
         const exposure = await new WanExposure(client, wan, siteId).firewallPolicy(policy);
         if (exposure) return wanRefusal(exposure, "POST", `/sites/${siteId}/firewall/policies`);
-        const guard = requireConfirmationIf(firewallOpening(undefined, policy), confirm, dryRun);
+        const opening = firewallOpening(undefined, policy);
+        const guard = requireConfirmationIf(opening, confirm, dryRun);
         if (guard) return guard;
-        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/firewall/policies`, policy);
+        if (dryRun) return formatDryRun("POST", `/sites/${siteId}/firewall/policies`, policy, opening);
         const data = await client.post(`/sites/${siteId}/firewall/policies`, policy);
         return formatSuccess(data, { structured: true });
       } catch (err) {
@@ -422,9 +456,10 @@ export function registerFirewallTools(
           }
           const exposure = await new WanExposure(client, wan, siteId).firewallPolicy(body);
           if (exposure) return wanRefusal(exposure, "PUT", path);
-          const guard = requireConfirmationIf(firewallOpening(current, body), confirm, dryRun);
+          const opening = firewallOpening(current, body);
+          const guard = requireConfirmationIf(opening, confirm, dryRun);
           if (guard) return guard;
-          if (dryRun) return formatDryRun("PUT", path, body);
+          if (dryRun) return formatDryRun("PUT", path, body, opening);
           const data = await client.put(path, body);
           return formatSuccess(data, { structured: true });
         });
@@ -447,7 +482,7 @@ export function registerFirewallTools(
         confirm: z
           .boolean()
           .optional()
-          .describe("Set true to confirm setting action ALLOW or enabled: false (confirmation is judged on the patch alone, so any disable needs it; a patch that changes more than logging, flow reporting or enabled: false is also checked against the current policy for WAN exposure, which confirm does not override); not needed with dryRun: true"),
+          .describe("Set true to confirm a patch that can let traffic through, judged on the current policy with the patch applied: an ALLOW action, enabling an ALLOW policy, disabling a policy that blocks, or changing what an enabled policy matches. Logging and flow-reporting toggles never need it. A patch that could let traffic in from the WAN is refused, and confirm does not override that. Not needed with dryRun: true"),
         dryRun: z
           .boolean()
           .optional()
@@ -457,27 +492,31 @@ export function registerFirewallTools(
       annotations: WRITE,
     },
     async ({ siteId, firewallPolicyId, policy, confirm, dryRun }) => {
-      // Confirmation judges a PATCH by what it sets, without reading the policy.
-      const opening = policy.enabled === false
-        ? "This disables the firewall policy"
-        : firewallOpening(undefined, policy);
       try {
         const path = `/sites/${siteId}/firewall/policies/${firewallPolicyId}`;
         // Queue behind any in-flight update of this policy, whose PUT would
         // otherwise overwrite this change with the values it read earlier.
         return await withResourceLock(path, async () => {
-          // Judge any PATCH that could widen the policy on the policy as it
-          // would leave it; only toggling reporting, or disabling, cannot.
-          const harmless = Object.entries(policy).every(([field, value]) =>
-            REPORTING_FIELDS.includes(field) || (field === "enabled" && value === false));
-          if (!wan.allowExposure && !harmless) {
+          // Toggling logging or flow reporting changes what is recorded, never
+          // what passes. Anything else is judged on the policy as the PATCH
+          // would leave it, which takes reading it first.
+          const reportingOnly = Object.keys(policy).every((field) => REPORTING_FIELDS.includes(field));
+          let opening: string | undefined;
+          if (!reportingOnly) {
             const current = asObject(await client.get(path), "the current firewall policy");
-            const exposure = await new WanExposure(client, wan, siteId).firewallPolicy({ ...current, ...policy });
-            if (exposure) return wanRefusal(exposure, "PATCH", path);
+            const after = { ...current, ...policy };
+            // Disabling cannot let traffic in from the WAN.
+            const disablesOnly = Object.entries(policy).every(([field, value]) =>
+              REPORTING_FIELDS.includes(field) || (field === "enabled" && value === false));
+            if (!wan.allowExposure && !disablesOnly) {
+              const exposure = await new WanExposure(client, wan, siteId).firewallPolicy(after);
+              if (exposure) return wanRefusal(exposure, "PATCH", path);
+            }
+            opening = firewallOpening(current, after);
+            const guard = requireConfirmationIf(opening, confirm, dryRun);
+            if (guard) return guard;
           }
-          const guard = requireConfirmationIf(opening, confirm, dryRun);
-          if (guard) return guard;
-          if (dryRun) return formatDryRun("PATCH", path, policy);
+          if (dryRun) return formatDryRun("PATCH", path, policy, opening);
           const data = await client.patch(path, policy);
           return formatSuccess(data, { structured: true });
         });
@@ -521,7 +560,7 @@ export function registerFirewallTools(
   server.registerTool(
     "unifi_reorder_firewall_policies",
     {
-      description: "Reorder user-defined firewall policies for a zone pair",
+      description: "Reorder user-defined firewall policies for a zone pair. Policies are evaluated in order, user-defined ones in beforeSystemDefined ahead of the system-defined policies and those in afterSystemDefined after them. Moving a policy that lets traffic through ahead of one that blocks it, or across the system-defined policies, needs confirm. Reads the current order and the policies it moves past one another, on a dry run too.",
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
         sourceFirewallZoneId: resourceId().describe("Source firewall zone ID"),
@@ -532,6 +571,10 @@ export function registerFirewallTools(
           .describe(
             "Ordered policy IDs object with beforeSystemDefined and afterSystemDefined arrays"
           ),
+        confirm: z
+          .boolean()
+          .optional()
+          .describe("Set true to confirm a reorder that moves a policy that lets traffic through ahead of one that blocks it, or across the system-defined policies; not needed with dryRun: true"),
         dryRun: z
           .boolean()
           .optional()
@@ -544,18 +587,33 @@ export function registerFirewallTools(
       sourceFirewallZoneId,
       destinationFirewallZoneId,
       orderedFirewallPolicyIds,
+      confirm,
       dryRun,
     }) => {
       try {
         const exposure = await new WanExposure(client, wan, siteId).policyOrder(sourceFirewallZoneId);
         if (exposure) return wanRefusal(exposure, "PUT", `/sites/${siteId}/firewall/policies/ordering`);
         const query = `?sourceFirewallZoneId=${encodeURIComponent(sourceFirewallZoneId)}&destinationFirewallZoneId=${encodeURIComponent(destinationFirewallZoneId)}`;
+        const path = `/sites/${siteId}/firewall/policies/ordering${query}`;
         const body = { orderedFirewallPolicyIds };
-        if (dryRun) return formatDryRun("PUT", `/sites/${siteId}/firewall/policies/ordering${query}`, body);
-        const data = await client.put(
-          `/sites/${siteId}/firewall/policies/ordering${query}`,
-          body
+        const current = asObject(await client.get(path), "the current firewall policy ordering");
+        const opens = await reorderOpens(
+          evaluationOrder(current.orderedFirewallPolicyIds),
+          evaluationOrder(orderedFirewallPolicyIds),
+          async (id) => {
+            // The system-defined policies are not listed, so their actions are
+            // unknown: moving anything across them counts both ways.
+            if (id === SYSTEM_DEFINED) return { letsThrough: true, blocks: true };
+            const policy = asObject(await client.get(`/sites/${siteId}/firewall/policies/${id}`), "a firewall policy");
+            const active = policy.enabled !== false;
+            return { letsThrough: active && letsThrough(policy), blocks: active && !letsThrough(policy) };
+          }
         );
+        const opening = opens ? "This moves a firewall policy that lets traffic through ahead of one that blocks it" : undefined;
+        const guard = requireConfirmationIf(opening, confirm, dryRun);
+        if (guard) return guard;
+        if (dryRun) return formatDryRun("PUT", path, body, opening);
+        const data = await client.put(path, body);
         return formatSuccess(data);
       } catch (err) {
         return formatError(err);

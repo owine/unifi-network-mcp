@@ -33,14 +33,21 @@ export const DESTRUCTIVE: ToolAnnotations = {
   openWorldHint: false,
 };
 
+/**
+ * A dry run's result. confirmationRequired is the reason the real call needs
+ * confirm, if it does: the preview is what the user approves, so it has to
+ * say that the change opens access before they approve it, not after.
+ */
 export function formatDryRun(
   method: string,
   path: string,
-  body?: unknown
+  body?: unknown,
+  confirmationRequired?: string
 ): { content: { type: "text"; text: string }[]; structuredContent: Record<string, unknown> } {
   const preview = {
     dryRun: true,
     wouldExecute: { method, path, ...(body !== undefined ? { body } : {}) },
+    ...(confirmationRequired !== undefined ? { confirmationRequired } : {}),
   };
   // structuredContent is required: the SDK rejects a result without it from
   // any tool that declares an outputSchema.
@@ -62,6 +69,36 @@ export function requireConfirmationIf(
   dryRun: boolean | undefined
 ) {
   return reason === undefined || dryRun ? null : requireConfirmation(confirm, reason);
+}
+
+/** How a rule in an evaluation order treats the traffic it matches. */
+export interface RuleEffect {
+  letsThrough: boolean;
+  blocks: boolean;
+}
+
+/**
+ * Whether a reorder opens access: whether it moves a rule that lets traffic
+ * through ahead of one that blocks, which it used to follow. Only rules in
+ * both orders are compared, and effect is asked only about the rules a
+ * reorder actually moves past one another. IDs are compared without case.
+ */
+export async function reorderOpens(
+  before: readonly string[],
+  after: readonly string[],
+  effect: (id: string) => Promise<RuleEffect>
+): Promise<boolean> {
+  const rank = new Map(before.map((id, index) => [id.toLowerCase(), index]));
+  const passes: [string, string][] = [];
+  after.forEach((ahead, i) => {
+    for (const behind of after.slice(i + 1)) {
+      const [was, other] = [rank.get(ahead.toLowerCase()), rank.get(behind.toLowerCase())];
+      if (was !== undefined && other !== undefined && was > other) passes.push([ahead, behind]);
+    }
+  });
+  const ids = [...new Set(passes.flat())];
+  const effects = new Map(await Promise.all(ids.map(async (id) => [id, await effect(id)] as const)));
+  return passes.some(([ahead, behind]) => effects.get(ahead)?.letsThrough === true && effects.get(behind)?.blocks === true);
 }
 
 export function requireConfirmation(

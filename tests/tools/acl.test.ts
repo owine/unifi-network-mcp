@@ -379,9 +379,34 @@ describe("registerAclTools", () => {
         mockFn(client, "put").mockResolvedValue(currentRule);
 
         const handler = handlers.get("unifi_update_acl_rule");
-        await handler({ siteId: "site123", aclRuleId: "rule1", protocolFilter: null });
+        // null means all protocols: a change to what the rule matches.
+        await handler({ siteId: "site123", aclRuleId: "rule1", protocolFilter: null, confirm: true });
 
         expect(mockFn(client, "put").mock.calls[0][1]).toEqual({ ...currentBody, protocolFilter: null });
+      });
+
+      it("drops the old type's filters when the type changes", async () => {
+        mockFn(client, "get").mockResolvedValue(currentRule);
+        mockFn(client, "put").mockResolvedValue(currentRule);
+        const macSource = { type: "MAC_ADDRESSES", macAddresses: ["aa:bb:cc:dd:ee:ff"] };
+
+        await handlers.get("unifi_update_acl_rule")({
+          siteId: "site123", aclRuleId: "rule1", type: "MAC", sourceFilter: macSource, confirm: true,
+        });
+
+        // The IPV4 destination and protocol filters do not carry over into a MAC rule.
+        const typeAgnostic = Object.fromEntries(Object.entries(currentBody)
+          .filter(([key]) => !["protocolFilter", "sourceFilter", "destinationFilter"].includes(key)));
+        expect(mockFn(client, "put").mock.calls[0][1]).toEqual({ ...typeAgnostic, type: "MAC", sourceFilter: macSource });
+      });
+
+      it("keeps the filters when the type is restated unchanged", async () => {
+        mockFn(client, "get").mockResolvedValue(currentRule);
+        mockFn(client, "put").mockResolvedValue(currentRule);
+
+        await handlers.get("unifi_update_acl_rule")({ siteId: "site123", aclRuleId: "rule1", type: "IPV4", name: "Renamed" });
+
+        expect(mockFn(client, "put").mock.calls[0][1]).toEqual({ ...currentBody, name: "Renamed" });
       });
 
       it("accepts a partial update and a null filter via schema", () => {
@@ -409,6 +434,7 @@ describe("registerAclTools", () => {
         expect(result.structuredContent).toEqual({
           dryRun: true,
           wouldExecute: { method: "PUT", path: "/sites/site123/acl-rules/rule1", body: { ...currentBody, enabled: false } },
+          confirmationRequired: "This disables an ACL rule that blocks traffic",
         });
       });
 
@@ -552,6 +578,8 @@ describe("registerAclTools", () => {
       it("should return success when client.put succeeds", async () => {
         const mockData = { success: true };
         mockFn(client, "put").mockResolvedValue(mockData);
+        // The current order, read to judge the reorder: the same rules, rotated.
+        mockFn(client, "get").mockResolvedValue({ orderedAclRuleIds: ["rule3", "rule1", "rule2"] });
 
         const handler = handlers.get("unifi_reorder_acl_rules");
         const orderedIds = ["rule1", "rule2", "rule3"];
@@ -582,6 +610,7 @@ describe("registerAclTools", () => {
       });
 
       it("should return dry run preview when dryRun=true", async () => {
+        mockFn(client, "get").mockResolvedValue({ orderedAclRuleIds: ["rule1", "rule2", "rule3"] });
         const handler = handlers.get("unifi_reorder_acl_rules");
         const orderedIds = ["rule1", "rule2", "rule3"];
         const result = await handler({

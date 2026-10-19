@@ -170,10 +170,8 @@ export function registerHotspotTools(
     }) => {
       // Each voucher is a guest credential; a large batch is a lot of access
       // to hand out on one unchecked call.
-      const guard = requireConfirmationIf(
-        count > VOUCHER_BATCH_WITHOUT_CONFIRM ? `This creates ${count} guest access codes` : undefined,
-        confirm, dryRun
-      );
+      const opening = count > VOUCHER_BATCH_WITHOUT_CONFIRM ? `This creates ${count} guest access codes` : undefined;
+      const guard = requireConfirmationIf(opening, confirm, dryRun);
       if (guard) return guard;
       try {
         const body: Record<string, unknown> = {
@@ -189,7 +187,7 @@ export function registerHotspotTools(
         if (txRateLimitKbps !== undefined) body.txRateLimitKbps = txRateLimitKbps;
 
         if (dryRun)
-          return formatDryRun("POST", `/sites/${siteId}/hotspot/vouchers`, body);
+          return formatDryRun("POST", `/sites/${siteId}/hotspot/vouchers`, body, opening);
         const data = await client.post(
           `/sites/${siteId}/hotspot/vouchers`,
           body

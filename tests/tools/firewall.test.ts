@@ -612,6 +612,8 @@ describe("registerFirewallTools", () => {
           siteId: "site123",
           firewallPolicyId: "policy1",
           policy: { schedule: null },
+          // A null schedule makes the policy always active: a change to what it matches.
+          confirm: true,
         });
 
         expect(mockFn(client, "put").mock.calls[0][1].schedule).toBeNull();
@@ -655,11 +657,11 @@ describe("registerFirewallTools", () => {
         expect(config?.annotations.idempotentHint).toBe(true);
       });
 
-      it("describes confirm as judged on the patch alone, without claiming the tool never reads the policy", () => {
+      it("describes confirm as judged on the current policy with the patch applied", () => {
         const { confirm } = parseInputSchema(configs, "unifi_patch_firewall_policy").shape;
-        expect(confirm.description).toContain("judged on the patch alone, so any disable needs it");
-        expect(confirm.description).toContain("checked against the current policy for WAN exposure");
-        expect(confirm.description).not.toMatch(/does not read the policy/);
+        expect(confirm.description).toContain("judged on the current policy with the patch applied");
+        expect(confirm.description).toContain("confirm does not override that");
+        expect(confirm.description).not.toMatch(/does not read the policy|patch alone/);
       });
 
       it("should return success when client.patch succeeds", async () => {
@@ -781,6 +783,8 @@ describe("registerFirewallTools", () => {
           beforeSystemDefined: ["policy1"],
           afterSystemDefined: ["policy2"],
         };
+        // The current order, read to judge the reorder; unchanged here.
+        answerWanLookups(client, { orderedFirewallPolicyIds: ordering });
         const result = await handler({
           siteId: "site123",
           sourceFirewallZoneId: "zone1",
@@ -801,6 +805,8 @@ describe("registerFirewallTools", () => {
           beforeSystemDefined: ["policy1"],
           afterSystemDefined: ["policy2"],
         };
+        // The current order, read to judge the reorder; unchanged here.
+        answerWanLookups(client, { orderedFirewallPolicyIds: ordering });
         const result = await handler({
           siteId: "site123",
           sourceFirewallZoneId: "zone1",
