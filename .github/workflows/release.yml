@@ -10,6 +10,14 @@ on:
 # publish asks for what it needs.
 permissions: {}
 
+# CI runs for back-to-back pushes to main can finish together. Two Release
+# runs would then both act on the same merged release PR: one fails creating
+# the tag, or both publish and the second is refused. Queue them instead, and
+# never cancel one mid-publish.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release-please:
     permissions:
@@ -45,8 +53,33 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  publish:
+  # The package smoke test installs the packed tarball into an empty project,
+  # so its dependencies resolve from the registry with no lockfile. That runs
+  # here, in a job that cannot mint an npm token, and publish waits for it.
+  verify-package:
     needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
+        with:
+          install: false
+          node-version-file: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # Install the packed tarball into an empty project and check the binary
+      # serves tools over stdio, before anything is published.
+      - run: pnpm run test:package
+
+  publish:
+    needs: [release-please, verify-package]
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-26.04
     permissions:
@@ -82,9 +115,6 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run build
       - run: pnpm test
-      # Install the packed tarball into an empty project and check the binary
-      # serves tools over stdio, before anything is published.
-      - run: sh scripts/smoke-package.sh
       # Publish stays on npm — most battle-tested OIDC provenance + scoped-package flow.
       # pnpm install/build above produces identical dist/, so the published artifact is the same.
       - run: npm publish --provenance --access public
