@@ -84,9 +84,11 @@ UniFi consoles ship with a self-signed certificate, so against a local console t
 openssl s_client -connect 192.168.1.1:443 </dev/null 2>/dev/null | openssl x509 > ~/.config/unifi-console.pem
 ```
 
-Set `UNIFI_NETWORK_CA_CERT` to the file's absolute path (for example `/home/you/.config/unifi-console.pem`); MCP hosts do not expand `~` in `env`. The server then accepts that exact certificate even though it is issued to a name like `unifi.local` rather than the IP you connect to; any other certificate must chain to the file and match the hostname. Check the fingerprint (`openssl x509 -in ~/.config/unifi-console.pem -noout -fingerprint -sha256`) against the console's if the network between you is not trusted. If the console later generates a new certificate, save it again.
+Set `UNIFI_NETWORK_CA_CERT` to the file's absolute path (for example `/home/you/.config/unifi-console.pem`); MCP hosts do not expand `~` in `env`. The server then accepts that exact certificate even though it is issued to a name like `unifi.local` rather than the IP you connect to, and whether it is self-signed or issued by a private CA; any other certificate must chain to the file or to a publicly trusted CA and match the hostname. Pinning does not lift a certificate's validity dates. Check the fingerprint (`openssl x509 -in ~/.config/unifi-console.pem -noout -fingerprint -sha256`) against the console's if the network between you is not trusted. If the console later generates a new certificate, save it again.
 
 Setting `UNIFI_NETWORK_VERIFY_SSL=false` instead turns off certificate checks for this server's connections to the console: anyone who can intercept that traffic can then read the API key. Only do this on a network you trust.
+
+Behind an HTTP(S) proxy, set `NODE_USE_ENV_PROXY=1` along with `HTTPS_PROXY` (and `NO_PROXY` for anything to reach directly), as for Node's own `fetch`; the console's certificate is still verified through the proxy.
 
 ### Choosing an API key
 

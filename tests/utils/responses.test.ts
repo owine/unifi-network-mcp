@@ -76,9 +76,18 @@ describe("formatError", () => {
     "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
     "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
     "ERR_TLS_CERT_ALTNAME_INVALID",
-    "CERT_HAS_EXPIRED",
   ])("points a %s failure at the TLS setting", (code) => {
     const err = new TypeError("fetch failed", { cause: Object.assign(new Error("certificate"), { code }) });
-    expect(formatError(err).content[0].text).toContain("UNIFI_NETWORK_CA_CERT");
+    const text = formatError(err).content[0].text;
+    expect(text).toContain("UNIFI_NETWORK_CA_CERT");
+    // VERIFY_SSL=false is refused for api.ui.com, so it is never the advice.
+    expect(text).not.toContain("UNIFI_NETWORK_VERIFY_SSL");
+  });
+
+  it.each(["CERT_HAS_EXPIRED", "CERT_NOT_YET_VALID"])("tells a %s failure that pinning does not lift the dates", (code) => {
+    const err = new TypeError("fetch failed", { cause: Object.assign(new Error("certificate"), { code }) });
+    const text = formatError(err).content[0].text;
+    expect(text).toContain("validity dates");
+    expect(text).toContain("does not override");
   });
 });
