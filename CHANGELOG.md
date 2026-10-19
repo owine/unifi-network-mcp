@@ -1,5 +1,65 @@
 # Changelog
 
+## [3.0.0](https://github.com/owine/unifi-network-mcp/compare/2.15.0...3.0.0) (2026-10-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* with UNIFI_NETWORK_READ_ONLY=false, writes that could let traffic in from the WAN (listed above) are refused even with confirm: true. Set UNIFI_NETWORK_ALLOW_WAN_EXPOSURE=true to restore the previous confirm-only behaviour. ALLOW policies, zone and network zone changes, WAN-zone reorders and traffic matching list updates now also read the site's firewall zones (and, for list updates, its policies) first, so the API key needs read access to them.
+* the server refuses to start with UNIFI_NETWORK_HOST=api.ui.com and UNIFI_NETWORK_VERIFY_SSL=false; writes that open access (ALLOW firewall policies and ACL rules, disabling blocking ones, open SSIDs or SSID security-type changes, more than 10 vouchers at once) need confirm: true; resource ID inputs accept only letters, digits, - and _; unifi_list_client_sessions defaults to 100 rows and unifi_list_vouchers to 25, unifi_list_client_history returns at most limit (default 100) most recently seen clients, and both history tools return only their schema fields; tool text output is compact JSON. See "Upgrading from 2.x" in the README.
+
+### Features
+
+* add a request guard that allowlists the endpoints the tools use ([79771ed](https://github.com/owine/unifi-network-mcp/commit/79771ed4ccb7e91a8babd1af575a362e0539523e))
+* exempt ESTABLISHED/RELATED-only ALLOW policies from the WAN check ([cefa87d](https://github.com/owine/unifi-network-mcp/commit/cefa87d19cf03728f2c3a778c102b9eb002280d4))
+* give MCP hosts server instructions and tool titles ([6dc9592](https://github.com/owine/unifi-network-mcp/commit/6dc9592bfeb01e76223b5a28a32f2412ea647e19))
+* limit which write tools load with UNIFI_NETWORK_WRITE_TOOLS ([1858017](https://github.com/owine/unifi-network-mcp/commit/18580173024717617e4219cb5a43100f89af9410))
+* optional JSON Lines write log ([e6a4d70](https://github.com/owine/unifi-network-mcp/commit/e6a4d7078a3ce781b004bc920958dda0a02e9805))
+* refuse putting a network in a zone the WAN can reach ([86dc92c](https://github.com/owine/unifi-network-mcp/commit/86dc92c63454cab7504402a5a39658aa3aebe10f)), closes [#308](https://github.com/owine/unifi-network-mcp/issues/308)
+* refuse writes that expose the network to the WAN ([e525fc9](https://github.com/owine/unifi-network-mcp/commit/e525fc932e68ca062a268651ca983dcfd9a3b789))
+* verify self-signed consoles with UNIFI_NETWORK_CA_CERT and scope TLS to the client ([6b9c441](https://github.com/owine/unifi-network-mcp/commit/6b9c4411a1928708b1b7749f819a1de5e2d4ed08))
+
+
+### Bug Fixes
+
+* abort controller requests when the MCP call is cancelled ([9d9d3e3](https://github.com/owine/unifi-network-mcp/commit/9d9d3e30353ea56cf913975e090a55d44dc5638f))
+* accept only API ID characters in resource ID inputs ([9887fba](https://github.com/owine/unifi-network-mcp/commit/9887fba3f65275f7ce4424abf7ca01a7bced3598))
+* bound client history output to fit an MCP result ([41c9b10](https://github.com/owine/unifi-network-mcp/commit/41c9b10c1f551f91aaf539b0655826fecb6d09f0))
+* cap the message of a JSON error body too ([968c432](https://github.com/owine/unifi-network-mcp/commit/968c432336060b7a88b56dfd8db2d9b55baa19a4))
+* check the current zone when a network update moves it out of the WAN zone ([c037cc9](https://github.com/owine/unifi-network-mcp/commit/c037cc9818b0e0271dade7b17db81490155f5a87))
+* compare zone ids case-insensitively ([05b7e9d](https://github.com/owine/unifi-network-mcp/commit/05b7e9d8fede6e376cf5eea74d95a582dd57889b))
+* confine API requests to the Integration API and bound them in time ([7f5cc77](https://github.com/owine/unifi-network-mcp/commit/7f5cc77014acb4a58049fefe0b12d8845a45518c))
+* correct tool descriptions and server instructions from a docs audit ([cfdf370](https://github.com/owine/unifi-network-mcp/commit/cfdf3701d3e742612c87b657b8ba75a0a6dc9a01))
+* ignore UNIFI_NETWORK_WRITE_LOG in read-only mode ([d0efa53](https://github.com/owine/unifi-network-mcp/commit/d0efa5378f6cb0d86bcc4585de48723381954239))
+* keep paging until an empty page when totalCount is missing ([b133e34](https://github.com/owine/unifi-network-mcp/commit/b133e342549564d8610ac7ba92063c12dd44e303))
+* let destructive tools preview without confirm ([6009983](https://github.com/owine/unifi-network-mcp/commit/600998392308863e6a88909657a6d3ce18bfd480))
+* let tool results carry fields their output schema does not list ([996dca3](https://github.com/owine/unifi-network-mcp/commit/996dca38383291ea4245fe6bb1f3997df0cd4fc8))
+* make controller and network errors short and actionable ([346af52](https://github.com/owine/unifi-network-mcp/commit/346af527e05fa6225edd088eb72994d22628da6b))
+* make in-flight failures safe to act on and recognise api.ui.com however it is written ([c99aa86](https://github.com/owine/unifi-network-mcp/commit/c99aa866fc5a20a3b3fa0de4dc4936afc08e5334))
+* merge ACL rule updates into the full PUT body ([648d6a1](https://github.com/owine/unifi-network-mcp/commit/648d6a18360dcba9f3a7fb067cf3c046c63851de))
+* name the TLS setting for every self-signed certificate error ([590f96c](https://github.com/owine/unifi-network-mcp/commit/590f96ce4ec056ed12b76ce0590d5392e9b62d84))
+* pin CA-issued console certificates and honour env proxies again ([6fb7be2](https://github.com/owine/unifi-network-mcp/commit/6fb7be23dc0a02cefca09716e420a934fd4a0e1b))
+* redact only exact secret field names in the write log ([ed6f0e3](https://github.com/owine/unifi-network-mcp/commit/ed6f0e3c7c13e2a0b53d2f2b07090302682a255d))
+* refuse deleting the WAN zone ([36aefe7](https://github.com/owine/unifi-network-mcp/commit/36aefe76a4a73e42ba1f8fc238eaef2e421d51c0))
+* refuse to disable TLS verification for api.ui.com ([264b099](https://github.com/owine/unifi-network-mcp/commit/264b099ea1011485d2452ea2b3953cb4e1a79294))
+* reject a blank bulk-delete filter and list fewer vouchers by default ([5118cd6](https://github.com/owine/unifi-network-mcp/commit/5118cd6c7565e2d0a5dda1c826679951eef79ec0))
+* report mayBeTruncated from the controller's page, not the deduped rows ([8145774](https://github.com/owine/unifi-network-mcp/commit/8145774f22a523a073f4a2c6faf0d6a6e45f3602))
+* require confirm for every write that can open access ([6532b85](https://github.com/owine/unifi-network-mcp/commit/6532b85d7005e6f6b91a8c9f12059d304911d101))
+* require confirm for writes that open access ([3d35646](https://github.com/owine/unifi-network-mcp/commit/3d35646c45980c3fe277997e9987a083ba3d0e9d))
+* return dry-run previews that pass SDK output validation ([43ed189](https://github.com/owine/unifi-network-mcp/commit/43ed189880d60720319ee38a7866bf4b72ca2199))
+* return tool results as compact JSON ([d460d10](https://github.com/owine/unifi-network-mcp/commit/d460d100268b7e609cb1d30c584b7a830982277e))
+* serialise read-merge-write updates to the same resource ([2af289a](https://github.com/owine/unifi-network-mcp/commit/2af289a4bae660bc46605c2049f6bb6d2c590ba1))
+* skip write-log permission checks on Windows ([1d8bf87](https://github.com/owine/unifi-network-mcp/commit/1d8bf8779709276cd6531d9c09c52c7c653c261f))
+* tighten unsafe configuration and access-opening writes for 3.0 ([03dfd33](https://github.com/owine/unifi-network-mcp/commit/03dfd33f6b589f873c4cb7b195d208c8ad08e4b1))
+* use undici's own fetch for the v8 dispatcher ([40feafb](https://github.com/owine/unifi-network-mcp/commit/40feafbe1833e2d3ab9f9e216187ec06f9ee9449))
+
+
+### Dependencies
+
+* update all non-major dependencies ([#304](https://github.com/owine/unifi-network-mcp/issues/304)) ([0814361](https://github.com/owine/unifi-network-mcp/commit/08143619690b00e55a936be7155bc3d62b107526))
+* update dependency undici to v8 ([b6735ac](https://github.com/owine/unifi-network-mcp/commit/b6735acfd1423101ec5511f2f7b307387e356a7b))
+* update dependency undici to v8.12.2 ([#307](https://github.com/owine/unifi-network-mcp/issues/307)) ([7ca3e33](https://github.com/owine/unifi-network-mcp/commit/7ca3e33cfc5e54c7e8aae203e742b016248146a5))
+
 ## [2.15.0](https://github.com/owine/unifi-network-mcp/compare/2.14.2...2.15.0) (2026-10-13)
 
 
