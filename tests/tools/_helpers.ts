@@ -68,6 +68,7 @@ export function createMockClient() {
     delete: vi.fn(),
     getClientHistory: vi.fn(),
     getClientSessions: vi.fn(),
+    getClassic: vi.fn(),
   } as unknown as NetworkClient;
 }
 

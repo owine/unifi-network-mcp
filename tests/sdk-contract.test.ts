@@ -140,6 +140,17 @@ describe("output schemas through the SDK", () => {
     const result = await mcpClient.callTool({ name: "unifi_list_networks", arguments: { siteId: "s1" } });
     expect(result.isError).toBeFalsy();
   });
+
+  it("returns classic networks without the credentials the controller sent", async () => {
+    mockFn(toolClient, "getClassic").mockResolvedValueOnce({
+      meta: { rc: "ok" },
+      data: [{ _id: "c1", name: "Internet 1", purpose: "wan", vlan: null, x_wan_password: "FAKE-SECRET-DO-NOT-USE" }],
+    });
+    const result = await mcpClient.callTool({ name: "unifi_list_classic_networks", arguments: { siteReference: "default" } });
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toEqual({ data: [{ _id: "c1", name: "Internet 1", purpose: "wan", vlan: null }], count: 1, siteReference: "default" });
+    expect(JSON.stringify(result)).not.toContain("FAKE-SECRET");
+  });
 });
 
 describe("tool metadata through the SDK", () => {
