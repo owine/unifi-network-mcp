@@ -109,6 +109,21 @@ describe("classic API tools", () => {
     expect(result.structuredContent.data).toEqual([rule]);
   });
 
+  it("returns the IPv6 and ICMP legacy rule fields", async () => {
+    const { client, handlers } = setup();
+    const v6 = {
+      protocol_v6: "icmpv6", icmp_typename: "echo-request", icmpv6_typename: "echo-request",
+      src_address_ipv6: "2001:db8:1::/64", dst_address_ipv6: "2001:db8:2::10",
+    };
+    mockFn(client, "getClassic").mockResolvedValue(envelope([{ ...rule, ...v6 }]));
+    const result = await handlers.get("unifi_list_legacy_firewall_rules")({ siteReference: "default" });
+    expect(result.isError).toBeUndefined();
+    expect(result.structuredContent.data).toEqual([{ ...rule, ...v6 }]);
+    expect(result.content[0].text).toContain("2001:db8:1::/64");
+    expect(result.content[0].text).toContain("2001:db8:2::10");
+    expect(result.content[0].text).toContain("icmpv6");
+  });
+
   it.each([
     ["a legacy error envelope", { meta: { rc: "error", msg: "api.err.NoPermission" }, data: [] }],
     ["a bare array", [network]],
