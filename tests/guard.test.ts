@@ -29,6 +29,8 @@ const page = (data: unknown[]) => ({ offset: 0, limit: 200, count: data.length, 
 function controller(method: string, path: string): unknown {
   if (method !== "GET") return path.endsWith("/stat/session") ? { meta: { rc: "ok" }, data: [] } : { id: "new" };
   if (path.includes("/clients/history")) return [];
+  if (/\/api\/s\/[^/]+\/rest\//.test(path)) return { meta: { rc: "ok" }, data: [{ _id: "c1", name: "LAN", x_passphrase: "FAKE-SECRET-DO-NOT-USE" }] };
+  if (path.endsWith("/get/setting")) return { meta: { rc: "ok" }, data: [{ _id: "c2", key: "mgmt", x_ssh_enabled: false, x_ssh_password: "FAKE-SECRET-DO-NOT-USE" }] };
   if (path.endsWith("/firewall/zones")) return page(zones);
   if (/\/wifi\/broadcasts\/[^/]+$/.test(path)) {
     return {
@@ -154,6 +156,10 @@ describe("request guard", () => {
     it.each([
       ["an unknown Integration API path", "GET", "/integration/v1/sites/s1/port-forwards"],
       ["the legacy controller API", "POST", "/api/s/default/cmd/sitemgr"],
+      ["a classic collection no tool reads", "GET", "/api/s/default/rest/user"],
+      ["a single port forward", "GET", "/api/s/default/rest/portforward/c1"],
+      ["one settings section", "GET", "/api/s/default/get/setting/mgmt"],
+      ["classic settings records", "GET", "/api/s/default/rest/setting"],
       ["another application on the console", "GET", "/proxy/protect/api/cameras"],
       ["a path without the application prefix", "GET", "/sites"],
       ["a site setting", "PUT", "/integration/v1/sites/s1"],
@@ -169,6 +175,12 @@ describe("request guard", () => {
       ["PATCH on a network", "PATCH", "/integration/v1/sites/s1/networks/n1"],
       ["PUT on stat/session", "PUT", "/api/s/default/stat/session"],
       ["POST to client history", "POST", "/v2/api/site/default/clients/history?withinHours=1"],
+      ["POST to port forwards", "POST", "/api/s/default/rest/portforward"],
+      ["PUT on a port forward", "PUT", "/api/s/default/rest/portforward/c1"],
+      ["DELETE of a port forward", "DELETE", "/api/s/default/rest/portforward/c1"],
+      ["POST to the settings read", "POST", "/api/s/default/get/setting"],
+      ["a settings write", "POST", "/api/s/default/set/setting/mgmt"],
+      ["PUT on a settings section", "PUT", "/api/s/default/rest/setting/mgmt/c2"],
     ])("refuses the wrong method on a known path: %s", (_label, method, path) => {
       expect(refusal(method, path)).toBe("not_allowlisted");
     });
@@ -256,6 +268,24 @@ describe("request guard", () => {
         `${HOST}/v2/api/site/default/clients/history?withinHours=24`,
         `${HOST}/api/s/default/stat/session`,
       ]);
+    });
+
+    it("guards the classic port-forward and settings reads too", async () => {
+      const client = new NetworkClient({ host: "192.168.1.1", apiKey: "k", verifySsl: true, readOnly: true });
+      await client.getClassic("default", "portforward");
+      await client.getClassicSettings("default");
+      expect(fetchMock.mock.calls.map(([url, options]) => `${(options as RequestInit).method} ${url as string}`)).toEqual([
+        `GET ${HOST}/api/s/default/rest/portforward`,
+        `GET ${HOST}/api/s/default/get/setting`,
+      ]);
+    });
+
+    it("sends nothing for a classic collection outside the allowlist or a bad site reference", async () => {
+      const client = new NetworkClient({ host: "192.168.1.1", apiKey: "k", verifySsl: true, readOnly: true });
+      await expect(client.getClassic("default", "user" as never)).rejects.toThrow();
+      await expect(client.getClassic("../x", "portforward")).rejects.toThrow("internalReference");
+      await expect(client.getClassicSettings("default/../x")).rejects.toThrow("internalReference");
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 });
