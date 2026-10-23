@@ -3,8 +3,8 @@
  * fetch is called, against a fixed allowlist of the endpoints the tools in
  * src/tools/ use. Anything else is refused and nothing is sent, so a tool bug,
  * a smuggled ID or a misled model cannot reach the rest of the console with
- * this API key (the legacy controller API, Protect, another console behind the
- * Cloud Connector).
+ * this API key (the rest of the legacy controller API, Protect, another
+ * console behind the Cloud Connector).
  *
  * Paths are canonical and relative to the Network application: they start
  * /integration/v1, /v2/api or /api/s, never with the Cloud Connector prefix,
@@ -88,6 +88,10 @@ export const ROUTES: readonly Route[] = [
   // Client history: controller routes outside the Integration API
   { method: "GET", template: "/v2/api/site/{id}/clients/history", query: ["withinHours"], requiredQuery: ["withinHours"] },
   { method: "POST", template: "/api/s/{id}/stat/session" },
+
+  // Classic controller API: whole collections and site settings, read only
+  { method: "GET", template: "/api/s/{id}/rest/portforward" }, // unifi_list_port_forwards
+  { method: "GET", template: "/api/s/{id}/get/setting" }, // unifi_get_upnp_status, unifi_get_remote_access_status, unifi_get_management_access
 
   // Networks
   { method: "GET", template: v1("/sites/{id}/networks"), query: PAGE },

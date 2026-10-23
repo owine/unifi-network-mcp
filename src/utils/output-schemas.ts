@@ -701,3 +701,84 @@ export const listClientSessionsOutputSchema = {
   end: z.number(),
   coverage: z.string(),
 } as const;
+
+// Classic controller API reads (rest/portforward, get/setting). Unlike every
+// other schema here, each row shape is also the tool's output allowlist: the
+// tools copy only these fields from a record, so a field the controller adds
+// never reaches the model. Settings sections carry credentials (x_ssh_password,
+// x_mgmt_key, RADIUS secrets, cloud-access keys); never list one here. Field
+// types vary across controller versions, hence the unions.
+const classicScalar = z.union([z.string(), z.number()]).nullish();
+const classicString = z.string().nullish();
+const classicBoolean = z.boolean().nullish();
+
+/** Envelope of a classic REST collection; rows stay unknown until the allowlist is applied. */
+export const ClassicEnvelope = z.object({
+  meta: z.object({ rc: z.literal("ok") }).loose(),
+  data: z.array(z.record(z.string(), z.unknown())),
+});
+
+export const PortForwardDestination = z
+  .object({
+    destination_ip: classicString,
+    interface: classicString,
+  })
+  .loose();
+
+export const PortForward = z
+  .object({
+    _id: z.string(),
+    name: classicString,
+    enabled: classicBoolean,
+    pfwd_interface: classicString,
+    destination_ip: classicString,
+    destination_ips: z.array(PortForwardDestination).nullish(),
+    src: classicString,
+    src_limiting_enabled: classicBoolean,
+    src_limiting_type: classicString,
+    src_firewall_group_id: classicString,
+    dst_port: classicScalar,
+    fwd: classicString,
+    fwd_port: classicScalar,
+    proto: classicString,
+    log: classicBoolean,
+  })
+  .loose();
+
+export const listPortForwardsOutputSchema = {
+  data: z.array(PortForward),
+  count: z.number(),
+  enabledCount: z.number(),
+  siteReference: z.string(),
+} as const;
+
+const settingsStatus = z.enum(["available", "unavailable"]);
+
+export const getUpnpStatusOutputSchema = {
+  siteReference: z.string(),
+  status: settingsStatus,
+  source: z.string().nullable(),
+  upnp_enabled: z.boolean().nullable(),
+  upnp_nat_pmp_enabled: z.boolean().nullable(),
+  upnp_secure_mode: z.boolean().nullable(),
+  upnp_wan_interface: z.string().nullable(),
+  detail: z.string(),
+} as const;
+
+export const getRemoteAccessStatusOutputSchema = {
+  siteReference: z.string(),
+  remoteAccess: z.enum(["enabled", "unavailable"]),
+  connection: z.enum(["cloud-connector", "local"]),
+  networkCloudAccessEnabled: z.boolean().nullable(),
+  detail: z.string(),
+} as const;
+
+export const getManagementAccessOutputSchema = {
+  siteReference: z.string(),
+  status: settingsStatus,
+  x_ssh_enabled: z.boolean().nullable(),
+  x_ssh_auth_password_enabled: z.boolean().nullable(),
+  x_ssh_bind_wildcard: z.boolean().nullable(),
+  sshKeyCount: z.number().nullable(),
+  detail: z.string(),
+} as const;
