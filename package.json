@@ -1,6 +1,6 @@
 {
   "name": "@owine/unifi-network-mcp",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "MCP server exposing the UniFi Network Integration API as tools for Claude and other MCP clients",
   "main": "dist/index.js",
   "bin": {

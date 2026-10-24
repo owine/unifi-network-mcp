@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/owine/unifi-network-mcp/compare/3.0.0...3.0.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* update body-parser to 2.4.0 for GHSA-27r3-jxmh-p828 ([#316](https://github.com/owine/unifi-network-mcp/issues/316)) ([38496a9](https://github.com/owine/unifi-network-mcp/commit/38496a98ca45c8e1a3e5cd9cd4a1fc793bcaeb08))
+
 ## [3.0.0](https://github.com/owine/unifi-network-mcp/compare/2.15.0...3.0.0) (2026-10-19)
 
 
