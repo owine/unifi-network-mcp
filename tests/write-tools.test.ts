@@ -63,7 +63,7 @@ async function listedTools(writeTools?: readonly string[]): Promise<string[]> {
 /** A concrete request for a route. */
 function requestFor(route: Route): string {
   const query = (route.requiredQuery ?? []).map((key) => `${key}=x`).join("&");
-  return route.template.replaceAll("{id}", "id1") + (query ? `?${query}` : "");
+  return route.template.replaceAll("{id}", "id1").replaceAll("{site}", "default") + (query ? `?${query}` : "");
 }
 
 const writeRoutes = ROUTES.filter((route) => route.tools !== undefined);

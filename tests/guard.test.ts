@@ -181,6 +181,11 @@ describe("request guard", () => {
       expect(refusal("PUT", "/integration/v1/sites/s1/firewall/policies/ORDERING", { readOnly: false, writeTools: ["unifi_update_firewall_policy"] })).toBe("not_allowlisted");
     });
 
+    it.each(["ordering", "Ordering"])("accepts %s as a site internalReference", (site) => {
+      expect(guardRequest("GET", `/v2/api/site/${site}/clients/history?withinHours=1`, WRITE).template).toContain("/clients/history");
+      expect(guardRequest("POST", `/api/s/${site}/stat/session`, WRITE).template).toContain("/stat/session");
+    });
+
     it.each(["HEAD", "OPTIONS", "TRACE", "CONNECT", "get", "PROPFIND"])("refuses method %s", (method) => {
       expect(refusal(method, "/integration/v1/sites")).toBe("method");
     });

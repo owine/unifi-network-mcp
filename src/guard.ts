@@ -26,7 +26,7 @@ export class GuardError extends Error {
 
 export interface Route {
   method: Method;
-  /** Canonical path; each {id} is one ID segment. */
+  /** Canonical path; each {id} is one ID segment, and {site} a site's internalReference. */
   template: string;
   /** Query parameters the endpoint may be sent; any other is refused. */
   query?: readonly string[];
@@ -46,10 +46,13 @@ export interface GuardPolicy {
   writeTools?: readonly string[];
 }
 
-// The charset resourceId() and the site-reference check allow. "ordering" is
-// never an ID, in any case: excluding it keeps /policies/{id} and /acl-rules/{id} from also
-// matching the ordering endpoints, which belong to other tools.
-const ID = "(?![Oo][Rr][Dd][Ee][Rr][Ii][Nn][Gg](?:/|$))[A-Za-z0-9_-]{1,64}";
+// The charset resourceId() and the site-reference check allow. A site's
+// internalReference ({site}) can be any of it.
+const SITE = "[A-Za-z0-9_-]{1,64}";
+// "ordering" is never an ID, in any case: excluding it keeps /policies/{id} and
+// /acl-rules/{id} from also matching the ordering endpoints, which belong to
+// other tools.
+const ID = `(?![Oo][Rr][Dd][Ee][Rr][Ii][Nn][Gg](?:/|$))${SITE}`;
 
 const PAGE = ["offset", "limit", "filter"] as const;
 const ZONE_PAIR = ["sourceFirewallZoneId", "destinationFirewallZoneId"] as const;
@@ -86,8 +89,8 @@ export const ROUTES: readonly Route[] = [
   { method: "POST", template: v1("/sites/{id}/clients/{id}/actions"), tools: ["unifi_authorize_guest", "unifi_unauthorize_guest"] },
 
   // Client history: controller routes outside the Integration API
-  { method: "GET", template: "/v2/api/site/{id}/clients/history", query: ["withinHours"], requiredQuery: ["withinHours"] },
-  { method: "POST", template: "/api/s/{id}/stat/session" },
+  { method: "GET", template: "/v2/api/site/{site}/clients/history", query: ["withinHours"], requiredQuery: ["withinHours"] },
+  { method: "POST", template: "/api/s/{site}/stat/session" },
 
   // Networks
   { method: "GET", template: v1("/sites/{id}/networks"), query: PAGE },
@@ -160,7 +163,7 @@ export const ROUTES: readonly Route[] = [
 
 const COMPILED = ROUTES.map((route) => ({
   route,
-  pattern: new RegExp(`^${route.template.replaceAll("{id}", ID)}$`),
+  pattern: new RegExp(`^${route.template.replaceAll("{id}", ID).replaceAll("{site}", SITE)}$`),
 }));
 
 /**
