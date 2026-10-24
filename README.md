@@ -407,21 +407,15 @@ pnpm run test:package   # Build, pack and smoke-test the published package
 
 ### Commit conventions
 
-This project uses [conventional commits](https://www.conventionalcommits.org/) and [release-please](https://github.com/googleapis/release-please) for automated releases:
+This project uses [conventional commits](https://www.conventionalcommits.org/) in pull request titles and [release-drafter](https://github.com/release-drafter/release-drafter) for releases. Pull requests are squash-merged, so the title is the commit subject:
 
 - `feat: ...` — new feature (minor version bump)
 - `fix: ...` — bug fix (patch version bump)
 - `deps: ...` — dependency update (patch version bump)
-- `feat!: ...` or `BREAKING CHANGE:` footer — breaking change (major version bump)
+- `feat!: ...` — breaking change (major version bump); the `!` must be in the title, a `BREAKING CHANGE:` footer is not read
 - `chore:`, `docs:`, `ci:`, etc. — no version bump
 
-On push to `main`, release-please opens a Release PR that bumps the version and updates `CHANGELOG.md`. Merging that PR publishes to npm automatically.
-
-To override the version number, add `Release-As: x.y.z` in the commit body:
-
-```bash
-git commit --allow-empty -m "chore: release x.y.z" -m "Release-As: x.y.z"
-```
+Every push to `main` updates a draft GitHub Release with the next version and its notes. A maintainer publishes the draft, which builds, tests and publishes that tagged commit to npm with provenance. To release a different version, edit the draft's tag and title before publishing. Release notes after 3.0.0 are in [GitHub Releases](https://github.com/owine/unifi-network-mcp/releases); `CHANGELOG.md` covers 3.0.0 and earlier.
 
 ## License
 

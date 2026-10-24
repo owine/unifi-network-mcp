@@ -1,120 +1,130 @@
 name: Release
 
-on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+# Publishing a GitHub Release builds and publishes the tagged commit.
+# release-drafter (release-drafter.yml) keeps a draft Release up to date on
+# main, and a maintainer publishes it to release. Publishing runs under the
+# release event because npm provenance records the run's GITHUB_SHA, which
+# here is the tagged commit itself.
+"on":
+  release:
+    types: [published]
 
-# Nothing by default: release-please acts through the GitHub App token, and
-# publish asks for what it needs.
+# Nothing by default: each job asks for what it needs.
 permissions: {}
 
-# CI runs for back-to-back pushes to main can finish together. Two Release
-# runs would then both act on the same merged release PR: one fails creating
-# the tag, or both publish and the second is refused. Queue them instead, and
-# never cancel one mid-publish.
+# One publish per tag; a second run for the same tag queues behind the first.
 concurrency:
-  group: release
+  group: publish-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  release-please:
+  # Everything that runs code from the dependency tree happens here, in a job
+  # that cannot mint an npm token: install, build, the tests, and the smoke
+  # test, whose `npm install` of the tarball resolves the SDK's transitive
+  # ranges fresh from the registry. It hands publish one tarball and its hash.
+  build:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
     permissions:
       contents: read
-    # workflow_run's branch filter matches the head branch name, which a fork
-    # PR can also call main; release only after a push to this repo's main.
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
-    runs-on: ubuntu-26.04
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      # The commit the release was tagged at. release-please tags main as it
-      # is when the job runs, which need not be the commit this run was
-      # triggered for.
-      sha: ${{ steps.release.outputs.sha }}
+      tarball: ${{ steps.pack.outputs.tarball }}
+      sha256: ${{ steps.pack.outputs.sha256 }}
+      version: ${{ steps.pack.outputs.version }}
+      node-version: ${{ steps.pack.outputs.node-version }}
     steps:
-      # Mint a GitHub App installation token so release-please's PRs/tags are
-      # authored by the App, not the default GITHUB_TOKEN. PRs created by the
-      # default token cannot trigger other workflows (GitHub's anti-recursion
-      # guard), which is why CI never ran on prior release PRs.
-      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        id: app-token
-        with:
-          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
-      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        id: release
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  # The package smoke test installs the packed tarball into an empty project,
-  # so its dependencies resolve from the registry with no lockfile. That runs
-  # here, in a job that cannot mint an npm token, and publish waits for it.
-  verify-package:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-    steps:
+      # Build exactly the tagged commit (the release event's GITHUB_SHA), so
+      # the npm package matches its tag, release notes and provenance.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.release-please.outputs.sha }}
+      # Node from .nvmrc; no dependency cache, since what is built here is
+      # what gets published.
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           install: false
-          node-version-file: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
+      # A Release can also be published by hand; publish only a bare X.Y.Z
+      # tag, the shape .github/release-drafter.yml drafts (no v prefix, no
+      # pre-release suffix).
+      - name: Check the tag is a release version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tag $TAG is not a bare X.Y.Z version"
+            exit 1
+          fi
+      # The repo's package.json reads 0.0.0-development. Stamp the tag's
+      # version into it before anything is built, so the tarball's
+      # package.json, which src/index.ts reads at runtime, carries the
+      # release version. pnpm-lock.yaml does not record the root package's
+      # version, so the frozen install still passes.
+      - name: Set the version from the tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: npm version "$TAG" --no-git-tag-version
+      # No lifecycle scripts: the build needs none of them.
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      # Install the packed tarball into an empty project and check the binary
-      # serves tools over stdio, before anything is published.
-      - run: pnpm run test:package
+      - run: pnpm run build
+      - run: pnpm test
+      - id: pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/package"
+          tarball=$(npm pack --silent --pack-destination "$RUNNER_TEMP/package")
+          {
+            echo "tarball=$tarball"
+            echo "sha256=$(sha256sum "$RUNNER_TEMP/package/$tarball" | cut -d' ' -f1)"
+            echo "version=$(node -p 'require("./package.json").version')"
+            echo "node-version=$(node --version)"
+          } >> "$GITHUB_OUTPUT"
+      # Install this exact tarball into an empty project and check the binary
+      # over stdio; it is the file publish will upload.
+      - run: sh scripts/smoke-package.sh "$RUNNER_TEMP/package/${{ steps.pack.outputs.tarball }}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package
+          path: ${{ runner.temp }}/package/${{ steps.pack.outputs.tarball }}
+          if-no-files-found: error
+          retention-days: 7
 
+  # Can mint an npm OIDC token, so it runs no code from the dependency tree:
+  # it only checks the tarball's hash and publishes it.
   publish:
-    needs: [release-please, verify-package]
-    if: needs.release-please.outputs.release_created == 'true'
+    needs: build
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
       id-token: write
     steps:
-      # Publish exactly the tagged commit, so the npm version matches its tag
-      # and changelog; the test steps below re-verify it.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          ref: ${{ needs.release-please.outputs.sha }}
-      # `node-version-file: false` opts out of v3's automatic .nvmrc detection.
-      # Without it v3 would install Node, which setup-node below then reinstalls
-      # and shadows on PATH — a wasted runtime download and two competing
-      # runtimes in a publish job.
-      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
-        with:
-          install: false
-          node-version-file: false
-      # setup-node's `registry-url` writes the .npmrc that points npm at the
-      # registry; `npm publish` authenticates through OIDC trusted publishing
-      # (id-token: write), so no token secret is involved. pnpm/setup's
-      # `runtime` input does not write that .npmrc.
+          name: package
+          path: package
+      - name: Verify the tarball is the one build tested
+        env:
+          TARBALL: ${{ needs.build.outputs.tarball }}
+          SHA256: ${{ needs.build.outputs.sha256 }}
+        run: echo "$SHA256  package/$TARBALL" | sha256sum --check
+      # setup-node writes the .npmrc that points npm at the registry; `npm
+      # publish` authenticates through OIDC trusted publishing (id-token:
+      # write), so no token secret is involved. Same Node as build.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version-file: .nvmrc
+          node-version: ${{ needs.build.outputs.node-version }}
           registry-url: https://registry.npmjs.org
-          # No dependency cache: a poisoned cache entry would run in a job
-          # that can mint an npm publish token.
-      # No lifecycle scripts in a job that can mint an npm OIDC token: a
-      # compromised allowed build (lefthook) could otherwise publish with valid
-      # provenance. The build needs none of them.
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm run build
-      - run: pnpm test
-      # Publish stays on npm — most battle-tested OIDC provenance + scoped-package flow.
-      # pnpm install/build above produces identical dist/, so the published artifact is the same.
-      - run: npm publish --provenance --access public
+      # A re-run after a partial failure must not fail on, or replace, a
+      # version that already reached npm.
+      - id: published
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          if npm view "@owine/unifi-network-mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::@owine/unifi-network-mcp@$VERSION is already on npm; nothing to publish"
+          fi
+      # Publish stays on npm: the most battle-tested OIDC provenance flow.
+      - if: steps.published.outputs.already != 'true'
+        env:
+          TARBALL: ${{ needs.build.outputs.tarball }}
+        # ./ is load-bearing: npm reads a bare "package/<file>.tgz" as GitHub
+        # shorthand (user/repo) and tries to clone github.com/package/….
+        run: npm publish "./package/$TARBALL" --provenance --access public --ignore-scripts
