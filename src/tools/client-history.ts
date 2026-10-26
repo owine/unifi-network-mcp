@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { NetworkClient } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { READ_ONLY } from "../utils/safety.js";
+import { siteReference as siteReferenceParam } from "../utils/params.js";
 import {
   HistoryClient,
   ClientSession,
@@ -11,8 +12,7 @@ import {
   listClientSessionsOutputSchema,
 } from "../utils/output-schemas.js";
 
-const siteReference = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)
-  .describe("Site internalReference from unifi_list_sites (often default), not the Integration API UUID");
+const siteReference = siteReferenceParam();
 
 export function registerClientHistoryTools(server: McpServer, client: NetworkClient) {
   server.registerTool("unifi_list_client_history", {
