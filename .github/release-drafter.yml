@@ -2,3 +2,23 @@ _extends: owine/renovate-config:/release-drafter.yml
 tag-prefix: ''
 tag-template: '$RESOLVED_VERSION'
 name-template: '$RESOLVED_VERSION'
+footer: |
+
+  ### Use this release
+
+  ```json
+  {
+    "mcpServers": {
+      "unifi-network": {
+        "command": "npx",
+        "args": ["-y", "@owine/unifi-network-mcp@$RESOLVED_VERSION"],
+        "env": {
+          "UNIFI_NETWORK_HOST": "192.168.1.1",
+          "UNIFI_NETWORK_API_KEY": "your-api-key"
+        }
+      }
+    }
+  }
+  ```
+
+  Optional settings (CA certificate, read-only mode, write tools) are in the [README](https://github.com/owine/unifi-network-mcp#readme).
