@@ -29,6 +29,7 @@ const page = (data: unknown[]) => ({ offset: 0, limit: 200, count: data.length, 
 function controller(method: string, path: string): unknown {
   if (method !== "GET") return path.endsWith("/stat/session") ? { meta: { rc: "ok" }, data: [] } : { id: "new" };
   if (path.includes("/clients/history")) return [];
+  if (/\/api\/s\/[^/]+\/rest\//.test(path)) return { meta: { rc: "ok" }, data: [{ _id: "c1", name: "LAN", x_passphrase: "FAKE-SECRET-DO-NOT-USE" }] };
   if (path.endsWith("/firewall/zones")) return page(zones);
   if (/\/wifi\/broadcasts\/[^/]+$/.test(path)) {
     return {
@@ -154,6 +155,9 @@ describe("request guard", () => {
     it.each([
       ["an unknown Integration API path", "GET", "/integration/v1/sites/s1/port-forwards"],
       ["the legacy controller API", "POST", "/api/s/default/cmd/sitemgr"],
+      ["a classic collection no tool reads", "GET", "/api/s/default/rest/user"],
+      ["a single classic record", "GET", "/api/s/default/rest/networkconf/c1"],
+      ["classic site settings", "GET", "/api/s/default/rest/setting"],
       ["another application on the console", "GET", "/proxy/protect/api/cameras"],
       ["a path without the application prefix", "GET", "/sites"],
       ["a site setting", "PUT", "/integration/v1/sites/s1"],
@@ -169,6 +173,11 @@ describe("request guard", () => {
       ["PATCH on a network", "PATCH", "/integration/v1/sites/s1/networks/n1"],
       ["PUT on stat/session", "PUT", "/api/s/default/stat/session"],
       ["POST to client history", "POST", "/v2/api/site/default/clients/history?withinHours=1"],
+      ["PUT on a classic network", "PUT", "/api/s/default/rest/networkconf/c1"],
+      ["POST to classic networks", "POST", "/api/s/default/rest/networkconf"],
+      ["POST to legacy firewall rules", "POST", "/api/s/default/rest/firewallrule"],
+      ["PUT on a legacy firewall rule", "PUT", "/api/s/default/rest/firewallrule/r1"],
+      ["DELETE of a firewall group", "DELETE", "/api/s/default/rest/firewallgroup/g1"],
     ])("refuses the wrong method on a known path: %s", (_label, method, path) => {
       expect(refusal(method, path)).toBe("not_allowlisted");
     });
@@ -261,6 +270,25 @@ describe("request guard", () => {
         `${HOST}/v2/api/site/default/clients/history?withinHours=24`,
         `${HOST}/api/s/default/stat/session`,
       ]);
+    });
+
+    it("guards the classic controller routes too", async () => {
+      const client = new NetworkClient({ host: "192.168.1.1", apiKey: "k", verifySsl: true, readOnly: true });
+      await client.getClassic("default", "networkconf");
+      await client.getClassic("default", "firewallgroup");
+      await client.getClassic("default", "firewallrule");
+      expect(fetchMock.mock.calls.map(([url, options]) => `${(options as RequestInit).method} ${url as string}`)).toEqual([
+        `GET ${HOST}/api/s/default/rest/networkconf`,
+        `GET ${HOST}/api/s/default/rest/firewallgroup`,
+        `GET ${HOST}/api/s/default/rest/firewallrule`,
+      ]);
+    });
+
+    it("sends nothing for a classic collection outside the allowlist", async () => {
+      const client = new NetworkClient({ host: "192.168.1.1", apiKey: "k", verifySsl: true, readOnly: true });
+      await expect(client.getClassic("default", "user" as never)).rejects.toThrow();
+      await expect(client.getClassic("../x", "networkconf")).rejects.toThrow("internalReference");
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 });
