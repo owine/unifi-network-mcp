@@ -80,6 +80,7 @@ src/
     full-put.ts       # mergeForPut() read-merge-write for full-replacement PUTs
     secrets.ts        # redactSecrets() / restoreRedacted() for WiFi passphrases
     params.ts         # resourceId() / siteReference() — allowlisted schemas for values interpolated into paths
+    pick.ts           # pick() — copies a classic record's allowlisted fields; the one place that decides what leaves one
     output-schemas.ts # Zod output schemas for tools' structuredContent
     wan-exposure.ts   # WanExposure — hard refusals for writes that could let traffic in from the WAN
 ```
@@ -109,7 +110,7 @@ All tool files follow a consistent pattern:
    - Writes that could let traffic in from the WAN are refused outright through `WanExposure` (`utils/wan-exposure.ts`), before the confirm check and on dry runs too, unless the operator sets `UNIFI_NETWORK_ALLOW_WAN_EXPOSURE=true`
 5. Every tool has MCP annotations from `utils/safety.ts` (`readOnlyHint`, `destructiveHint`, `openWorldHint: false`; write tools also `idempotentHint`)
 6. Beneath the tools, `NetworkClient` passes every request through `guardRequest()` (`src/guard.ts`): an allowlist of the endpoints the tools use, which also refuses writes in read-only mode and writes belonging only to tools `UNIFI_NETWORK_WRITE_TOOLS` does not enable. `registerAllTools()` skips those tools entirely, and records write calls in the optional write log (`src/write-log.ts`)
-7. Controller routes outside the Integration API (client history, classic `/api/s/{site}/...` reads) go through their own `NetworkClient` methods, never `request()`, and take the site's `internalReference`. Classic records can hold credentials under any name, so classic tools return only the fields their output schema lists (`pick()` in `src/tools/exposure.ts`); never pass a record through or rely on `redactSecrets()` for them
+7. Controller routes outside the Integration API (client history, classic `/api/s/{site}/...` reads) go through their own `NetworkClient` methods, never `request()`, and take the site's `internalReference`. Classic records can hold credentials under any name, so classic tools return only the fields their output schema lists (`pick()` in `src/utils/pick.ts`); never pass a record through or rely on `redactSecrets()` for them
 
 ## Testing patterns
 

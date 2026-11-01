@@ -3,6 +3,7 @@ import { NetworkClient } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { READ_ONLY } from "../utils/safety.js";
 import { siteReference } from "../utils/params.js";
+import { pick } from "../utils/pick.js";
 import {
   ClassicEnvelope,
   PortForward,
@@ -13,15 +14,6 @@ import {
 } from "../utils/output-schemas.js";
 
 type Row = Record<string, unknown>;
-
-/**
- * Copy only the allowlisted fields of a record. Classic records hold
- * credentials under names no redaction list could anticipate, so the output is
- * built up from the schema's keys and nothing is ever passed through.
- */
-function pick(row: Row, fields: readonly string[]): Row {
-  return Object.fromEntries(fields.filter((field) => Object.hasOwn(row, field)).map((field) => [field, row[field]]));
-}
 
 const isRow = (value: unknown): value is Row => typeof value === "object" && value !== null && !Array.isArray(value);
 const flag = (value: unknown) => (typeof value === "boolean" ? value : null);
