@@ -4,10 +4,14 @@ import { NetworkClient } from "../src/client.js";
 const fetchMock = vi.hoisted(() => vi.fn());
 vi.mock("undici", async (importOriginal) => ({ ...await importOriginal<typeof import("undici")>(), fetch: fetchMock }));
 
+const FAKE = "FAKE-SECRET-DO-NOT-USE";
 const config = { host: "console.example", apiKey: "test-secret", verifySsl: true, readOnly: true };
 const envelope = (data: unknown[]) => ({ meta: { rc: "ok" }, data });
 const response = (value: unknown, status = 200) => new Response(JSON.stringify(value), {
   status, headers: { "Content-Type": "application/json" },
+});
+const socketClosed = (code: string) => Object.assign(new TypeError("fetch failed"), {
+  cause: Object.assign(new Error("other side closed"), { code }),
 });
 
 describe("classic controller transport", () => {
@@ -63,12 +67,33 @@ describe("classic controller transport", () => {
   });
 
   it("reports malformed JSON without quoting the body, which can hold credentials", async () => {
-    fetchMock.mockResolvedValue(new Response('{"meta":{"rc":"ok"},"data":[{"key":"mgmt","x_ssh_password":"${FAKE}",?}]}', {
+    fetchMock.mockResolvedValue(new Response(`{"meta":{"rc":"ok"},"data":[{"key":"mgmt","x_ssh_password":"${FAKE}",?}]}`, {
       headers: { "Content-Type": "application/json" },
     }));
     const attempt = new NetworkClient(config).getClassicSettings("default");
     await expect(attempt).rejects.toThrow("Classic controller API returned malformed JSON");
     await expect(attempt).rejects.not.toThrow(/SECRET|DO-NOT|USE/);
+  });
+
+  it.each([
+    ["a collection", (client: NetworkClient) => client.getClassic("default", "portforward")],
+    ["the site settings", (client: NetworkClient) => client.getClassicSettings("default")],
+  ])("retries %s once on a fresh connection when the console closed an idle one", async (_label, read) => {
+    fetchMock.mockRejectedValueOnce(socketClosed("ECONNRESET")).mockResolvedValueOnce(response(envelope([{ _id: "c1" }])));
+    await expect(read(new NetworkClient(config))).resolves.toEqual(envelope([{ _id: "c1" }]));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives up after one retry", async () => {
+    fetchMock.mockRejectedValue(socketClosed("UND_ERR_SOCKET"));
+    await expect(new NetworkClient(config).getClassic("default", "portforward")).rejects.toThrow("fetch failed");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry a failure that is not a closed socket", async () => {
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+    await expect(new NetworkClient(config).getClassicSettings("default")).rejects.toThrow("fetch failed");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("reports a timed-out read as safe to retry", async () => {

@@ -22,6 +22,19 @@ function socketClosed(err: unknown): boolean {
 }
 
 /**
+ * Send a read, and once more if the console closed the connection under it. A
+ * connection the console closed while it sat idle fails the next request on
+ * it; nothing reached the console, and a read changes nothing anyway, so it
+ * goes out again on a fresh connection.
+ */
+function retryClosedSocket<T>(send: () => Promise<T>): Promise<T> {
+  return send().catch((err: unknown) => {
+    if (socketClosed(err)) return send();
+    throw err;
+  });
+}
+
+/**
  * A request that failed in flight, worded so the model knows whether retrying
  * is safe: a timed-out or cut-off write may already have been applied, and
  * repeating a create would duplicate it. The timeout also covers reading the
@@ -154,15 +167,7 @@ export class NetworkClient {
     const send = () => this.send(method, url, body).catch((err: unknown) => {
       throw inFlightError(method === "GET", method, REQUEST_TIMEOUT_MS, err);
     });
-    // A connection the console closed while it sat idle fails the next request
-    // on it. Nothing reached the console, and a read changes nothing anyway, so
-    // a read goes out once more on a fresh connection.
-    return method === "GET"
-      ? send().catch((err: unknown) => {
-        if (socketClosed(err)) return send();
-        throw err;
-      })
-      : send();
+    return method === "GET" ? retryClosedSocket(send) : send();
   }
 
   private async send(method: string, url: string, body?: unknown): Promise<unknown> {
@@ -283,9 +288,9 @@ export class NetworkClient {
   /** The classic controller API, outside /integration/v1. Only GETs of the collections the guard allows. */
   private async classicRequest(path: string): Promise<unknown> {
     this.guard("GET", path);
-    return this.readController(CLASSIC, "GET", path).catch((err: unknown) => {
+    return retryClosedSocket(() => this.readController(CLASSIC, "GET", path).catch((err: unknown) => {
       throw inFlightError(true, "GET", CONTROLLER_TIMEOUT_MS, err);
-    });
+    }));
   }
 
   private async readController(kind: ControllerRead, method: string, path: string, body?: unknown): Promise<unknown> {
@@ -336,7 +341,7 @@ export class NetworkClient {
       result = JSON.parse(text);
     } catch {
       // The parser's message quotes the body around the fault, and classic
-      // settings bodies hold credentials: never pass it on.
+      // records hold credentials: never pass it on.
       throw new Error(`${kind.name} returned malformed JSON; verify controller support. ${kind.notEmpty}`);
     }
     if (result && typeof result === "object" && "meta" in result) {
