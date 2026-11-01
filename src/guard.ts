@@ -94,7 +94,7 @@ export const ROUTES: readonly Route[] = [
 
   // Classic controller API: whole collections and site settings, read only
   { method: "GET", template: "/api/s/{id}/rest/portforward" }, // unifi_list_port_forwards
-  { method: "GET", template: "/api/s/{id}/get/setting" }, // unifi_get_upnp_status, unifi_get_remote_access_status, unifi_get_management_access
+  { method: "GET", template: "/api/s/{id}/get/setting" }, // unifi_get_upnp_status, unifi_get_device_ssh_settings
 
   // Networks
   { method: "GET", template: v1("/sites/{id}/networks"), query: PAGE },

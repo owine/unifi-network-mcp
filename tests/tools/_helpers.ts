@@ -70,7 +70,6 @@ export function createMockClient() {
     getClientSessions: vi.fn(),
     getClassic: vi.fn(),
     getClassicSettings: vi.fn(),
-    viaCloudConnector: false,
   } as unknown as NetworkClient;
 }
 

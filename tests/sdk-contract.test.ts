@@ -157,7 +157,7 @@ describe("output schemas through the SDK", () => {
 
   it("returns the settings-backed exposure results, unavailable ones included", async () => {
     mockFn(toolClient, "getClassicSettings").mockResolvedValue({ meta: { rc: "ok" }, data: [] });
-    for (const name of ["unifi_get_upnp_status", "unifi_get_remote_access_status", "unifi_get_management_access"]) {
+    for (const name of ["unifi_get_upnp_status", "unifi_get_device_ssh_settings"]) {
       const result = await mcpClient.callTool({ name, arguments: { siteReference: "default" } });
       expect(result.isError, name).toBeFalsy();
       expect(JSON.stringify(result.structuredContent), name).toContain("unavailable");

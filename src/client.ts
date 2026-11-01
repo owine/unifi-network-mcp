@@ -116,12 +116,6 @@ export class NetworkClient {
   private networkUrl: string;
   private dispatcher: Dispatcher;
   private policy: GuardPolicy;
-  /**
-   * Whether requests reach the console through the Site Manager Cloud
-   * Connector. The connector only works while the console's Remote Access is
-   * on, so a successful request over it is evidence of that setting.
-   */
-  readonly viaCloudConnector: boolean;
 
   constructor(config: Config) {
     // Cloud Connector only exists behind api.ui.com. A console ID set against a
@@ -133,7 +127,6 @@ export class NetworkClient {
         `Ignoring UNIFI_NETWORK_CONSOLE_ID: Cloud Connector requires host api.ui.com, but host is ${config.host}.`
       );
     }
-    this.viaCloudConnector = useConnector;
     const consolePath = useConnector ? `/v1/connector/consoles/${config.consoleId}` : "";
     this.networkUrl = `https://${config.host}${consolePath}/proxy/network`;
     this.headers = {

@@ -104,7 +104,7 @@ function instrumentTools(server: McpServer, { writeTools, writeLog }: ToolOption
 // Words in tool names that read wrongly in plain sentence case.
 const TITLE_WORDS: Record<string, string> = {
   acl: "ACL", dns: "DNS", dpi: "DPI", vpn: "VPN", radius: "RADIUS",
-  wifi: "WiFi", wan: "WAN", wans: "WANs", lag: "LAG", lags: "LAGs", mc: "MC", upnp: "UPnP",
+  wifi: "WiFi", wan: "WAN", wans: "WANs", lag: "LAG", lags: "LAGs", mc: "MC", upnp: "UPnP", ssh: "SSH",
 };
 
 /** "unifi_list_mc_lag_domains" → "List MC-LAG domains". */

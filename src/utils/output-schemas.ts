@@ -765,15 +765,7 @@ export const getUpnpStatusOutputSchema = {
   detail: z.string(),
 } as const;
 
-export const getRemoteAccessStatusOutputSchema = {
-  siteReference: z.string(),
-  remoteAccess: z.enum(["enabled", "unavailable"]),
-  connection: z.enum(["cloud-connector", "local"]),
-  networkCloudAccessEnabled: z.boolean().nullable(),
-  detail: z.string(),
-} as const;
-
-export const getManagementAccessOutputSchema = {
+export const getDeviceSshSettingsOutputSchema = {
   siteReference: z.string(),
   status: settingsStatus,
   x_ssh_enabled: z.boolean().nullable(),

@@ -255,8 +255,7 @@ The schemas live in `src/utils/output-schemas.ts`. They deliberately use a **loo
 |---|---|
 | `unifi_list_port_forwards` | Port forwards: WAN port, allowed source and LAN target, enabled or not |
 | `unifi_get_upnp_status` | Whether UPnP and NAT-PMP let LAN devices open WAN ports themselves |
-| `unifi_get_remote_access_status` | Whether the console's Remote Access (UniFi cloud connection) is on, or why that cannot be told |
-| `unifi_get_management_access` | Device SSH: on or off, password logins, listening on every interface, number of keys |
+| `unifi_get_device_ssh_settings` | Device SSH: on or off, password logins, listening on every interface, number of keys |
 
 ### Networks
 | Tool | Description |
@@ -372,13 +371,13 @@ These controller routes are not part of the published Integration API contract. 
 
 ## Internet exposure
 
-Port forwards, UPnP and the management settings are not in the Integration API, so the four exposure tools read the classic controller API: GET `/proxy/network/api/s/{siteReference}/rest/portforward` and `/proxy/network/api/s/{siteReference}/get/setting`, directly or through the Cloud Connector. Like the history tools they take the site's `internalReference` from `unifi_list_sites` and remain available in read-only mode. No classic write is allowlisted.
+Port forwards, UPnP and device SSH settings are not in the Integration API, so the exposure tools read the classic controller API: GET `/proxy/network/api/s/{siteReference}/rest/portforward` and `/proxy/network/api/s/{siteReference}/get/setting`, directly or through the Cloud Connector. Like the history tools they take the site's `internalReference` from `unifi_list_sites` and remain available in read-only mode. No classic write is allowlisted.
 
 Settings sections hold credentials (SSH passwords, management and cloud-access keys, RADIUS secrets), so every result is built from a fixed list of fields (see each tool's description and `src/utils/output-schemas.ts`), never by redacting the record. SSH keys are counted, not returned.
 
-A setting this controller version does not have comes back as `status: "unavailable"` (or `remoteAccess: "unavailable"`) with a `detail` saying what was looked for. It never means the feature is off. UPnP is read from a `upnp` settings section where there is one, otherwise from the gateway (`usg`) section's `upnp_*` fields, and `source` says which.
+A setting this controller version does not have comes back as `status: "unavailable"` with a `detail` saying what was looked for. It never means the feature is off. UPnP is read from a `upnp` settings section where there is one, otherwise from the gateway (`usg`) section's `upnp_*` fields, and `source` says which.
 
-Remote Access is a UniFi OS setting the Network API does not expose. Through the Cloud Connector, reaching the console at all proves it is on, so the tool reports `enabled`. Against a local console it reports `unavailable`, plus the Network application's own legacy cloud-access flag when its settings have one. Console (UniFi OS) SSH is likewise outside this API; `unifi_get_management_access` reports device SSH only. Which internal networks can reach the console's web UI is decided by the firewall rules or policies.
+Remote Access and console (UniFi OS) SSH are UniFi OS settings outside this API, so `unifi_get_device_ssh_settings` reports device SSH only. Which internal networks can reach the console's web UI is decided by the firewall rules or policies.
 
 ## Troubleshooting
 

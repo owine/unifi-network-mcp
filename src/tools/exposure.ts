@@ -7,8 +7,7 @@ import {
   ClassicEnvelope,
   PortForward,
   PortForwardDestination,
-  getManagementAccessOutputSchema,
-  getRemoteAccessStatusOutputSchema,
+  getDeviceSshSettingsOutputSchema,
   getUpnpStatusOutputSchema,
   listPortForwardsOutputSchema,
 } from "../utils/output-schemas.js";
@@ -36,8 +35,6 @@ async function settingSections(client: NetworkClient, site: string): Promise<Map
   const { data } = ClassicEnvelope.parse(await client.getClassicSettings(site));
   return new Map(data.flatMap((section) => (typeof section.key === "string" ? [[section.key, section] as const] : [])));
 }
-
-const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 const SETTINGS = "from the classic controller API (get/setting)";
 
@@ -98,45 +95,10 @@ export function registerExposureTools(server: McpServer, client: NetworkClient) 
     } catch (err) { return formatError(err); }
   });
 
-  server.registerTool("unifi_get_remote_access_status", {
-    description: "Report whether the console's Remote Access (its UniFi cloud connection, which lets unifi.ui.com and the UniFi apps reach it from the internet) is on. Through the Site Manager Cloud Connector a successful read proves it is on: the connector cannot reach the console otherwise. Against a local console the setting belongs to UniFi OS, which this API does not expose, so remoteAccess is unavailable; networkCloudAccessEnabled is then the Network application's own legacy cloud-access flag, when its settings have one, and may not reflect UniFi OS Remote Access. unavailable never means off.",
+  server.registerTool("unifi_get_device_ssh_settings", {
+    description: `Read the site's device SSH settings (Device SSH Authentication for adopted UniFi devices) ${SETTINGS} mgmt section: whether SSH is on, whether it accepts passwords, whether it listens on every interface (x_ssh_bind_wildcard), and how many SSH keys are installed. Credentials and keys are never returned. Console (UniFi OS) SSH is a separate UniFi OS setting this API does not expose. Which networks reach the console's web UI and SSH is set by firewall rules and policies, and from the internet by Remote Access and port forwards (unifi_list_port_forwards). status: unavailable means the controller's settings had no such fields.`,
     inputSchema: { siteReference: siteReference() },
-    outputSchema: getRemoteAccessStatusOutputSchema,
-    annotations: READ_ONLY,
-  }, async ({ siteReference }) => {
-    try {
-      const connection = client.viaCloudConnector ? "cloud-connector" : "local";
-      let networkCloudAccessEnabled: boolean | null = null;
-      let settingsError: string | undefined;
-      try {
-        networkCloudAccessEnabled = flag((await settingSections(client, siteReference)).get("super_cloudaccess")?.enabled);
-      } catch (err) {
-        settingsError = message(err);
-      }
-      const result = (remoteAccess: "enabled" | "unavailable", detail: string) =>
-        formatSuccess({ siteReference, remoteAccess, connection, networkCloudAccessEnabled, detail }, { structured: true });
-
-      if (connection === "local") {
-        return result("unavailable", `This server talks to the console directly, so it cannot see UniFi OS Remote Access; check it in the console's UniFi OS settings, or at unifi.ui.com, where a console that shows as online has it on.${settingsError ? ` The site settings could not be read either: ${settingsError}` : ""}`);
-      }
-      if (settingsError !== undefined) {
-        // The settings read can fail for reasons of its own (the key's access
-        // to the classic API); a plain Integration API read settles whether
-        // the connector reaches the console at all.
-        try {
-          await client.get("/info");
-        } catch (err) {
-          return result("unavailable", `The console could not be reached through the Cloud Connector (${message(err)}). It may be offline or have Remote Access off; this read cannot tell which.`);
-        }
-      }
-      return result("enabled", "Remote Access is on: this server reached the console through the Site Manager Cloud Connector, which only works while the console is connected to the UniFi cloud. UI accounts with access to this console can manage it from the internet.");
-    } catch (err) { return formatError(err); }
-  });
-
-  server.registerTool("unifi_get_management_access", {
-    description: `Read the site's device SSH settings (Device SSH Authentication for adopted UniFi devices) ${SETTINGS} mgmt section: whether SSH is on, whether it accepts passwords, whether it listens on every interface (x_ssh_bind_wildcard), and how many SSH keys are installed. Credentials and keys are never returned. Console (UniFi OS) SSH is a separate UniFi OS setting this API does not expose. Which networks reach the console's web UI and SSH is set by firewall rules and policies, and from the internet by Remote Access and port forwards (unifi_get_remote_access_status, unifi_list_port_forwards). status: unavailable means the controller's settings had no such fields.`,
-    inputSchema: { siteReference: siteReference() },
-    outputSchema: getManagementAccessOutputSchema,
+    outputSchema: getDeviceSshSettingsOutputSchema,
     annotations: READ_ONLY,
   }, async ({ siteReference }) => {
     try {

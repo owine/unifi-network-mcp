@@ -33,22 +33,15 @@ describe("classic controller transport", () => {
     expect(options.method).toBe("GET");
   });
 
-  it("goes through the Cloud Connector, and says so", async () => {
+  it("goes through the Cloud Connector", async () => {
     fetchMock.mockImplementation(() => Promise.resolve(response(envelope([]))));
     const client = new NetworkClient({ ...config, host: "api.ui.com", consoleId: "ABC123" });
-    expect(client.viaCloudConnector).toBe(true);
     await client.getClassic("default", "portforward");
     await client.getClassicSettings("default");
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       "https://api.ui.com/v1/connector/consoles/ABC123/proxy/network/api/s/default/rest/portforward",
       "https://api.ui.com/v1/connector/consoles/ABC123/proxy/network/api/s/default/get/setting",
     ]);
-  });
-
-  it("is not via the Cloud Connector against a local console, even with a console ID", () => {
-    expect(new NetworkClient(config).viaCloudConnector).toBe(false);
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
-    expect(new NetworkClient({ ...config, consoleId: "ABC123" }).viaCloudConnector).toBe(false);
   });
 
   it.each([401, 403, 404, 500])("surfaces HTTP %i without leaking the response or calling it empty", async (status) => {

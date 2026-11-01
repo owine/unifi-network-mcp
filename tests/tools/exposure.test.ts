@@ -23,15 +23,13 @@ const usg = {
   _id: "s-usg", key: "usg", upnp_enabled: true, upnp_nat_pmp_enabled: true, upnp_secure_mode: true,
   upnp_wan_interface: "WAN", radius_secret: FAKE, x_dhcp_relay_secret: FAKE,
 };
-const cloud = { _id: "s-cloud", key: "super_cloudaccess", enabled: true, device_id: FAKE, x_private_key: FAKE, x_certificate_pem: FAKE };
 
-const TOOLS = ["unifi_list_port_forwards", "unifi_get_upnp_status", "unifi_get_remote_access_status", "unifi_get_management_access"];
+const TOOLS = ["unifi_list_port_forwards", "unifi_get_upnp_status", "unifi_get_device_ssh_settings"];
 
 describe("internet exposure tools", () => {
-  function setup({ readOnly = true, viaCloudConnector = false } = {}) {
+  function setup({ readOnly = true } = {}) {
     const server = createMockServer();
     const client = createMockClient();
-    (client as { viaCloudConnector: boolean }).viaCloudConnector = viaCloudConnector;
     registerAllTools(server.server, client, readOnly);
     return { ...server, client };
   }
@@ -160,61 +158,15 @@ describe("internet exposure tools", () => {
     });
   });
 
-  describe("unifi_get_remote_access_status", () => {
-    it("is unavailable against a local console, with the Network application's flag and no keys", async () => {
-      const { client, handlers } = setup();
-      settings(client, cloud, mgmt);
-      const result = await handlers.get("unifi_get_remote_access_status")({ siteReference: "default" });
-      expect(result.structuredContent).toEqual({
-        siteReference: "default", remoteAccess: "unavailable", connection: "local", networkCloudAccessEnabled: true,
-        detail: expect.stringContaining("cannot see UniFi OS Remote Access"),
-      });
-      expect(mockFn(client, "get")).not.toHaveBeenCalled();
-      expect(JSON.stringify(result)).not.toContain(FAKE);
+  describe("unifi_get_device_ssh_settings", () => {
+    it("says in its name and description that it covers device SSH only", () => {
+      expect(setup().configs.get("unifi_get_device_ssh_settings").description).toContain("Console (UniFi OS) SSH is a separate");
     });
 
-    it("degrades to unavailable, not an error, when a local console's settings cannot be read", async () => {
-      const { client, handlers } = setup();
-      mockFn(client, "getClassicSettings").mockRejectedValue(new Error("Classic controller API returned HTTP 403"));
-      const result = await handlers.get("unifi_get_remote_access_status")({ siteReference: "default" });
-      expect(result.isError).toBeUndefined();
-      expect(result.structuredContent).toMatchObject({ remoteAccess: "unavailable", networkCloudAccessEnabled: null });
-      expect(result.structuredContent.detail).toContain("HTTP 403");
-    });
-
-    it("is enabled through the Cloud Connector once the settings read succeeds", async () => {
-      const { client, handlers } = setup({ viaCloudConnector: true });
-      settings(client, mgmt);
-      const result = await handlers.get("unifi_get_remote_access_status")({ siteReference: "default" });
-      expect(result.structuredContent).toMatchObject({ remoteAccess: "enabled", connection: "cloud-connector", networkCloudAccessEnabled: null });
-      expect(mockFn(client, "get")).not.toHaveBeenCalled();
-    });
-
-    it("confirms the connector with an Integration API read when the classic one fails", async () => {
-      const { client, handlers } = setup({ viaCloudConnector: true });
-      mockFn(client, "getClassicSettings").mockRejectedValue(new Error("Classic controller API returned HTTP 403"));
-      mockFn(client, "get").mockResolvedValue({ applicationVersion: "10.6.106" });
-      const result = await handlers.get("unifi_get_remote_access_status")({ siteReference: "default" });
-      expect(mockFn(client, "get")).toHaveBeenCalledWith("/info");
-      expect(result.structuredContent.remoteAccess).toBe("enabled");
-    });
-
-    it("is unavailable, not an error, when the console cannot be reached through the connector", async () => {
-      const { client, handlers } = setup({ viaCloudConnector: true });
-      mockFn(client, "getClassicSettings").mockRejectedValue(new Error("HTTP 502"));
-      mockFn(client, "get").mockRejectedValue(new Error("HTTP 502: console offline"));
-      const result = await handlers.get("unifi_get_remote_access_status")({ siteReference: "default" });
-      expect(result.isError).toBeUndefined();
-      expect(result.structuredContent).toMatchObject({ remoteAccess: "unavailable", connection: "cloud-connector" });
-      expect(result.structuredContent.detail).toContain("console offline");
-    });
-  });
-
-  describe("unifi_get_management_access", () => {
     it("reports device SSH and counts its keys without returning credentials", async () => {
       const { client, handlers } = setup();
       settings(client, usg, mgmt);
-      const result = await handlers.get("unifi_get_management_access")({ siteReference: "default" });
+      const result = await handlers.get("unifi_get_device_ssh_settings")({ siteReference: "default" });
       expect(result.structuredContent).toEqual({
         siteReference: "default", status: "available",
         x_ssh_enabled: true, x_ssh_auth_password_enabled: true, x_ssh_bind_wildcard: false, sshKeyCount: 2,
@@ -227,19 +179,19 @@ describe("internet exposure tools", () => {
     it("reports key-only and disabled SSH", async () => {
       const { client, handlers } = setup();
       settings(client, { key: "mgmt", x_ssh_enabled: true, x_ssh_auth_password_enabled: false });
-      const keyOnly = await handlers.get("unifi_get_management_access")({ siteReference: "default" });
+      const keyOnly = await handlers.get("unifi_get_device_ssh_settings")({ siteReference: "default" });
       expect(keyOnly.structuredContent).toMatchObject({ x_ssh_auth_password_enabled: false, sshKeyCount: null });
       expect(keyOnly.structuredContent.detail).toContain("key authentication only");
 
       settings(client, { key: "mgmt", x_ssh_enabled: false });
-      const off = await handlers.get("unifi_get_management_access")({ siteReference: "default" });
+      const off = await handlers.get("unifi_get_device_ssh_settings")({ siteReference: "default" });
       expect(off.structuredContent).toMatchObject({ status: "available", x_ssh_enabled: false, detail: "Device SSH is off." });
     });
 
     it("is unavailable, not off, without a mgmt section", async () => {
       const { client, handlers } = setup();
       settings(client, usg);
-      const result = await handlers.get("unifi_get_management_access")({ siteReference: "default" });
+      const result = await handlers.get("unifi_get_device_ssh_settings")({ siteReference: "default" });
       expect(result.structuredContent).toMatchObject({ status: "unavailable", x_ssh_enabled: null, sshKeyCount: null });
       expect(result.structuredContent.detail).toContain("not a result that SSH is off");
     });
@@ -247,7 +199,7 @@ describe("internet exposure tools", () => {
     it("returns an error when the settings envelope is not ok", async () => {
       const { client, handlers } = setup();
       mockFn(client, "getClassicSettings").mockResolvedValue({ meta: { rc: "error" }, data: [] });
-      expect((await handlers.get("unifi_get_management_access")({ siteReference: "default" })).isError).toBe(true);
+      expect((await handlers.get("unifi_get_device_ssh_settings")({ siteReference: "default" })).isError).toBe(true);
     });
   });
 });

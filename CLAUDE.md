@@ -63,7 +63,7 @@ src/
     devices.ts        # Device management
     clients.ts        # Client management
     client-history.ts # Retained sessions & offline client history
-    exposure.ts       # Internet exposure: port forwards, UPnP, Remote Access, device SSH (classic API reads)
+    exposure.ts       # Internet exposure: port forwards, UPnP, device SSH (classic API reads)
     networks.ts       # Network configuration
     wifi.ts           # WiFi/SSID configuration
     hotspot.ts        # Hotspot vouchers
