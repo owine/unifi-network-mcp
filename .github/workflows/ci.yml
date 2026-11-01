@@ -12,7 +12,8 @@ permissions:
 
 # A push to main gets its own group per commit: GitHub keeps only one pending
 # run per group, so during a burst of merges a shared group would cancel the
-# CI run - and with it the release run - of a commit that should be released.
+# CI run of a commit, leaving it with no result to check before publishing a
+# release from it.
 concurrency:
   group: ci-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -41,8 +42,8 @@ jobs:
     strategy:
       matrix:
         node-version:
-          - '22.23.3' # renovate: datasource=node-version depName=node-lts-22 packageName=node
-          - '24.22.0' # renovate: datasource=node-version depName=node-lts-24 packageName=node
+          - '22.23.4' # renovate: datasource=node-version depName=node-lts-22 packageName=node
+          - '24.22.1' # renovate: datasource=node-version depName=node-lts-24 packageName=node
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
@@ -106,4 +107,4 @@ jobs:
           # vulnerable ("Supported files for scanner(s) not found" in run
           # 35399411224). v0.74.0 reads both documents. Remove this pin once a
           # trivy-action release ships v0.74.0+ as its default.
-          version: v0.76.0
+          version: v0.76.1
