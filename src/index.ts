@@ -10,6 +10,8 @@ import { openWriteLog } from "./write-log.js";
 
 // Read at runtime rather than importing: package.json sits outside rootDir,
 // so a static import would emit dist/src/ and break the published layout.
+// It reads 0.0.0-development in the repo; the release workflow stamps the
+// tag's version into it before packing, so a published tarball reports its own.
 const { version } = createRequire(__filename)("../package.json") as {
   version: string;
 };
