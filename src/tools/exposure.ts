@@ -40,7 +40,7 @@ const SETTINGS = "from the classic controller API (get/setting)";
 
 export function registerExposureTools(server: McpServer, client: NetworkClient) {
   server.registerTool("unifi_list_port_forwards", {
-    description: `List the site's port forwards from the classic controller API (rest/portforward), whole and unpaged: each one exposes a LAN host to the internet on the WAN interface pfwd_interface. enabled: false rules forward nothing; enabledCount counts the rest. src is the allowed source ("any" for the whole internet) unless src_limiting_enabled restricts it to src_firewall_group_id. fwd and fwd_port are the LAN target. IDs are the classic controller's _id values. Rows carry only ${FORWARD_FIELDS.join(", ")}.`,
+    description: `List the site's port forwards from the classic controller API (rest/portforward), whole and unpaged: each one exposes a LAN host to the internet on the WAN interface pfwd_interface. enabled: false rules forward nothing; enabledCount counts the rest. src is the allowed source ("any" for the whole internet) unless src_limiting_enabled restricts it to src_firewall_group_id. fwd and fwd_port are the LAN target. IDs are the classic controller's _id values.`,
     inputSchema: { siteReference: siteReference() },
     outputSchema: listPortForwardsOutputSchema,
     annotations: READ_ONLY,
@@ -60,7 +60,7 @@ export function registerExposureTools(server: McpServer, client: NetworkClient) 
   });
 
   server.registerTool("unifi_get_upnp_status", {
-    description: `Read whether UPnP and NAT-PMP are on for the site's gateway, ${SETTINGS}: the dedicated upnp section where the controller has one, otherwise the gateway (usg) section's upnp_* fields. With UPnP on, LAN devices open WAN ports themselves, without a port forward. status: unavailable means no UPnP setting was found on this controller version; it does not mean UPnP is off.`,
+    description: `Read whether UPnP and NAT-PMP are on for the site's gateway, ${SETTINGS}: the dedicated upnp section where the controller has one, otherwise the gateway (usg) section's upnp_* fields. With UPnP on, LAN devices open WAN ports themselves, without a port forward. upnp_nat_pmp_enabled is the stored setting, which does nothing while UPnP is off; detail says which applies. status: unavailable means no UPnP setting was found on this controller version; it does not mean UPnP is off.`,
     inputSchema: { siteReference: siteReference() },
     outputSchema: getUpnpStatusOutputSchema,
     annotations: READ_ONLY,
@@ -70,14 +70,17 @@ export function registerExposureTools(server: McpServer, client: NetworkClient) 
       for (const source of ["upnp", "usg"] as const) {
         const section = sections.get(source);
         if (!section) continue;
-        // The upnp section, where there is one, may drop the upnp_ prefix.
+        // Network 11.0.94 (zone-based) has no upnp section: its usg section holds
+        // the upnp_* fields. A upnp section, where there is one, may drop the prefix.
         const field = (name: string) => section[`upnp_${name}`] ?? (source === "upnp" ? section[name] : undefined);
         const enabled = flag(field("enabled"));
         if (enabled === null) continue;
         const natPmp = flag(field("nat_pmp_enabled"));
         const detail = enabled
           ? `UPnP is on: LAN devices can open ports on the WAN without a port forward.${natPmp ? " NAT-PMP is on too." : ""}`
-          : "UPnP is off, so NAT-PMP is not served either.";
+          : natPmp
+            ? "UPnP is off. NAT-PMP is stored as on, but that flag does nothing while UPnP is off; it applies again if UPnP is turned on."
+            : "UPnP is off, so NAT-PMP is not served either.";
         return formatSuccess({
           siteReference, status: "available", source,
           upnp_enabled: enabled,

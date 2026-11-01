@@ -16,7 +16,7 @@ const forward = {
 const mgmt = {
   _id: "s-mgmt", key: "mgmt", site_id: "site1",
   x_ssh_enabled: true, x_ssh_auth_password_enabled: true, x_ssh_bind_wildcard: false,
-  x_ssh_username: FAKE, x_ssh_password: FAKE, x_ssh_md5passwd: FAKE, x_mgmt_key: FAKE,
+  x_ssh_username: FAKE, x_ssh_password: FAKE, x_ssh_md5passwd: FAKE, x_ssh_sha512passwd: FAKE, x_mgmt_key: FAKE,
   x_ssh_keys: [{ name: "laptop", key: FAKE, type: "ssh-ed25519" }, { name: "ci", key: FAKE, type: "ssh-rsa" }],
 };
 const usg = {
@@ -65,6 +65,10 @@ describe("internet exposure tools", () => {
       expect(JSON.stringify(result)).not.toContain(FAKE);
     });
 
+    it("leaves the field list to the output schema", () => {
+      expect(setup().configs.get("unifi_list_port_forwards").description).not.toContain("Rows carry only");
+    });
+
     it("drops unlisted fields inside destination_ips too", async () => {
       const { client, handlers } = setup();
       mockFn(client, "getClassic").mockResolvedValue(envelope([{ _id: "f1", destination_ips: [{ destination_ip: "198.51.100.1", interface: "wan2", x_key: FAKE }] }]));
@@ -102,7 +106,7 @@ describe("internet exposure tools", () => {
   });
 
   describe("unifi_get_upnp_status", () => {
-    it("reads the usg section's upnp fields", async () => {
+    it("reads the usg section's upnp fields when there is no upnp section, as on Network 11.0.94", async () => {
       const { client, handlers } = setup();
       settings(client, mgmt, usg);
       const result = await handlers.get("unifi_get_upnp_status")({ siteReference: "default" });
@@ -115,12 +119,25 @@ describe("internet exposure tools", () => {
       expect(JSON.stringify(result)).not.toContain(FAKE);
     });
 
-    it("reports UPnP off", async () => {
+    it.each([[false], [undefined]])("reports UPnP off with NAT-PMP stored as %s", async (stored) => {
+      const { client, handlers } = setup();
+      settings(client, { key: "usg", upnp_enabled: false, upnp_nat_pmp_enabled: stored });
+      const result = await handlers.get("unifi_get_upnp_status")({ siteReference: "default" });
+      expect(result.structuredContent).toMatchObject({ status: "available", upnp_enabled: false, upnp_nat_pmp_enabled: stored ?? null, upnp_secure_mode: null });
+      expect(result.structuredContent.detail).toBe("UPnP is off, so NAT-PMP is not served either.");
+    });
+
+    it("keeps a stored NAT-PMP flag with UPnP off, and says it does nothing", async () => {
       const { client, handlers } = setup();
       settings(client, { key: "usg", upnp_enabled: false, upnp_nat_pmp_enabled: true });
       const result = await handlers.get("unifi_get_upnp_status")({ siteReference: "default" });
-      expect(result.structuredContent).toMatchObject({ status: "available", upnp_enabled: false, upnp_nat_pmp_enabled: true, upnp_secure_mode: null });
-      expect(result.structuredContent.detail).toMatch(/UPnP is off/);
+      expect(result.structuredContent).toMatchObject({ upnp_enabled: false, upnp_nat_pmp_enabled: true });
+      expect(result.structuredContent.detail).toMatch(/NAT-PMP is stored as on.*does nothing while UPnP is off/);
+      expect(result.structuredContent.detail).not.toContain("not served");
+    });
+
+    it("documents upnp_nat_pmp_enabled as the stored setting", () => {
+      expect(setup().configs.get("unifi_get_upnp_status").description).toMatch(/upnp_nat_pmp_enabled is the stored setting/);
     });
 
     it("prefers a dedicated upnp section, with or without the upnp_ prefix", async () => {

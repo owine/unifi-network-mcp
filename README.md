@@ -373,9 +373,9 @@ These controller routes are not part of the published Integration API contract. 
 
 Port forwards, UPnP and device SSH settings are not in the Integration API, so the exposure tools read the classic controller API: GET `/proxy/network/api/s/{siteReference}/rest/portforward` and `/proxy/network/api/s/{siteReference}/get/setting`, directly or through the Cloud Connector. Like the history tools they take the site's `internalReference` from `unifi_list_sites` and remain available in read-only mode. No classic write is allowlisted.
 
-Settings sections hold credentials (SSH passwords, management and cloud-access keys, RADIUS secrets), so every result is built from a fixed list of fields (see each tool's description and `src/utils/output-schemas.ts`), never by redacting the record. SSH keys are counted, not returned.
+Settings sections hold credentials (SSH passwords, management and cloud-access keys, RADIUS secrets), so every result is built from a fixed list of fields (its output schema, in `src/utils/output-schemas.ts`), never by redacting the record. SSH keys are counted, not returned.
 
-A setting this controller version does not have comes back as `status: "unavailable"` with a `detail` saying what was looked for. It never means the feature is off. UPnP is read from a `upnp` settings section where there is one, otherwise from the gateway (`usg`) section's `upnp_*` fields, and `source` says which.
+A setting this controller version does not have comes back as `status: "unavailable"` with a `detail` saying what was looked for. It never means the feature is off. UPnP is read from a `upnp` settings section where there is one, otherwise from the gateway (`usg`) section's `upnp_*` fields, and `source` says which; Network 11.0.94 has no `upnp` section. `upnp_nat_pmp_enabled` is the stored setting, which does nothing while UPnP is off, and `detail` says so when the two disagree.
 
 Remote Access and console (UniFi OS) SSH are UniFi OS settings outside this API, so `unifi_get_device_ssh_settings` reports device SSH only. Which internal networks can reach the console's web UI is decided by the firewall rules or policies.
 
