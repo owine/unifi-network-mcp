@@ -373,9 +373,9 @@ These controller routes are not part of the published Integration API contract. 
 
 Legacy firewall rules, and the firewall groups and networks they reference, are not in the Integration API. Three read tools list them from the classic controller API instead: GET `/proxy/network/api/s/{siteReference}/rest/networkconf`, `/rest/firewallgroup` and `/rest/firewallrule`. Like the history tools they take the site's `internalReference` from `unifi_list_sites`, and remain available in read-only mode. No classic write is allowlisted.
 
-Each collection is returned whole; the controller does not page it. Records keep the controller's field names and their classic `_id`s, which differ from Integration API IDs, so an ID from one API cannot be passed to a tool of the other. Legacy rules reference networks by `unifi_list_classic_networks` IDs and groups by `unifi_list_firewall_groups` IDs. On a site that uses the zone-based firewall, legacy rules may not be enforced; its rules are the firewall policies.
+Each collection is returned whole; the controller does not page it. Legacy rules are sorted by ruleset, then `rule_index`, the order they are evaluated in. Records keep the controller's field names and their classic `_id`s, which differ from Integration API IDs, so an ID from one API cannot be passed to a tool of the other. Legacy rules reference networks by `unifi_list_classic_networks` IDs and groups by `unifi_list_firewall_groups` IDs. On a site that uses the zone-based firewall, legacy rules may not be enforced; its rules are the firewall policies.
 
-Classic network records hold WAN, VPN and RADIUS credentials. Rows are therefore built from a fixed list of fields per tool (see each tool's description and `src/utils/output-schemas.ts`), never by redacting the record, so a credential under any name is never returned. Errors are reported the same way as for the history routes.
+Classic network records hold WAN, VPN and RADIUS credentials. Rows are therefore built from a fixed list of fields per tool (its output schema, in `src/utils/output-schemas.ts`), never by redacting the record, so a credential under any name is never returned. Errors are reported the same way as for the history routes.
 
 ## Troubleshooting
 

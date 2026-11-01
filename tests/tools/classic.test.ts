@@ -124,6 +124,39 @@ describe("classic API tools", () => {
     expect(result.content[0].text).toContain("icmpv6");
   });
 
+  it("sorts legacy rules by ruleset, then rule_index, the order they are evaluated in", async () => {
+    const { client, handlers } = setup();
+    const at = (_id: string, ruleset: string, rule_index?: number | string | null) => ({ _id, ruleset, rule_index });
+    mockFn(client, "getClassic").mockResolvedValue(envelope([
+      at("wan-2", "WAN_IN", 2001),
+      at("lan-none", "LAN_IN", null),
+      at("lan-3", "LAN_IN", "20000"),
+      at("lan-2", "LAN_IN", 4000),
+      at("wan-1", "WAN_IN", 2000),
+      at("lan-1", "LAN_IN", "2000"),
+      at("guest-1", "GUEST_IN", 2000),
+    ]));
+    const result = await handlers.get("unifi_list_legacy_firewall_rules")({ siteReference: "default" });
+    expect(result.structuredContent.data.map((row: { _id: string }) => row._id)).toEqual([
+      "guest-1", "lan-1", "lan-2", "lan-3", "lan-none", "wan-1", "wan-2",
+    ]);
+  });
+
+  it("keeps the controller's order for networks and firewall groups", async () => {
+    const { client, handlers } = setup();
+    mockFn(client, "getClassic").mockResolvedValue(envelope([{ _id: "b", name: "Zebra" }, { _id: "a", name: "Alpha" }]));
+    const result = await handlers.get("unifi_list_firewall_groups")({ siteReference: "default" });
+    expect(result.structuredContent.data.map((row: { _id: string }) => row._id)).toEqual(["b", "a"]);
+  });
+
+  it("leaves the field list to the output schema, keeping the credential promise on networks", () => {
+    const { configs } = setup();
+    expect(configs.get("unifi_list_classic_networks").description).toContain("credentials are never returned");
+    expect(configs.get("unifi_list_classic_networks").description).not.toContain("ip_subnet");
+    expect(configs.get("unifi_list_firewall_groups").description).not.toContain("group_type");
+    expect(configs.get("unifi_list_legacy_firewall_rules").description).not.toContain("state_established");
+  });
+
   it.each([
     ["a legacy error envelope", { meta: { rc: "error", msg: "api.err.NoPermission" }, data: [] }],
     ["a bare array", [network]],
