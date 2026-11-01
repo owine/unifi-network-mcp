@@ -5,6 +5,8 @@ import { GuardError, ROUTES, guardRequest, type GuardPolicy, type Route } from "
 import { registerAllTools } from "../src/tools/index.js";
 import { createMockServer } from "./tools/_helpers.js";
 
+const FAKE = "FAKE-SECRET-DO-NOT-USE";
+
 // The client calls undici's fetch rather than the global one, so mock that.
 const fetchMock = vi.hoisted(() => vi.fn());
 vi.mock("undici", async (importOriginal) => ({ ...await importOriginal<typeof import("undici")>(), fetch: fetchMock }));
@@ -193,6 +195,9 @@ describe("request guard", () => {
     it.each(["ordering", "Ordering"])("accepts %s as a site internalReference", (site) => {
       expect(guardRequest("GET", `/v2/api/site/${site}/clients/history?withinHours=1`, WRITE).template).toContain("/clients/history");
       expect(guardRequest("POST", `/api/s/${site}/stat/session`, WRITE).template).toContain("/stat/session");
+      for (const collection of ["networkconf", "firewallgroup", "firewallrule"]) {
+        expect(guardRequest("GET", `/api/s/${site}/rest/${collection}`, WRITE).template).toBe(`/api/s/{site}/rest/${collection}`);
+      }
     });
 
     it.each(["HEAD", "OPTIONS", "TRACE", "CONNECT", "get", "PROPFIND"])("refuses method %s", (method) => {

@@ -8,6 +8,7 @@ import { NetworkClient } from "../src/client.js";
 import { formatDryRun } from "../src/utils/safety.js";
 import { createMockServer, createMockClient, mockFn, answerWanLookups } from "./tools/_helpers.js";
 
+const FAKE = "FAKE-SECRET-DO-NOT-USE";
 const fetchMock = vi.hoisted(() => vi.fn());
 vi.mock("undici", async (importOriginal) => ({ ...await importOriginal<typeof import("undici")>(), fetch: fetchMock }));
 

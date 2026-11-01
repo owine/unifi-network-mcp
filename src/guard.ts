@@ -93,9 +93,9 @@ export const ROUTES: readonly Route[] = [
   { method: "POST", template: "/api/s/{site}/stat/session" },
 
   // Classic controller API: whole collections, read only
-  { method: "GET", template: "/api/s/{id}/rest/networkconf" }, // unifi_list_classic_networks
-  { method: "GET", template: "/api/s/{id}/rest/firewallgroup" }, // unifi_list_firewall_groups
-  { method: "GET", template: "/api/s/{id}/rest/firewallrule" }, // unifi_list_legacy_firewall_rules
+  { method: "GET", template: "/api/s/{site}/rest/networkconf" }, // unifi_list_classic_networks
+  { method: "GET", template: "/api/s/{site}/rest/firewallgroup" }, // unifi_list_firewall_groups
+  { method: "GET", template: "/api/s/{site}/rest/firewallrule" }, // unifi_list_legacy_firewall_rules
 
   // Networks
   { method: "GET", template: v1("/sites/{id}/networks"), query: PAGE },
