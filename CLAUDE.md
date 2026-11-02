@@ -63,6 +63,7 @@ src/
     devices.ts        # Device management
     clients.ts        # Client management
     client-history.ts # Retained sessions & offline client history
+    classic.ts        # Classic controller API reads: networks, firewall groups, legacy rules
     networks.ts       # Network configuration
     wifi.ts           # WiFi/SSID configuration
     hotspot.ts        # Hotspot vouchers
@@ -78,14 +79,14 @@ src/
     safety.ts         # Tool annotations, formatDryRun(), requireConfirmation()
     full-put.ts       # mergeForPut() read-merge-write for full-replacement PUTs
     secrets.ts        # redactSecrets() / restoreRedacted() for WiFi passphrases
-    params.ts         # resourceId() — allowlisted schema for IDs interpolated into paths
+    params.ts         # resourceId() / siteReference() — allowlisted schemas for values interpolated into paths
     output-schemas.ts # Zod output schemas for tools' structuredContent
     wan-exposure.ts   # WanExposure — hard refusals for writes that could let traffic in from the WAN
 ```
 
 ## Adding a new tool
 
-1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`, `client-history`) omit the `readOnly` param entirely — there is nothing to gate
+1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`, `client-history`, `classic`) omit the `readOnly` param entirely — there is nothing to gate
 2. Use `server.registerTool(name, { description, inputSchema, outputSchema, annotations }, handler)`. Titles are derived from the name by `toolTitle()` in `src/tools/index.ts`; add an acronym to `TITLE_WORDS` if it reads wrongly
 3. Set appropriate annotations from `utils/safety.ts`: `READ_ONLY`, `WRITE`, `WRITE_NOT_IDEMPOTENT`, `DESTRUCTIVE`
 4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource, wrapped in `writeResult()` so the dry-run preview also validates (`tests/sdk-contract.test.ts` enforces this through the real SDK). Follow the loose strategy in that file: non-key fields optional, nested objects `.loose()`. Pass the raw shape; `registerAllTools()` publishes it as a loose object so fields the schema does not list pass SDK client validation
@@ -108,12 +109,13 @@ All tool files follow a consistent pattern:
    - Writes that could let traffic in from the WAN are refused outright through `WanExposure` (`utils/wan-exposure.ts`), before the confirm check and on dry runs too, unless the operator sets `UNIFI_NETWORK_ALLOW_WAN_EXPOSURE=true`
 5. Every tool has MCP annotations from `utils/safety.ts` (`readOnlyHint`, `destructiveHint`, `openWorldHint: false`; write tools also `idempotentHint`)
 6. Beneath the tools, `NetworkClient` passes every request through `guardRequest()` (`src/guard.ts`): an allowlist of the endpoints the tools use, which also refuses writes in read-only mode and writes belonging only to tools `UNIFI_NETWORK_WRITE_TOOLS` does not enable. `registerAllTools()` skips those tools entirely, and records write calls in the optional write log (`src/write-log.ts`)
+7. Controller routes outside the Integration API (client history, classic `/api/s/{site}/rest/...` reads) go through their own `NetworkClient` methods, never `request()`, and take the site's `internalReference`. Classic records can hold credentials under any name, so classic tools return only the fields their output schema lists (`pick()` in `src/tools/classic.ts`); never pass a record through or rely on `redactSecrets()` for them
 
 ## Testing patterns
 
 Tests mock `NetworkClient` methods and capture tool handlers via `createMockServer()`, which returns `handlers` (name -> handler) and `configs` (name -> { description, annotations, schema, outputSchema }); `get()` on either throws for an unknown tool. Use `mockFn(client, "get")` for type-safe access to mock functions. Each tool gets a success and error test at minimum, plus annotation checks, read-only mode tests, and dry-run/confirm tests where applicable.
 
-Cross-cutting suites check every tool at once: `tests/tools/safety-compliance.test.ts` (annotations, dryRun/confirm, `DESTRUCTIVE:` prefix, read-only behaviour), `tests/tools/validation.test.ts` (input rejection, ID charset), `tests/tools/security-confirm.test.ts` (conditional confirm), `tests/tools/merge-concurrency.test.ts` (read-merge-write locking), `tests/guard.test.ts` (every tool's requests against the allowlist, plus refusals), `tests/write-tools.test.ts` (`WRITE_TOOL_GROUPS` against the modules, and the write-tool limits), `tests/tools/wan-exposure.test.ts` (WAN refusals), `tests/write-log.test.ts`, `tests/sdk-contract.test.ts` (results through the real SDK) and `tests/docs-drift.test.ts` (README and CLAUDE.md against the code, with no stale-prone counts), plus `tests/tls.test.ts`, `tests/instructions.test.ts`, `tests/index.test.ts` (startup) and `tests/client-history-transport.test.ts`. When one fails, fix the tool or the docs, not the check.
+Cross-cutting suites check every tool at once: `tests/tools/safety-compliance.test.ts` (annotations, dryRun/confirm, `DESTRUCTIVE:` prefix, read-only behaviour), `tests/tools/validation.test.ts` (input rejection, ID charset), `tests/tools/security-confirm.test.ts` (conditional confirm), `tests/tools/merge-concurrency.test.ts` (read-merge-write locking), `tests/guard.test.ts` (every tool's requests against the allowlist, plus refusals), `tests/write-tools.test.ts` (`WRITE_TOOL_GROUPS` against the modules, and the write-tool limits), `tests/tools/wan-exposure.test.ts` (WAN refusals), `tests/write-log.test.ts`, `tests/sdk-contract.test.ts` (results through the real SDK) and `tests/docs-drift.test.ts` (README and CLAUDE.md against the code, with no stale-prone counts), plus `tests/tls.test.ts`, `tests/instructions.test.ts`, `tests/index.test.ts` (startup), `tests/client-history-transport.test.ts` and `tests/classic-transport.test.ts`. When one fails, fix the tool or the docs, not the check.
 
 ## Code style
 

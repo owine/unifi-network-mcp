@@ -10,7 +10,7 @@ import { noteRefusal, noteWriteRequest, noteWriteStatus } from "./write-log.js";
 // Well under undici's 300s default, so a stalled controller fails the call
 // before the MCP host gives up on it.
 const REQUEST_TIMEOUT_MS = 30_000;
-const HISTORY_TIMEOUT_MS = 25_000;
+const CONTROLLER_TIMEOUT_MS = 25_000;
 
 // What undici reports when the console closed the connection under a
 // request, typically a kept-alive socket it had already timed out.
@@ -19,6 +19,19 @@ const SOCKET_CLOSED: readonly string[] = ["UND_ERR_SOCKET", "ECONNRESET", "EPIPE
 function socketClosed(err: unknown): boolean {
   const cause = err instanceof Error ? err.cause : undefined;
   return cause instanceof Error && "code" in cause && typeof cause.code === "string" && SOCKET_CLOSED.includes(cause.code);
+}
+
+/**
+ * Send a read, and once more if the console closed the connection under it. A
+ * connection the console closed while it sat idle fails the next request on
+ * it; nothing reached the console, and a read changes nothing anyway, so it
+ * goes out again on a fresh connection.
+ */
+function retryClosedSocket<T>(send: () => Promise<T>): Promise<T> {
+  return send().catch((err: unknown) => {
+    if (socketClosed(err)) return send();
+    throw err;
+  });
 }
 
 /**
@@ -85,6 +98,32 @@ function requestSignal(timeoutMs: number): AbortSignal {
   return caller ? AbortSignal.any([caller, timeout]) : timeout;
 }
 
+/** The classic controller REST collections the classic read tools list. */
+export const CLASSIC_COLLECTIONS = ["networkconf", "firewallgroup", "firewallrule"] as const;
+export type ClassicCollection = (typeof CLASSIC_COLLECTIONS)[number];
+
+/** How errors from one family of controller routes outside the Integration API are worded. */
+interface ControllerRead {
+  name: string;
+  query: string;
+  notEmpty: string;
+  tooLarge: string;
+}
+
+const HISTORY: ControllerRead = {
+  name: "Controller history",
+  query: "history query",
+  notEmpty: "This is not an empty history result.",
+  tooLarge: "reduce the page size or time window",
+};
+
+const CLASSIC: ControllerRead = {
+  name: "Classic controller API",
+  query: "classic API read",
+  notEmpty: "This is not an empty result.",
+  tooLarge: "the collection is too large to return",
+};
+
 export class NetworkClient {
   private headers: Record<string, string>;
   private networkUrl: string;
@@ -128,15 +167,7 @@ export class NetworkClient {
     const send = () => this.send(method, url, body).catch((err: unknown) => {
       throw inFlightError(method === "GET", method, REQUEST_TIMEOUT_MS, err);
     });
-    // A connection the console closed while it sat idle fails the next request
-    // on it. Nothing reached the console, and a read changes nothing anyway, so
-    // a read goes out once more on a fresh connection.
-    return method === "GET"
-      ? send().catch((err: unknown) => {
-        if (socketClosed(err)) return send();
-        throw err;
-      })
-      : send();
+    return method === "GET" ? retryClosedSocket(send) : send();
   }
 
   private async send(method: string, url: string, body?: unknown): Promise<unknown> {
@@ -222,6 +253,13 @@ export class NetworkClient {
     });
   }
 
+  /** A classic controller REST collection, read whole: the controller does not page these. */
+  async getClassic(siteReference: string, collection: ClassicCollection): Promise<unknown> {
+    this.validateSiteReference(siteReference);
+    if (!CLASSIC_COLLECTIONS.includes(collection)) throw new Error(`Unknown classic collection ${collection}`);
+    return this.classicRequest(`/api/s/${siteReference}/rest/${collection}`);
+  }
+
   private validateSiteReference(siteReference: string): void {
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(siteReference)) {
       throw new Error("Use the site's internalReference from unifi_list_sites (for example default)");
@@ -232,30 +270,38 @@ export class NetworkClient {
     const method = body === undefined ? "GET" : "POST";
     this.guard(method, path);
     // Both history endpoints are reads, the POST included.
-    return this.readHistory(method, path, body).catch((err: unknown) => {
-      throw inFlightError(true, method, HISTORY_TIMEOUT_MS, err);
+    return this.readController(HISTORY, method, path, body).catch((err: unknown) => {
+      throw inFlightError(true, method, CONTROLLER_TIMEOUT_MS, err);
     });
   }
 
-  private async readHistory(method: string, path: string, body?: unknown): Promise<unknown> {
+  /** The classic controller API, outside /integration/v1. Only GETs of the collections the guard allows. */
+  private async classicRequest(path: string): Promise<unknown> {
+    this.guard("GET", path);
+    return retryClosedSocket(() => this.readController(CLASSIC, "GET", path).catch((err: unknown) => {
+      throw inFlightError(true, "GET", CONTROLLER_TIMEOUT_MS, err);
+    }));
+  }
+
+  private async readController(kind: ControllerRead, method: string, path: string, body?: unknown): Promise<unknown> {
     const options: RequestInit = {
       method, headers: this.headers,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      redirect: "error", signal: requestSignal(HISTORY_TIMEOUT_MS), dispatcher: this.dispatcher,
+      redirect: "error", signal: requestSignal(CONTROLLER_TIMEOUT_MS), dispatcher: this.dispatcher,
     };
     const response = await fetch(`${this.networkUrl}${path}`, options);
     if (!response.ok) {
       // Drain before throwing: an unread body pins the socket until GC, so a
       // run of failures (say, a mis-scoped API key) would leak connections.
       await response.body?.cancel();
-      throw new Error(`Controller history returned HTTP ${response.status}; verify API-key access and controller support. This is not an empty history result.`);
+      throw new Error(`${kind.name} returned HTTP ${response.status}; verify API-key access and controller support. ${kind.notEmpty}`);
     }
     if (!response.headers.get("content-type")?.includes("application/json")) {
       await response.body?.cancel();
-      throw new Error("Controller history returned non-JSON data; verify controller authentication");
+      throw new Error(`${kind.name} returned non-JSON data; verify controller authentication`);
     }
     // Bound the body before parsing: controller session records can be large.
-    if (response.body === null) throw new Error("Controller history returned no response body");
+    if (response.body === null) throw new Error(`${kind.name} returned no response body`);
     // undici types the body as an untyped stream; a fetch body is always bytes.
     const reader = (response.body as ReadableStream<Uint8Array>).getReader();
     const chunks: Uint8Array[] = [];
@@ -267,7 +313,7 @@ export class NetworkClient {
         bytes += value.length;
         if (bytes > 10000000) {
           await reader.cancel();
-          throw new Error("Controller history exceeds 10 MB; reduce the page size or time window");
+          throw new Error(`${kind.name} exceeds 10 MB; ${kind.tooLarge}`);
         }
         chunks.push(value);
       }
@@ -278,13 +324,20 @@ export class NetworkClient {
     if (text.trim() === "") {
       // A bare JSON.parse would surface "Unexpected end of JSON input", which
       // reads as a broken tool rather than an unusable controller response.
-      throw new Error("Controller history returned an empty body; verify controller support. This is not an empty history result.");
+      throw new Error(`${kind.name} returned an empty body; verify controller support. ${kind.notEmpty}`);
     }
-    const result: unknown = JSON.parse(text);
+    let result: unknown;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      // The parser's message quotes the body around the fault, and classic
+      // records hold credentials: never pass it on.
+      throw new Error(`${kind.name} returned malformed JSON; verify controller support. ${kind.notEmpty}`);
+    }
     if (result && typeof result === "object" && "meta" in result) {
       const meta = result.meta;
       if (meta && typeof meta === "object" && "rc" in meta && meta.rc !== "ok") {
-        throw new Error("Controller rejected the history query (meta.rc is not ok)");
+        throw new Error(`Controller rejected the ${kind.query} (meta.rc is not ok)`);
       }
     }
     return result;

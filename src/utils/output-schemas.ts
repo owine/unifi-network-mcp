@@ -701,3 +701,100 @@ export const listClientSessionsOutputSchema = {
   end: z.number(),
   coverage: z.string(),
 } as const;
+
+// Classic controller REST collections (rest/networkconf, rest/firewallgroup,
+// rest/firewallrule). Unlike every other schema here, each shape is also the
+// tool's output allowlist: the tools copy only these fields from a record, so
+// a field the controller adds never reaches the model. networkconf records
+// carry WAN, VPN and RADIUS credentials (x_passphrase, x_wan_password,
+// x_ipsec_*, x_openvpn_*, WireGuard keys, PPPoE logins); never list one here.
+// Field types vary across controller versions, hence the unions.
+const classicScalar = z.union([z.string(), z.number()]).nullish();
+const classicString = z.string().nullish();
+const classicBoolean = z.boolean().nullish();
+
+export const ClassicNetwork = z
+  .object({
+    _id: z.string(),
+    name: classicString,
+    purpose: classicString,
+    vlan: classicScalar,
+    vlan_enabled: classicBoolean,
+    ip_subnet: classicString,
+    networkgroup: classicString,
+    enabled: classicBoolean,
+    dhcpd_enabled: classicBoolean,
+    dhcpd_start: classicString,
+    dhcpd_stop: classicString,
+    domain_name: classicString,
+    igmp_snooping: classicBoolean,
+    mdns_enabled: classicBoolean,
+    network_isolation_enabled: classicBoolean,
+    internet_access_enabled: classicBoolean,
+    firewall_zone_id: classicString,
+    is_nat: classicBoolean,
+    ipv6_interface_type: classicString,
+    setting_preference: classicString,
+  })
+  .loose();
+
+export const ClassicFirewallGroup = z
+  .object({
+    _id: z.string(),
+    name: classicString,
+    group_type: classicString,
+    group_members: z.array(z.string()).nullish(),
+  })
+  .loose();
+
+export const LegacyFirewallRule = z
+  .object({
+    _id: z.string(),
+    name: classicString,
+    enabled: classicBoolean,
+    ruleset: classicString,
+    rule_index: classicScalar,
+    action: classicString,
+    protocol: classicString,
+    protocol_v6: classicString,
+    protocol_match_excepted: classicBoolean,
+    icmp_typename: classicString,
+    icmpv6_typename: classicString,
+    logging: classicBoolean,
+    state_established: classicBoolean,
+    state_related: classicBoolean,
+    state_new: classicBoolean,
+    state_invalid: classicBoolean,
+    src_firewallgroup_ids: z.array(z.string()).nullish(),
+    src_networkconf_id: classicString,
+    src_networkconf_type: classicString,
+    src_address: classicString,
+    src_address_ipv6: classicString,
+    src_mac_address: classicString,
+    src_port: classicScalar,
+    dst_firewallgroup_ids: z.array(z.string()).nullish(),
+    dst_networkconf_id: classicString,
+    dst_networkconf_type: classicString,
+    dst_address: classicString,
+    dst_address_ipv6: classicString,
+    dst_port: classicScalar,
+    ipsec: classicString,
+    setting_preference: classicString,
+  })
+  .loose();
+
+/** Envelope of a classic REST collection; rows stay unknown until the allowlist is applied. */
+export const ClassicEnvelope = z.object({
+  meta: z.object({ rc: z.literal("ok") }).loose(),
+  data: z.array(z.record(z.string(), z.unknown())),
+});
+
+const classicList = <T extends z.ZodType>(row: T) => ({
+  data: z.array(row),
+  count: z.number(),
+  siteReference: z.string(),
+}) as const;
+
+export const listClassicNetworksOutputSchema = classicList(ClassicNetwork);
+export const listFirewallGroupsOutputSchema = classicList(ClassicFirewallGroup);
+export const listLegacyFirewallRulesOutputSchema = classicList(LegacyFirewallRule);
