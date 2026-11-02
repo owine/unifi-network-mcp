@@ -47,12 +47,12 @@ Alternatively, add the same `"unifi-network"` entry to your `~/.claude.json` und
 
 ### From source
 
-If you prefer to build locally, this project uses pnpm via Corepack — use `pnpm install`, not `npm install`, which ignores `pnpm-lock.yaml` and resolves different dependency versions:
+If you prefer to build locally, this project uses pnpm — use `pnpm install`, not `npm install`, which ignores `pnpm-lock.yaml` and resolves different dependency versions. Node 25 and later no longer bundle Corepack, so install pnpm itself if you don't have it; it switches to the version `packageManager` in `package.json` pins:
 
 ```bash
 git clone https://github.com/owine/unifi-network-mcp.git
 cd unifi-network-mcp
-corepack enable
+npm install -g pnpm   # if pnpm is not installed
 pnpm install
 pnpm run build
 ```
