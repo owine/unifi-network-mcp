@@ -7,7 +7,7 @@ MCP server exposing UniFi Network's Integration API as tool calls. Built with th
 ## Local dev setup
 
 - Node version pinned in `.nvmrc`. Use [fnm](https://github.com/Schniz/fnm) — `fnm use` auto-reads `.nvmrc` on `cd`. The published package declares a broader `engines.node` range in `package.json` for consumers; `.nvmrc` only pins *development*.
-- Package manager: pnpm via Corepack. `corepack enable`, then `pnpm install`.
+- Package manager: pnpm, pinned by `packageManager` in `package.json`. Node 25 and later no longer bundle Corepack, so install pnpm standalone (`brew install pnpm` or `npm install -g pnpm`); it switches itself to the pinned version. Then `pnpm install`.
 - Dev install/build use pnpm; **publishing uses `npm publish --provenance`** (hybrid — npm has the most battle-tested OIDC flow).
 
 ### TypeScript 6/7 side-by-side
