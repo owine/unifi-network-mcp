@@ -7,7 +7,7 @@ MCP server exposing UniFi Network's Integration API as tool calls. Built with th
 ## Local dev setup
 
 - Node version pinned in `.nvmrc`. Use [fnm](https://github.com/Schniz/fnm) — `fnm use` auto-reads `.nvmrc` on `cd`. The published package declares a broader `engines.node` range in `package.json` for consumers; `.nvmrc` only pins *development*.
-- Package manager: pnpm via Corepack. `corepack enable`, then `pnpm install`.
+- Package manager: pnpm, pinned by `packageManager` in `package.json`. Node 25 and later no longer bundle Corepack, so install pnpm standalone (`brew install pnpm` or `npm install -g pnpm`); it switches itself to the pinned version. Then `pnpm install`.
 - Dev install/build use pnpm; **publishing uses `npm publish --provenance`** (hybrid — npm has the most battle-tested OIDC flow).
 
 ### TypeScript 6/7 side-by-side
@@ -63,6 +63,7 @@ src/
     devices.ts        # Device management
     clients.ts        # Client management
     client-history.ts # Retained sessions & offline client history
+    classic.ts        # Classic controller API reads: networks, firewall groups, legacy rules
     exposure.ts       # Internet exposure: port forwards, UPnP, device SSH (classic API reads)
     networks.ts       # Network configuration
     wifi.ts           # WiFi/SSID configuration
@@ -87,7 +88,7 @@ src/
 
 ## Adding a new tool
 
-1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`, `client-history`, `exposure`) omit the `readOnly` param entirely — there is nothing to gate
+1. Add a function `registerXTools(server, client, readOnly = false)` in `src/tools/<domain>.ts`. Domains with **only** read tools (`system`, `sites`, `switching`, `supporting`, `client-history`, `classic`, `exposure`) omit the `readOnly` param entirely — there is nothing to gate
 2. Use `server.registerTool(name, { description, inputSchema, outputSchema, annotations }, handler)`. Titles are derived from the name by `toolTitle()` in `src/tools/index.ts`; add an acronym to `TITLE_WORDS` if it reads wrongly
 3. Set appropriate annotations from `utils/safety.ts`: `READ_ONLY`, `WRITE`, `WRITE_NOT_IDEMPOTENT`, `DESTRUCTIVE`
 4. Add an `outputSchema` from `utils/output-schemas.ts` and return `formatSuccess(data, { structured: true })`. Every read tool has one; write tools get one when the API response returns the affected resource, wrapped in `writeResult()` so the dry-run preview also validates (`tests/sdk-contract.test.ts` enforces this through the real SDK). Follow the loose strategy in that file: non-key fields optional, nested objects `.loose()`. Pass the raw shape; `registerAllTools()` publishes it as a loose object so fields the schema does not list pass SDK client validation

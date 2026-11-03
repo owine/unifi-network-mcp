@@ -32,7 +32,7 @@ const SETTINGS = "from the classic controller API (get/setting)";
 
 export function registerExposureTools(server: McpServer, client: NetworkClient) {
   server.registerTool("unifi_list_port_forwards", {
-    description: `List the site's port forwards from the classic controller API (rest/portforward), whole and unpaged: each one exposes a LAN host to the internet on the WAN interface pfwd_interface. enabled: false rules forward nothing; enabledCount counts the rest. src is the allowed source ("any" for the whole internet) unless src_limiting_enabled restricts it to src_firewall_group_id. fwd and fwd_port are the LAN target. IDs are the classic controller's _id values.`,
+    description: `List the site's port forwards from the classic controller API (rest/portforward), whole and unpaged: each one exposes a LAN host to the internet on the WAN interface pfwd_interface. enabled: false rules forward nothing; enabledCount counts the rest. Unless src_limiting_enabled restricts it to src_firewall_group_id, the forward is open to the whole internet: src is then "any" or absent (Network 11.0.94 omits it). fwd and fwd_port are the LAN target. IDs are the classic controller's _id values.`,
     inputSchema: { siteReference: siteReference() },
     outputSchema: listPortForwardsOutputSchema,
     annotations: READ_ONLY,

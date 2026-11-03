@@ -159,9 +159,10 @@ describe("request guard", () => {
       ["an unknown Integration API path", "GET", "/integration/v1/sites/s1/port-forwards"],
       ["the legacy controller API", "POST", "/api/s/default/cmd/sitemgr"],
       ["a classic collection no tool reads", "GET", "/api/s/default/rest/user"],
+      ["a single classic record", "GET", "/api/s/default/rest/networkconf/c1"],
+      ["classic site settings", "GET", "/api/s/default/rest/setting"],
       ["a single port forward", "GET", "/api/s/default/rest/portforward/c1"],
       ["one settings section", "GET", "/api/s/default/get/setting/mgmt"],
-      ["classic settings records", "GET", "/api/s/default/rest/setting"],
       ["another application on the console", "GET", "/proxy/protect/api/cameras"],
       ["a path without the application prefix", "GET", "/sites"],
       ["a site setting", "PUT", "/integration/v1/sites/s1"],
@@ -177,6 +178,11 @@ describe("request guard", () => {
       ["PATCH on a network", "PATCH", "/integration/v1/sites/s1/networks/n1"],
       ["PUT on stat/session", "PUT", "/api/s/default/stat/session"],
       ["POST to client history", "POST", "/v2/api/site/default/clients/history?withinHours=1"],
+      ["PUT on a classic network", "PUT", "/api/s/default/rest/networkconf/c1"],
+      ["POST to classic networks", "POST", "/api/s/default/rest/networkconf"],
+      ["POST to legacy firewall rules", "POST", "/api/s/default/rest/firewallrule"],
+      ["PUT on a legacy firewall rule", "PUT", "/api/s/default/rest/firewallrule/r1"],
+      ["DELETE of a firewall group", "DELETE", "/api/s/default/rest/firewallgroup/g1"],
       ["POST to port forwards", "POST", "/api/s/default/rest/portforward"],
       ["PUT on a port forward", "PUT", "/api/s/default/rest/portforward/c1"],
       ["DELETE of a port forward", "DELETE", "/api/s/default/rest/portforward/c1"],
@@ -198,7 +204,9 @@ describe("request guard", () => {
     it.each(["ordering", "Ordering"])("accepts %s as a site internalReference", (site) => {
       expect(guardRequest("GET", `/v2/api/site/${site}/clients/history?withinHours=1`, WRITE).template).toContain("/clients/history");
       expect(guardRequest("POST", `/api/s/${site}/stat/session`, WRITE).template).toContain("/stat/session");
-      expect(guardRequest("GET", `/api/s/${site}/rest/portforward`, WRITE).template).toBe("/api/s/{site}/rest/portforward");
+      for (const collection of ["networkconf", "firewallgroup", "firewallrule", "portforward"]) {
+        expect(guardRequest("GET", `/api/s/${site}/rest/${collection}`, WRITE).template).toBe(`/api/s/{site}/rest/${collection}`);
+      }
       expect(guardRequest("GET", `/api/s/${site}/get/setting`, WRITE).template).toBe("/api/s/{site}/get/setting");
     });
 
@@ -279,11 +287,17 @@ describe("request guard", () => {
       ]);
     });
 
-    it("guards the classic port-forward and settings reads too", async () => {
+    it("guards the classic controller routes too", async () => {
       const client = new NetworkClient({ host: "192.168.1.1", apiKey: "k", verifySsl: true, readOnly: true });
+      await client.getClassic("default", "networkconf");
+      await client.getClassic("default", "firewallgroup");
+      await client.getClassic("default", "firewallrule");
       await client.getClassic("default", "portforward");
       await client.getClassicSettings("default");
       expect(fetchMock.mock.calls.map(([url, options]) => `${(options as RequestInit).method} ${url as string}`)).toEqual([
+        `GET ${HOST}/api/s/default/rest/networkconf`,
+        `GET ${HOST}/api/s/default/rest/firewallgroup`,
+        `GET ${HOST}/api/s/default/rest/firewallrule`,
         `GET ${HOST}/api/s/default/rest/portforward`,
         `GET ${HOST}/api/s/default/get/setting`,
       ]);
@@ -292,7 +306,7 @@ describe("request guard", () => {
     it("sends nothing for a classic collection outside the allowlist or a bad site reference", async () => {
       const client = new NetworkClient({ host: "192.168.1.1", apiKey: "k", verifySsl: true, readOnly: true });
       await expect(client.getClassic("default", "user" as never)).rejects.toThrow();
-      await expect(client.getClassic("../x", "portforward")).rejects.toThrow("internalReference");
+      await expect(client.getClassic("../x", "networkconf")).rejects.toThrow("internalReference");
       await expect(client.getClassicSettings("default/../x")).rejects.toThrow("internalReference");
       expect(fetchMock).not.toHaveBeenCalled();
     });

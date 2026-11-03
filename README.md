@@ -47,12 +47,12 @@ Alternatively, add the same `"unifi-network"` entry to your `~/.claude.json` und
 
 ### From source
 
-If you prefer to build locally, this project uses pnpm via Corepack — use `pnpm install`, not `npm install`, which ignores `pnpm-lock.yaml` and resolves different dependency versions:
+If you prefer to build locally, this project uses pnpm — use `pnpm install`, not `npm install`, which ignores `pnpm-lock.yaml` and resolves different dependency versions. Node 25 and later no longer bundle Corepack, so install pnpm itself if you don't have it; it switches to the version `packageManager` in `package.json` pins:
 
 ```bash
 git clone https://github.com/owine/unifi-network-mcp.git
 cd unifi-network-mcp
-corepack enable
+npm install -g pnpm   # if pnpm is not installed
 pnpm install
 pnpm run build
 ```
@@ -250,6 +250,13 @@ The schemas live in `src/utils/output-schemas.ts`. They deliberately use a **loo
 | `unifi_list_client_history` | Historical/offline client inventory and first/last seen times |
 | `unifi_list_client_sessions` | Retained connection sessions, duration, byte counters and roaming records |
 
+### Classic controller API
+| Tool | Description |
+|---|---|
+| `unifi_list_classic_networks` | Networks as the classic controller stores them, with their classic `_id`s (credentials never returned) |
+| `unifi_list_firewall_groups` | Address and port groups that legacy firewall rules reference |
+| `unifi_list_legacy_firewall_rules` | Legacy (pre-zone-based) firewall rules — may not be enforced on zone-based firewall sites |
+
 ### Internet exposure
 | Tool | Description |
 |---|---|
@@ -369,6 +376,14 @@ Rows keep the controller's field names (`assoc_time`, `duration`, `rx_bytes`, `t
 
 These controller routes are not part of the published Integration API contract. Their availability and API-key permissions vary by controller version. Unsupported, unauthorized, HTML login, legacy `meta.rc` error and malformed responses fail explicitly instead of becoming an empty history. History requests are time-limited, reject redirects, and refuse oversized responses. No browser cookies are required where API-key access is supported.
 
+## Classic controller reads
+
+Legacy firewall rules, and the firewall groups and networks they reference, are not in the Integration API. Three read tools list them from the classic controller API instead: GET `/proxy/network/api/s/{siteReference}/rest/networkconf`, `/rest/firewallgroup` and `/rest/firewallrule`. Like the history tools they take the site's `internalReference` from `unifi_list_sites`, and remain available in read-only mode. No classic write is allowlisted.
+
+Each collection is returned whole; the controller does not page it. Legacy rules are sorted by ruleset, then `rule_index`, the order they are evaluated in. Records keep the controller's field names and their classic `_id`s, which differ from Integration API IDs, so an ID from one API cannot be passed to a tool of the other. Legacy rules reference networks by `unifi_list_classic_networks` IDs and groups by `unifi_list_firewall_groups` IDs. On a site that uses the zone-based firewall, legacy rules may not be enforced; its rules are the firewall policies.
+
+Classic network records hold WAN, VPN and RADIUS credentials. Rows are therefore built from a fixed list of fields per tool (its output schema, in `src/utils/output-schemas.ts`), never by redacting the record, so a credential under any name is never returned. Errors are reported the same way as for the history routes.
+
 ## Internet exposure
 
 Port forwards, UPnP and device SSH settings are not in the Integration API, so the exposure tools read the classic controller API: GET `/proxy/network/api/s/{siteReference}/rest/portforward` and `/proxy/network/api/s/{siteReference}/get/setting`, directly or through the Cloud Connector. Like the history tools they take the site's `internalReference` from `unifi_list_sites` and remain available in read-only mode. No classic write is allowlisted.
@@ -405,8 +420,8 @@ Configuration errors go to the MCP host's server log and the server exits. Tool 
 | `cannot use UNIFI_NETWORK_WRITE_LOG (…)` | The path is a symlink, not a regular file, hard-linked elsewhere, or writable by others (`chmod 600` it), or its directory cannot be created. |
 | No write tools listed | Read-only is the default. Set `UNIFI_NETWORK_READ_ONLY=false` (only `false` counts; any other value stays read-only) and restart the host. If it is set, check `UNIFI_NETWORK_WRITE_TOOLS` is not `none` or empty. |
 | `Controller history returned HTTP …`, `non-JSON data` or `an empty body` | This console or key cannot use the history routes (see [Retained client connections](#retained-client-connections)). It is not an empty history. |
-| `Classic controller API returned HTTP …`, `non-JSON data` or `malformed JSON` | This console or key cannot read the classic controller API (see [Internet exposure](#internet-exposure)). It is not an empty result. |
-| `Use the site's internalReference …` | History and exposure tools take `internalReference` (often `default`) from `unifi_list_sites`, not the UUID. |
+| `Classic controller API returned HTTP …`, `non-JSON data` or `malformed JSON` | This console or key cannot read the classic controller API (see [Classic controller reads](#classic-controller-reads)). It is not an empty result. |
+| `Use the site's internalReference …` | History, classic-API and exposure tools take `internalReference` (often `default`) from `unifi_list_sites`, not the UUID. |
 
 ## Development
 

@@ -99,7 +99,7 @@ function requestSignal(timeoutMs: number): AbortSignal {
 }
 
 /** The classic controller REST collections the classic read tools list. */
-export const CLASSIC_COLLECTIONS = ["portforward"] as const;
+export const CLASSIC_COLLECTIONS = ["networkconf", "firewallgroup", "firewallrule", "portforward"] as const;
 export type ClassicCollection = (typeof CLASSIC_COLLECTIONS)[number];
 
 /** How errors from one family of controller routes outside the Integration API are worded. */
