@@ -152,6 +152,29 @@ describe("output schemas through the SDK", () => {
     expect(result.structuredContent).toEqual({ data: [{ _id: "c1", name: "Internet 1", purpose: "wan", vlan: null }], count: 1, siteReference: "default" });
     expect(JSON.stringify(result)).not.toContain(FAKE);
   });
+
+  it("returns port forwards without fields the allowlist does not name", async () => {
+    mockFn(toolClient, "getClassic").mockResolvedValueOnce({
+      meta: { rc: "ok" },
+      data: [{ _id: "f1", name: "Web", enabled: true, dst_port: "443", fwd: "192.0.2.20", fwd_port: "443", x_secret: FAKE }],
+    });
+    const result = await mcpClient.callTool({ name: "unifi_list_port_forwards", arguments: { siteReference: "default" } });
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toEqual({
+      data: [{ _id: "f1", name: "Web", enabled: true, dst_port: "443", fwd: "192.0.2.20", fwd_port: "443" }],
+      count: 1, enabledCount: 1, siteReference: "default",
+    });
+    expect(JSON.stringify(result)).not.toContain(FAKE);
+  });
+
+  it("returns the settings-backed exposure results, unavailable ones included", async () => {
+    mockFn(toolClient, "getClassicSettings").mockResolvedValue({ meta: { rc: "ok" }, data: [] });
+    for (const name of ["unifi_get_upnp_status", "unifi_get_device_ssh_settings"]) {
+      const result = await mcpClient.callTool({ name, arguments: { siteReference: "default" } });
+      expect(result.isError, name).toBeFalsy();
+      expect(JSON.stringify(result.structuredContent), name).toContain("unavailable");
+    }
+  });
 });
 
 describe("tool metadata through the SDK", () => {
@@ -178,6 +201,7 @@ describe("tool metadata through the SDK", () => {
     ["unifi_list_wans", "List WANs"],
     ["unifi_list_dpi_categories", "List DPI categories"],
     ["unifi_list_radius_profiles", "List RADIUS profiles"],
+    ["unifi_get_upnp_status", "Get UPnP status"],
   ])("titles %s as %s", (name, title) => {
     expect(tools.find((tool) => tool.name === name)?.title).toBe(title);
   });

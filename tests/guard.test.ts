@@ -32,6 +32,7 @@ function controller(method: string, path: string): unknown {
   if (method !== "GET") return path.endsWith("/stat/session") ? { meta: { rc: "ok" }, data: [] } : { id: "new" };
   if (path.includes("/clients/history")) return [];
   if (/\/api\/s\/[^/]+\/rest\//.test(path)) return { meta: { rc: "ok" }, data: [{ _id: "c1", name: "LAN", x_passphrase: FAKE }] };
+  if (path.endsWith("/get/setting")) return { meta: { rc: "ok" }, data: [{ _id: "c2", key: "mgmt", x_ssh_enabled: false, x_ssh_password: FAKE }] };
   if (path.endsWith("/firewall/zones")) return page(zones);
   if (/\/wifi\/broadcasts\/[^/]+$/.test(path)) {
     return {
@@ -160,6 +161,8 @@ describe("request guard", () => {
       ["a classic collection no tool reads", "GET", "/api/s/default/rest/user"],
       ["a single classic record", "GET", "/api/s/default/rest/networkconf/c1"],
       ["classic site settings", "GET", "/api/s/default/rest/setting"],
+      ["a single port forward", "GET", "/api/s/default/rest/portforward/c1"],
+      ["one settings section", "GET", "/api/s/default/get/setting/mgmt"],
       ["another application on the console", "GET", "/proxy/protect/api/cameras"],
       ["a path without the application prefix", "GET", "/sites"],
       ["a site setting", "PUT", "/integration/v1/sites/s1"],
@@ -180,6 +183,12 @@ describe("request guard", () => {
       ["POST to legacy firewall rules", "POST", "/api/s/default/rest/firewallrule"],
       ["PUT on a legacy firewall rule", "PUT", "/api/s/default/rest/firewallrule/r1"],
       ["DELETE of a firewall group", "DELETE", "/api/s/default/rest/firewallgroup/g1"],
+      ["POST to port forwards", "POST", "/api/s/default/rest/portforward"],
+      ["PUT on a port forward", "PUT", "/api/s/default/rest/portforward/c1"],
+      ["DELETE of a port forward", "DELETE", "/api/s/default/rest/portforward/c1"],
+      ["POST to the settings read", "POST", "/api/s/default/get/setting"],
+      ["a settings write", "POST", "/api/s/default/set/setting/mgmt"],
+      ["PUT on a settings section", "PUT", "/api/s/default/rest/setting/mgmt/c2"],
     ])("refuses the wrong method on a known path: %s", (_label, method, path) => {
       expect(refusal(method, path)).toBe("not_allowlisted");
     });
@@ -195,9 +204,10 @@ describe("request guard", () => {
     it.each(["ordering", "Ordering"])("accepts %s as a site internalReference", (site) => {
       expect(guardRequest("GET", `/v2/api/site/${site}/clients/history?withinHours=1`, WRITE).template).toContain("/clients/history");
       expect(guardRequest("POST", `/api/s/${site}/stat/session`, WRITE).template).toContain("/stat/session");
-      for (const collection of ["networkconf", "firewallgroup", "firewallrule"]) {
+      for (const collection of ["networkconf", "firewallgroup", "firewallrule", "portforward"]) {
         expect(guardRequest("GET", `/api/s/${site}/rest/${collection}`, WRITE).template).toBe(`/api/s/{site}/rest/${collection}`);
       }
+      expect(guardRequest("GET", `/api/s/${site}/get/setting`, WRITE).template).toBe("/api/s/{site}/get/setting");
     });
 
     it.each(["HEAD", "OPTIONS", "TRACE", "CONNECT", "get", "PROPFIND"])("refuses method %s", (method) => {
@@ -282,17 +292,22 @@ describe("request guard", () => {
       await client.getClassic("default", "networkconf");
       await client.getClassic("default", "firewallgroup");
       await client.getClassic("default", "firewallrule");
+      await client.getClassic("default", "portforward");
+      await client.getClassicSettings("default");
       expect(fetchMock.mock.calls.map(([url, options]) => `${(options as RequestInit).method} ${url as string}`)).toEqual([
         `GET ${HOST}/api/s/default/rest/networkconf`,
         `GET ${HOST}/api/s/default/rest/firewallgroup`,
         `GET ${HOST}/api/s/default/rest/firewallrule`,
+        `GET ${HOST}/api/s/default/rest/portforward`,
+        `GET ${HOST}/api/s/default/get/setting`,
       ]);
     });
 
-    it("sends nothing for a classic collection outside the allowlist", async () => {
+    it("sends nothing for a classic collection outside the allowlist or a bad site reference", async () => {
       const client = new NetworkClient({ host: "192.168.1.1", apiKey: "k", verifySsl: true, readOnly: true });
       await expect(client.getClassic("default", "user" as never)).rejects.toThrow();
       await expect(client.getClassic("../x", "networkconf")).rejects.toThrow("internalReference");
+      await expect(client.getClassicSettings("default/../x")).rejects.toThrow("internalReference");
       expect(fetchMock).not.toHaveBeenCalled();
     });
   });

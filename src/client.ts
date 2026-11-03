@@ -99,7 +99,7 @@ function requestSignal(timeoutMs: number): AbortSignal {
 }
 
 /** The classic controller REST collections the classic read tools list. */
-export const CLASSIC_COLLECTIONS = ["networkconf", "firewallgroup", "firewallrule"] as const;
+export const CLASSIC_COLLECTIONS = ["networkconf", "firewallgroup", "firewallrule", "portforward"] as const;
 export type ClassicCollection = (typeof CLASSIC_COLLECTIONS)[number];
 
 /** How errors from one family of controller routes outside the Integration API are worded. */
@@ -258,6 +258,16 @@ export class NetworkClient {
     this.validateSiteReference(siteReference);
     if (!CLASSIC_COLLECTIONS.includes(collection)) throw new Error(`Unknown classic collection ${collection}`);
     return this.classicRequest(`/api/s/${siteReference}/rest/${collection}`);
+  }
+
+  /**
+   * The site's classic settings (get/setting): one record per section, keyed
+   * by its key field. Sections hold credentials (SSH passwords, RADIUS and
+   * cloud-access keys), so callers copy out only the fields they need.
+   */
+  async getClassicSettings(siteReference: string): Promise<unknown> {
+    this.validateSiteReference(siteReference);
+    return this.classicRequest(`/api/s/${siteReference}/get/setting`);
   }
 
   private validateSiteReference(siteReference: string): void {

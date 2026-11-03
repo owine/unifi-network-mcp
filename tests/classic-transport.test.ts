@@ -96,3 +96,55 @@ describe("classic controller transport", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("classic port-forward and settings transport", () => {
+  beforeEach(() => { fetchMock.mockReset(); });
+
+  it("GETs the site settings", async () => {
+    fetchMock.mockResolvedValue(response(envelope([{ key: "mgmt" }])));
+    await new NetworkClient(config).getClassicSettings("whalehead");
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://console.example/proxy/network/api/s/whalehead/get/setting");
+    expect(options.method).toBe("GET");
+    expect(options.body).toBeUndefined();
+  });
+
+  it("goes through the Cloud Connector", async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(response(envelope([]))));
+    const client = new NetworkClient({ ...config, host: "api.ui.com", consoleId: "ABC123" });
+    await client.getClassic("default", "portforward");
+    await client.getClassicSettings("default");
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "https://api.ui.com/v1/connector/consoles/ABC123/proxy/network/api/s/default/rest/portforward",
+      "https://api.ui.com/v1/connector/consoles/ABC123/proxy/network/api/s/default/get/setting",
+    ]);
+  });
+
+  it("surfaces an HTTP error on the settings read without leaking the response", async () => {
+    fetchMock.mockResolvedValue(response({ x_ssh_password: FAKE }, 403));
+    const attempt = new NetworkClient(config).getClassicSettings("default");
+    await expect(attempt).rejects.toThrow("Classic controller API returned HTTP 403");
+    await expect(attempt).rejects.not.toThrow(FAKE);
+  });
+
+  it("reports malformed settings JSON without quoting the body", async () => {
+    fetchMock.mockResolvedValue(new Response(`{"meta":{"rc":"ok"},"data":[{"key":"mgmt","x_ssh_password":"${FAKE}",?}]}`, {
+      headers: { "Content-Type": "application/json" },
+    }));
+    const attempt = new NetworkClient(config).getClassicSettings("default");
+    await expect(attempt).rejects.toThrow("Classic controller API returned malformed JSON");
+    await expect(attempt).rejects.not.toThrow(/SECRET|DO-NOT|USE/);
+  });
+
+  it("retries the settings read once when the console closed an idle connection", async () => {
+    fetchMock.mockRejectedValueOnce(socketClosed("ECONNRESET")).mockResolvedValueOnce(response(envelope([{ key: "mgmt" }])));
+    await expect(new NetworkClient(config).getClassicSettings("default")).resolves.toEqual(envelope([{ key: "mgmt" }]));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects path traversal in the site reference before sending credentials", async () => {
+    await expect(new NetworkClient(config).getClassic("../other", "portforward")).rejects.toThrow("internalReference");
+    await expect(new NetworkClient(config).getClassicSettings("a/b")).rejects.toThrow("internalReference");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

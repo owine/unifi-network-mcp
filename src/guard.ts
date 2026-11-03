@@ -92,10 +92,12 @@ export const ROUTES: readonly Route[] = [
   { method: "GET", template: "/v2/api/site/{site}/clients/history", query: ["withinHours"], requiredQuery: ["withinHours"] },
   { method: "POST", template: "/api/s/{site}/stat/session" },
 
-  // Classic controller API: whole collections, read only
+  // Classic controller API: whole collections and site settings, read only
   { method: "GET", template: "/api/s/{site}/rest/networkconf" }, // unifi_list_classic_networks
   { method: "GET", template: "/api/s/{site}/rest/firewallgroup" }, // unifi_list_firewall_groups
   { method: "GET", template: "/api/s/{site}/rest/firewallrule" }, // unifi_list_legacy_firewall_rules
+  { method: "GET", template: "/api/s/{site}/rest/portforward" }, // unifi_list_port_forwards
+  { method: "GET", template: "/api/s/{site}/get/setting" }, // unifi_get_upnp_status, unifi_get_device_ssh_settings
 
   // Networks
   { method: "GET", template: v1("/sites/{id}/networks"), query: PAGE },

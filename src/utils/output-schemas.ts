@@ -702,13 +702,15 @@ export const listClientSessionsOutputSchema = {
   coverage: z.string(),
 } as const;
 
-// Classic controller REST collections (rest/networkconf, rest/firewallgroup,
-// rest/firewallrule). Unlike every other schema here, each shape is also the
-// tool's output allowlist: the tools copy only these fields from a record, so
-// a field the controller adds never reaches the model. networkconf records
-// carry WAN, VPN and RADIUS credentials (x_passphrase, x_wan_password,
-// x_ipsec_*, x_openvpn_*, WireGuard keys, PPPoE logins); never list one here.
-// Field types vary across controller versions, hence the unions.
+// Classic controller API reads (rest/networkconf, rest/firewallgroup,
+// rest/firewallrule, rest/portforward, get/setting). Unlike every other schema
+// here, each row shape is also the tool's output allowlist: the tools copy only
+// these fields from a record, so a field the controller adds never reaches the
+// model. networkconf records carry WAN, VPN and RADIUS credentials
+// (x_passphrase, x_wan_password, x_ipsec_*, x_openvpn_*, WireGuard keys, PPPoE
+// logins), and settings sections carry more (x_ssh_password, x_mgmt_key,
+// cloud-access keys); never list one here. Field types vary across controller
+// versions, hence the unions.
 const classicScalar = z.union([z.string(), z.number()]).nullish();
 const classicString = z.string().nullish();
 const classicBoolean = z.boolean().nullish();
@@ -798,3 +800,59 @@ const classicList = <T extends z.ZodType>(row: T) => ({
 export const listClassicNetworksOutputSchema = classicList(ClassicNetwork);
 export const listFirewallGroupsOutputSchema = classicList(ClassicFirewallGroup);
 export const listLegacyFirewallRulesOutputSchema = classicList(LegacyFirewallRule);
+export const PortForwardDestination = z
+  .object({
+    destination_ip: classicString,
+    interface: classicString,
+  })
+  .loose();
+
+export const PortForward = z
+  .object({
+    _id: z.string(),
+    name: classicString,
+    enabled: classicBoolean,
+    pfwd_interface: classicString,
+    destination_ip: classicString,
+    destination_ips: z.array(PortForwardDestination).nullish(),
+    src: classicString,
+    src_limiting_enabled: classicBoolean,
+    src_limiting_type: classicString,
+    src_firewall_group_id: classicString,
+    dst_port: classicScalar,
+    fwd: classicString,
+    fwd_port: classicScalar,
+    proto: classicString,
+    log: classicBoolean,
+  })
+  .loose();
+
+export const listPortForwardsOutputSchema = {
+  data: z.array(PortForward),
+  count: z.number(),
+  enabledCount: z.number(),
+  siteReference: z.string(),
+} as const;
+
+const settingsStatus = z.enum(["available", "unavailable"]);
+
+export const getUpnpStatusOutputSchema = {
+  siteReference: z.string(),
+  status: settingsStatus,
+  source: z.string().nullable(),
+  upnp_enabled: z.boolean().nullable(),
+  upnp_nat_pmp_enabled: z.boolean().nullable(),
+  upnp_secure_mode: z.boolean().nullable(),
+  upnp_wan_interface: z.string().nullable(),
+  detail: z.string(),
+} as const;
+
+export const getDeviceSshSettingsOutputSchema = {
+  siteReference: z.string(),
+  status: settingsStatus,
+  x_ssh_enabled: z.boolean().nullable(),
+  x_ssh_auth_password_enabled: z.boolean().nullable(),
+  x_ssh_bind_wildcard: z.boolean().nullable(),
+  sshKeyCount: z.number().nullable(),
+  detail: z.string(),
+} as const;

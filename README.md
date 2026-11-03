@@ -96,7 +96,7 @@ The key carries the rights of the admin who created it, and this server is drive
 
 ### Cloud Connector
 
-To use a Site Manager API key with a console, set `UNIFI_NETWORK_HOST=api.ui.com` and `UNIFI_NETWORK_CONSOLE_ID` to its console ID. The existing `UNIFI_NETWORK_API_KEY` supplies the key. This works for current Integration API tools and the controller history routes when permitted by the console/key. Cloud Connector requires eligible console ownership/access and firmware 5.0.3 or later. TLS verification stays on: the server refuses to start with `UNIFI_NETWORK_VERIFY_SSL=false` and `api.ui.com`.
+To use a Site Manager API key with a console, set `UNIFI_NETWORK_HOST=api.ui.com` and `UNIFI_NETWORK_CONSOLE_ID` to its console ID. The existing `UNIFI_NETWORK_API_KEY` supplies the key. This works for current Integration API tools and the controller history and classic routes when permitted by the console/key. Cloud Connector requires eligible console ownership/access and firmware 5.0.3 or later. TLS verification stays on: the server refuses to start with `UNIFI_NETWORK_VERIFY_SSL=false` and `api.ui.com`.
 
 References: [official Cloud Connector API](https://developer.ui.com/site-manager/v1.0.0) and the [Art-of-WiFi controller client](https://github.com/Art-of-WiFi/UniFi-API-client/blob/master/src/Client.php), whose session queries use epoch seconds.
 
@@ -257,6 +257,13 @@ The schemas live in `src/utils/output-schemas.ts`. They deliberately use a **loo
 | `unifi_list_firewall_groups` | Address and port groups that legacy firewall rules reference |
 | `unifi_list_legacy_firewall_rules` | Legacy (pre-zone-based) firewall rules — may not be enforced on zone-based firewall sites |
 
+### Internet exposure
+| Tool | Description |
+|---|---|
+| `unifi_list_port_forwards` | Port forwards: WAN port, allowed source and LAN target, enabled or not |
+| `unifi_get_upnp_status` | Whether UPnP and NAT-PMP let LAN devices open WAN ports themselves |
+| `unifi_get_device_ssh_settings` | Device SSH: on or off, password logins, listening on every interface, number of keys |
+
 ### Networks
 | Tool | Description |
 |---|---|
@@ -377,6 +384,16 @@ Each collection is returned whole; the controller does not page it. Legacy rules
 
 Classic network records hold WAN, VPN and RADIUS credentials. Rows are therefore built from a fixed list of fields per tool (its output schema, in `src/utils/output-schemas.ts`), never by redacting the record, so a credential under any name is never returned. Errors are reported the same way as for the history routes.
 
+## Internet exposure
+
+Port forwards, UPnP and device SSH settings are not in the Integration API, so the exposure tools read the classic controller API: GET `/proxy/network/api/s/{siteReference}/rest/portforward` and `/proxy/network/api/s/{siteReference}/get/setting`, directly or through the Cloud Connector. Like the history tools they take the site's `internalReference` from `unifi_list_sites` and remain available in read-only mode. No classic write is allowlisted.
+
+Settings sections hold credentials (SSH passwords, management and cloud-access keys, RADIUS secrets), so every result is built from a fixed list of fields (its output schema, in `src/utils/output-schemas.ts`), never by redacting the record. SSH keys are counted, not returned.
+
+A setting this controller version does not have comes back as `status: "unavailable"` with a `detail` saying what was looked for. It never means the feature is off. UPnP is read from a `upnp` settings section where there is one, otherwise from the gateway (`usg`) section's `upnp_*` fields, and `source` says which; Network 11.0.94 has no `upnp` section. `upnp_nat_pmp_enabled` is the stored setting, which does nothing while UPnP is off, and `detail` says so when the two disagree.
+
+Remote Access and console (UniFi OS) SSH are UniFi OS settings outside this API, so `unifi_get_device_ssh_settings` reports device SSH only. Which internal networks can reach the console's web UI is decided by the firewall rules or policies.
+
 ## Troubleshooting
 
 Configuration errors go to the MCP host's server log and the server exits. Tool errors reach the agent as results starting with `Error:`.
@@ -403,8 +420,8 @@ Configuration errors go to the MCP host's server log and the server exits. Tool 
 | `cannot use UNIFI_NETWORK_WRITE_LOG (…)` | The path is a symlink, not a regular file, hard-linked elsewhere, or writable by others (`chmod 600` it), or its directory cannot be created. |
 | No write tools listed | Read-only is the default. Set `UNIFI_NETWORK_READ_ONLY=false` (only `false` counts; any other value stays read-only) and restart the host. If it is set, check `UNIFI_NETWORK_WRITE_TOOLS` is not `none` or empty. |
 | `Controller history returned HTTP …`, `non-JSON data` or `an empty body` | This console or key cannot use the history routes (see [Retained client connections](#retained-client-connections)). It is not an empty history. |
-| `Classic controller API returned HTTP …` or `non-JSON data` | This console or key cannot read the classic controller API (see [Classic controller reads](#classic-controller-reads)). It is not an empty result. |
-| `Use the site's internalReference …` | History and classic-API tools take `internalReference` (often `default`) from `unifi_list_sites`, not the UUID. |
+| `Classic controller API returned HTTP …`, `non-JSON data` or `malformed JSON` | This console or key cannot read the classic controller API (see [Classic controller reads](#classic-controller-reads)). It is not an empty result. |
+| `Use the site's internalReference …` | History, classic-API and exposure tools take `internalReference` (often `default`) from `unifi_list_sites`, not the UUID. |
 
 ## Development
 

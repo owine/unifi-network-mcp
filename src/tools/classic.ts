@@ -4,6 +4,7 @@ import { NetworkClient, type ClassicCollection } from "../client.js";
 import { formatSuccess, formatError } from "../utils/responses.js";
 import { READ_ONLY } from "../utils/safety.js";
 import { siteReference } from "../utils/params.js";
+import { pick } from "../utils/pick.js";
 import {
   ClassicEnvelope,
   ClassicFirewallGroup,
@@ -15,15 +16,6 @@ import {
 } from "../utils/output-schemas.js";
 
 const CLASSIC_IDS = "IDs are the classic controller's _id values, which differ from Integration API IDs: do not pass one to an Integration API tool, or the reverse.";
-
-/**
- * Copy only the allowlisted fields of a record. Classic records hold
- * credentials under names no redaction list could anticipate, so the output is
- * built up from the schema's keys and nothing is ever passed through.
- */
-function pick(row: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
-  return Object.fromEntries(fields.filter((field) => Object.hasOwn(row, field)).map((field) => [field, row[field]]));
-}
 
 type Row = Record<string, unknown>;
 

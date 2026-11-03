@@ -11,6 +11,7 @@ import { registerDeviceTools } from "./devices.js";
 import { registerClientTools } from "./clients.js";
 import { registerClientHistoryTools } from "./client-history.js";
 import { registerClassicTools } from "./classic.js";
+import { registerExposureTools } from "./exposure.js";
 import { registerNetworkTools } from "./networks.js";
 import { registerWifiTools } from "./wifi.js";
 import { registerHotspotTools } from "./hotspot.js";
@@ -44,6 +45,7 @@ export function registerAllTools(
   registerClientTools(server, client, readOnly);
   registerClientHistoryTools(server, client);
   registerClassicTools(server, client);
+  registerExposureTools(server, client);
   registerNetworkTools(server, client, readOnly, wan);
   registerWifiTools(server, client, readOnly);
   registerHotspotTools(server, client, readOnly);
@@ -104,7 +106,7 @@ function instrumentTools(server: McpServer, { writeTools, writeLog }: ToolOption
 // Words in tool names that read wrongly in plain sentence case.
 const TITLE_WORDS: Record<string, string> = {
   acl: "ACL", dns: "DNS", dpi: "DPI", vpn: "VPN", radius: "RADIUS",
-  wifi: "WiFi", wan: "WAN", wans: "WANs", lag: "LAG", lags: "LAGs", mc: "MC",
+  wifi: "WiFi", wan: "WAN", wans: "WANs", lag: "LAG", lags: "LAGs", mc: "MC", upnp: "UPnP", ssh: "SSH",
 };
 
 /** "unifi_list_mc_lag_domains" → "List MC-LAG domains". */
