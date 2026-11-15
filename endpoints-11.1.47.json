@@ -1,7 +1,7 @@
 {
-  "apiVersion": "11.0.83",
+  "apiVersion": "11.1.47",
   "source": "UniFi console API reference (unifi.ui.com /unifi-api/network)",
-  "capturedAt": "2026-10-12",
+  "capturedAt": "2026-11-15",
   "endpointCount": 73,
   "endpoints": [
     "GET /v1/info",
