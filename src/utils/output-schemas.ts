@@ -75,6 +75,8 @@ const DeviceRadio = z
   .object({
     wlanStandard: z.string().optional(),
     frequencyGHz: z.number().optional(),
+    // Undocumented; live-verified on 11.1.47 (e.g. "MEDIUM"), absent on 11.0.83.
+    txPowerMode: z.string().optional(),
     channelWidthMHz: z.number().optional(),
     channel: z.number().optional(),
   })
