@@ -78,6 +78,36 @@ export interface RuleEffect {
 }
 
 /**
+ * How many rules a reorder check looks up at once. A large reshuffle can move
+ * every rule past another; unbounded, that is one GET per rule in a single
+ * burst, each on its own new TLS connection (~0.5 s apiece on a UDM, against
+ * a few ms on a reused one).
+ */
+export const REORDER_LOOKUP_CONCURRENCY = 4;
+
+/** Look up each rule's effect, a few at a time; after a failure no new lookup starts. */
+async function lookUpAll(
+  ids: readonly string[],
+  effect: (id: string) => Promise<RuleEffect>
+): Promise<[string, RuleEffect][]> {
+  const results: [string, RuleEffect][] = [];
+  const queue = [...ids];
+  let failed = false;
+  const worker = async (): Promise<void> => {
+    for (let id = queue.shift(); id !== undefined && !failed; id = queue.shift()) {
+      try {
+        results.push([id, await effect(id)]);
+      } catch (err) {
+        failed = true;
+        throw err;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(REORDER_LOOKUP_CONCURRENCY, ids.length) }, worker));
+  return results;
+}
+
+/**
  * Whether a reorder opens access: whether it moves a rule that lets traffic
  * through ahead of one that blocks, which it used to follow. Only rules in
  * both orders are compared, and effect is asked only about the rules a
@@ -97,7 +127,7 @@ export async function reorderOpens(
     }
   });
   const ids = [...new Set(passes.flat())];
-  const effects = new Map(await Promise.all(ids.map(async (id) => [id, await effect(id)] as const)));
+  const effects = new Map(await lookUpAll(ids, effect));
   return passes.some(([ahead, behind]) => effects.get(ahead)?.letsThrough === true && effects.get(behind)?.blocks === true);
 }
 
