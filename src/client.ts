@@ -90,6 +90,26 @@ function describeErrorBody(text: string): string {
   return capped(text);
 }
 
+/**
+ * What the model should do about a 429, or undefined for any other status.
+ * Neither the Integration API docs nor a burst against a UDM (11.1.47) showed
+ * a rate limit, so nothing retries here: the model is told how long to wait
+ * and decides for itself.
+ */
+function rateLimitHint(response: Response): string | undefined {
+  if (response.status !== 429) return undefined;
+  const wait = retryAfterSeconds(response.headers.get("retry-after"));
+  return `The console is rate-limiting requests; ${wait === undefined ? "wait before retrying" : `retry after ${String(wait)}s`}.`;
+}
+
+/** Retry-After as whole seconds from now: delay-seconds or an HTTP date. */
+function retryAfterSeconds(value: string | null): number | undefined {
+  const trimmed = value?.trim() ?? "";
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  const at = Date.parse(trimmed);
+  return Number.isNaN(at) ? undefined : Math.max(0, Math.ceil((at - Date.now()) / 1000));
+}
+
 function capped(text: string): string {
   const collapsed = text.replace(/\s+/g, " ").trim();
   return collapsed.length > ERROR_BODY_LIMIT ? `${collapsed.slice(0, ERROR_BODY_LIMIT)}…` : collapsed;
@@ -190,7 +210,8 @@ export class NetworkClient {
 
     if (method !== "GET") noteWriteStatus(response.status);
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${describeErrorBody(await response.text())}`);
+      const detail = [describeErrorBody(await response.text()), rateLimitHint(response)].filter((part) => part);
+      throw new Error(`HTTP ${String(response.status)}: ${detail.join(". ")}`);
     }
 
     const contentType = response.headers.get("content-type") ?? "";
@@ -331,7 +352,10 @@ export class NetworkClient {
       // Drain before throwing: an unread body pins the socket until GC, so a
       // run of failures (say, a mis-scoped API key) would leak connections.
       await response.body?.cancel();
-      throw new Error(`${kind.name} returned HTTP ${response.status}; verify API-key access and controller support. ${kind.notEmpty}`);
+      const hint = rateLimitHint(response);
+      throw new Error(hint === undefined
+        ? `${kind.name} returned HTTP ${String(response.status)}; verify API-key access and controller support. ${kind.notEmpty}`
+        : `${kind.name} returned HTTP 429. ${hint} ${kind.notEmpty}`);
     }
     if (!response.headers.get("content-type")?.includes("application/json")) {
       await response.body?.cancel();

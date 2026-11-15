@@ -23,12 +23,13 @@ function mockResponse(
     ok = true,
     status = 200,
     contentType = "application/json",
-  }: { ok?: boolean; status?: number; contentType?: string } = {}
+    headers = {},
+  }: { ok?: boolean; status?: number; contentType?: string; headers?: Record<string, string> } = {}
 ): Response {
   return {
     ok,
     status,
-    headers: new Headers({ "content-type": contentType }),
+    headers: new Headers({ "content-type": contentType, ...headers }),
     json: () => Promise.resolve(JSON.parse(body)),
     text: () => Promise.resolve(body),
   } as Response;
@@ -263,6 +264,38 @@ describe("NetworkClient", () => {
       await expect(client.get("/sites/123/devices")).rejects.toThrow(
         /^HTTP 400: Missing credentials \(api\.authentication\.missing-credentials; request 3fa85f64-5717-4562-b3fc-2c963f66afa6\)$/
       );
+    });
+
+    it("says when the console rate-limits a request, with its Retry-After delay", async () => {
+      fetchMock.mockResolvedValue(mockResponse("Too Many Requests", { ok: false, status: 429, contentType: "text/plain", headers: { "retry-after": "7" } }));
+      await expect(client.get("/sites")).rejects.toThrow(
+        /^HTTP 429: Too Many Requests\. The console is rate-limiting requests; retry after 7s\.$/
+      );
+    });
+
+    it("reads a Retry-After date as the seconds until then", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      try {
+        vi.setSystemTime(new Date("2026-11-15T12:00:00Z"));
+        fetchMock.mockResolvedValue(mockResponse("", { ok: false, status: 429, headers: { "retry-after": "Sun, 15 Nov 2026 12:00:30 GMT" } }));
+        await expect(client.get("/sites")).rejects.toThrow(/^HTTP 429: The console is rate-limiting requests; retry after 30s\.$/);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("asks the model to wait when a 429 has no usable Retry-After", async () => {
+      for (const headers of [{}, { "retry-after": "soon" }] as Record<string, string>[]) {
+        fetchMock.mockResolvedValue(mockResponse("", { ok: false, status: 429, headers }));
+        await expect(client.post("/sites/s1/networks", {})).rejects.toThrow(
+          /^HTTP 429: The console is rate-limiting requests; wait before retrying\.$/
+        );
+      }
+    });
+
+    it("adds no rate-limit hint to other errors", async () => {
+      fetchMock.mockResolvedValue(mockResponse("Service Unavailable", { ok: false, status: 503, headers: { "retry-after": "5" } }));
+      await expect(client.get("/sites")).rejects.toThrow(/^HTTP 503: Service Unavailable$/);
     });
 
     it("caps a JSON error message", async () => {
