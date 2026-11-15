@@ -78,45 +78,18 @@ export interface RuleEffect {
 }
 
 /**
- * How many rules a reorder check looks up at once. A large reshuffle can move
- * every rule past another; unbounded, that is one GET per rule in a single
- * burst, each on its own new TLS connection (~0.5 s apiece on a UDM, against
- * a few ms on a reused one).
- */
-export const REORDER_LOOKUP_CONCURRENCY = 4;
-
-/** Look up each rule's effect, a few at a time; after a failure no new lookup starts. */
-async function lookUpAll(
-  ids: readonly string[],
-  effect: (id: string) => Promise<RuleEffect>
-): Promise<[string, RuleEffect][]> {
-  const results: [string, RuleEffect][] = [];
-  const queue = [...ids];
-  let failed = false;
-  const worker = async (): Promise<void> => {
-    for (let id = queue.shift(); id !== undefined && !failed; id = queue.shift()) {
-      try {
-        results.push([id, await effect(id)]);
-      } catch (err) {
-        failed = true;
-        throw err;
-      }
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(REORDER_LOOKUP_CONCURRENCY, ids.length) }, worker));
-  return results;
-}
-
-/**
  * Whether a reorder opens access: whether it moves a rule that lets traffic
  * through ahead of one that blocks, which it used to follow. Only rules in
- * both orders are compared, and effect is asked only about the rules a
- * reorder actually moves past one another. IDs are compared without case.
+ * both orders are compared. effects reads every rule's effect at once (one
+ * list read, not a GET per rule, which a large reshuffle would turn into a
+ * burst of hundreds), and is called only when the reorder moves rules past
+ * one another. A moved rule it does not return counts both ways. IDs are
+ * compared without case.
  */
 export async function reorderOpens(
   before: readonly string[],
   after: readonly string[],
-  effect: (id: string) => Promise<RuleEffect>
+  effects: () => Promise<ReadonlyMap<string, RuleEffect>>
 ): Promise<boolean> {
   const rank = new Map(before.map((id, index) => [id.toLowerCase(), index]));
   const passes: [string, string][] = [];
@@ -126,9 +99,10 @@ export async function reorderOpens(
       if (was !== undefined && other !== undefined && was > other) passes.push([ahead, behind]);
     }
   });
-  const ids = [...new Set(passes.flat())];
-  const effects = new Map(await lookUpAll(ids, effect));
-  return passes.some(([ahead, behind]) => effects.get(ahead)?.letsThrough === true && effects.get(behind)?.blocks === true);
+  if (passes.length === 0) return false;
+  const known = new Map([...(await effects())].map(([id, effect]) => [id.toLowerCase(), effect]));
+  const effect = (id: string): RuleEffect => known.get(id.toLowerCase()) ?? { letsThrough: true, blocks: true };
+  return passes.some(([ahead, behind]) => effect(ahead).letsThrough && effect(behind).blocks);
 }
 
 export function requireConfirmation(

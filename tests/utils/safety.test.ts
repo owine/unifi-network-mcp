@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   READ_ONLY,
   WRITE,
@@ -7,7 +7,6 @@ import {
   formatDryRun,
   requireConfirmation,
   reorderOpens,
-  REORDER_LOOKUP_CONCURRENCY,
 } from "../../src/utils/safety.js";
 
 describe("formatDryRun text", () => {
@@ -84,37 +83,32 @@ describe("requireConfirmation", () => {
 });
 
 describe("reorderOpens rule lookups", () => {
-  // Reversing n rules moves every rule past every other, so each one is looked up.
-  const ids = Array.from({ length: 20 }, (_, i) => `r${String(i)}`);
-  const reversed = [...ids].reverse();
+  const allow = { letsThrough: true, blocks: false };
+  const block = { letsThrough: false, blocks: true };
 
-  it("never runs more lookups at once than the cap, and still looks up every moved rule", async () => {
-    let inFlight = 0;
-    let peak = 0;
-    const seen: string[] = [];
-    const opens = await reorderOpens(ids, reversed, async (id) => {
-      inFlight++;
-      peak = Math.max(peak, inFlight);
-      await new Promise((resolve) => setTimeout(resolve, 1));
-      inFlight--;
-      seen.push(id);
-      // r19 (an ALLOW) now runs ahead of r0 (a BLOCK) it used to follow.
-      return { letsThrough: id === "r19", blocks: id === "r0" };
-    });
-    expect(opens).toBe(true);
-    expect(peak).toBe(REORDER_LOOKUP_CONCURRENCY);
-    expect([...seen].sort()).toEqual([...ids].sort());
+  it("reads the rules once, and only when the reorder moves rules past one another", async () => {
+    const effects = vi.fn(() => Promise.resolve(new Map([["a", allow], ["b", block]])));
+    expect(await reorderOpens(["b", "a"], ["a", "b"], effects)).toBe(true);
+    expect(effects).toHaveBeenCalledTimes(1);
+
+    effects.mockClear();
+    expect(await reorderOpens(["b", "a"], ["b", "a"], effects)).toBe(false);
+    expect(effects).not.toHaveBeenCalled();
   });
 
-  it("stops starting lookups once one fails, and rejects with that error", async () => {
-    let started = 0;
-    const failure = reorderOpens(ids, reversed, async (id) => {
-      started++;
-      await new Promise((resolve) => setTimeout(resolve, 1));
-      if (id === ids.at(-1)) throw new Error("HTTP 500: boom");
-      return { letsThrough: false, blocks: false };
-    });
-    await expect(failure).rejects.toThrow("HTTP 500: boom");
-    expect(started).toBeLessThan(ids.length);
+  it("matches rule IDs without case", async () => {
+    const effects = () => Promise.resolve(new Map([["RULE-A", allow], ["rule-b", block]]));
+    expect(await reorderOpens(["Rule-B", "rule-a"], ["rule-A", "RULE-B"], effects)).toBe(true);
+  });
+
+  it("counts a moved rule the list does not show both ways", async () => {
+    // "gone" is missing from the list: it could let traffic through or block it.
+    const effects = () => Promise.resolve(new Map([["a", allow], ["b", allow]]));
+    expect(await reorderOpens(["gone", "a"], ["a", "gone"], effects)).toBe(true);
+    expect(await reorderOpens(["b", "gone"], ["gone", "b"], effects)).toBe(false);
+  });
+
+  it("rejects with the error of a failed read", async () => {
+    await expect(reorderOpens(["b", "a"], ["a", "b"], () => Promise.reject(new Error("HTTP 500: boom")))).rejects.toThrow("HTTP 500: boom");
   });
 });

@@ -22,6 +22,7 @@ import {
   writeResult,
 } from "../utils/output-schemas.js";
 import { resourceId } from "../utils/params.js";
+import { listAll, ListedRule } from "../utils/list-all.js";
 import { asObject, definedEntries, mergeForPut, missingFields, withResourceLock } from "../utils/full-put.js";
 
 // PUT body fields per the 11.0.83 docs. index is deprecated (and read-only in
@@ -346,11 +347,13 @@ export function registerAclTools(
         const body = { orderedAclRuleIds };
         const current = asObject(await client.get(path), "the current ACL rule ordering");
         const before = Array.isArray(current.orderedAclRuleIds) ? current.orderedAclRuleIds.filter((id) => typeof id === "string") : [];
-        const opens = await reorderOpens(before, orderedAclRuleIds, async (id) => {
-          const rule = asObject(await client.get(`/sites/${siteId}/acl-rules/${id}`), "an ACL rule");
-          // A disabled rule neither lets anything through nor blocks it.
-          const active = rule.enabled !== false;
-          return { letsThrough: active && rule.action === "ALLOW", blocks: active && rule.action === "BLOCK" };
+        const opens = await reorderOpens(before, orderedAclRuleIds, async () => {
+          const rules = await listAll(client, `/sites/${siteId}/acl-rules`, ListedRule);
+          return new Map(rules.map((rule) => {
+            // A disabled rule neither lets anything through nor blocks it.
+            const active = rule.enabled !== false;
+            return [rule.id, { letsThrough: active && rule.action === "ALLOW", blocks: active && rule.action === "BLOCK" }];
+          }));
         });
         const opening = opens ? "This moves an ALLOW rule ahead of a BLOCK rule it used to follow" : undefined;
         const guard = requireConfirmationIf(opening, confirm, dryRun);
