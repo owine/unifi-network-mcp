@@ -76,9 +76,10 @@ claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-net
 | `UNIFI_NETWORK_WRITE_TOOLS` | No | all write tools | Comma-separated write tool names and/or groups (`devices`, `clients`, `networks`, `wifi`, `hotspot`, `firewall`, `acl`, `dns-policies`, `traffic-matching`) to load; `none` or empty loads none. Unknown names stop the server. Ignored, with a warning, while read-only (see [Limiting write mode](#limiting-write-mode)) |
 | `UNIFI_NETWORK_ALLOW_WAN_EXPOSURE` | No | `false` | Set to `true` to stop refusing writes that could let traffic in from the WAN; they then only need `confirm: true` |
 | `UNIFI_NETWORK_WAN_ZONE_IDS` | No | — | Comma-separated firewall zone IDs (UUIDs) to treat as the WAN, in addition to the system-defined zone named `External`. Recommended when writes are on |
+| `UNIFI_NETWORK_STARTUP_CHECK` | No | `true` | At startup the server reads the console's Network version and exits if that fails, so the MCP host shows it as failed rather than connected. Set to `false` to start without the check, for example while the console is down |
 | `UNIFI_NETWORK_WRITE_LOG` | No | — | Absolute path of a JSON Lines file that every write tool call is appended to. Created `0600` (parent directories `0700`); the server will not start if it is a symlink or writable by others. Ignored, with a warning, while read-only |
 
-UniFi consoles ship with a self-signed certificate, so against a local console the first call usually fails with a certificate error. The safe fix is to trust that one certificate: save it and point `UNIFI_NETWORK_CA_CERT` at the file.
+UniFi consoles ship with a self-signed certificate, so against a local console the server usually fails to start with a certificate error. The safe fix is to trust that one certificate: save it and point `UNIFI_NETWORK_CA_CERT` at the file.
 
 ```bash
 openssl s_client -connect 192.168.1.1:443 </dev/null 2>/dev/null | openssl x509 > ~/.config/unifi-console.pem
@@ -396,7 +397,7 @@ Remote Access and console (UniFi OS) SSH are UniFi OS settings outside this API,
 
 ## Troubleshooting
 
-Configuration errors go to the MCP host's server log and the server exits. Tool errors reach the agent as results starting with `Error:`.
+Configuration errors, and a console the server cannot use at startup, go to the MCP host's server log and the server exits; the host lists it as failed (in Claude Code, `/mcp`). Tool errors reach the agent as results starting with `Error:`.
 
 | Message | Cause and fix |
 |---|---|
@@ -405,11 +406,12 @@ Configuration errors go to the MCP host's server log and the server exits. Tool 
 | `UNIFI_NETWORK_CA_CERT must name a PEM file containing a certificate` | The file has no `BEGIN CERTIFICATE` block; re-run the `openssl` command above. |
 | `…cannot be combined with UNIFI_NETWORK_VERIFY_SSL=false` or `TLS verification cannot be disabled for api.ui.com` | Unset `UNIFI_NETWORK_VERIFY_SSL`. |
 | `Ignoring UNIFI_NETWORK_CONSOLE_ID` (log line) | The console ID only applies with `UNIFI_NETWORK_HOST=api.ui.com`. |
+| `Cannot connect to the UniFi console at …` (log line) | The startup check could not read the console; the rest of the line is one of the errors below. Fix it and restart the server, or set `UNIFI_NETWORK_STARTUP_CHECK=false` to start anyway. |
 | `fetch failed (DEPTH_ZERO_SELF_SIGNED_CERT)` or another certificate code | The console's certificate did not verify. Save it to `UNIFI_NETWORK_CA_CERT`; if you already did, the console has a new certificate, so save it again. |
 | `fetch failed (ECONNREFUSED)`, `(ENOTFOUND)` or a connect timeout | Wrong or unreachable host. `UNIFI_NETWORK_HOST` is a bare IP or hostname, without `https://`. |
 | `HTTP 401` / `HTTP 403` | The key is wrong or revoked, or its admin lacks the rights (a View Only key cannot write). |
 | `HTTP 404` | A wrong `siteId` or resource ID, or an endpoint this Network version lacks (check `unifi_get_info`). |
-| `UniFi controller did not respond within …` | The console is slow. For a write, check whether it was applied before retrying. |
+| `the console did not respond within …` (startup) or `UniFi controller did not respond within …` | The console is slow, or something drops traffic to it (at startup, often a wrong IP). For a write, check whether it was applied before retrying. |
 | `This action requires explicit confirmation: …` | Expected: the change needs `confirm: true`, and the agent should ask you first. |
 | `Use an ID returned by a list or get tool` | The agent passed a name or malformed ID. |
 | `Request refused by the request guard: …` | The server would only send a request on its allowlist; this one was not, or belongs to a write tool `UNIFI_NETWORK_WRITE_TOOLS` does not enable. Nothing was sent. If a tool you did not modify hits this, please open an issue. |

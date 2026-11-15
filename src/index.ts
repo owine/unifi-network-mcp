@@ -7,6 +7,7 @@ import { NetworkClient } from "./client.js";
 import { registerAllTools } from "./tools/index.js";
 import { serverInstructions } from "./instructions.js";
 import { openWriteLog } from "./write-log.js";
+import { describeError } from "./utils/responses.js";
 
 // Read at runtime rather than importing: package.json sits outside rootDir,
 // so a static import would emit dist/src/ and break the published layout.
@@ -20,6 +21,20 @@ async function main() {
   const config = loadConfig();
   const writeLog = config.writeLog === undefined ? undefined : openWriteLog(config.writeLog, config.apiKey);
   const client = new NetworkClient(config);
+
+  // Before the transport connects: exiting now makes the MCP host report the
+  // server as failed, with this message in its log, rather than connected.
+  if (config.skipStartupCheck !== true) {
+    try {
+      await client.checkConnection();
+    } catch (err) {
+      console.error(
+        `Cannot connect to the UniFi console at ${config.host}: ${describeError(err)}. ` +
+        "Fix the setting the error names and restart, or set UNIFI_NETWORK_STARTUP_CHECK=false to start without this check."
+      );
+      return process.exit(1);
+    }
+  }
 
   const server = new McpServer(
     { name: "unifi-network", title: "UniFi Network", version },

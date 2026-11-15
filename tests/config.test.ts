@@ -17,6 +17,7 @@ describe("loadConfig", () => {
     "UNIFI_NETWORK_ALLOW_WAN_EXPOSURE",
     "UNIFI_NETWORK_WAN_ZONE_IDS",
     "UNIFI_NETWORK_WRITE_LOG",
+    "UNIFI_NETWORK_STARTUP_CHECK",
   ] as const;
 
   let saved: Record<string, string | undefined>;
@@ -37,6 +38,7 @@ describe("loadConfig", () => {
     delete process.env.UNIFI_NETWORK_ALLOW_WAN_EXPOSURE;
     delete process.env.UNIFI_NETWORK_WAN_ZONE_IDS;
     delete process.env.UNIFI_NETWORK_WRITE_LOG;
+    delete process.env.UNIFI_NETWORK_STARTUP_CHECK;
   });
 
   afterEach(() => {
@@ -190,6 +192,21 @@ describe("loadConfig", () => {
     process.env.UNIFI_NETWORK_VERIFY_SSL = "yes";
     const config = loadConfig();
     expect(config.verifySsl).toBe(true);
+  });
+
+  // ── Startup check ──────────────────────────────────────────────────
+
+  it("keeps the startup check on unless UNIFI_NETWORK_STARTUP_CHECK is false", () => {
+    expect(loadConfig().skipStartupCheck).toBeUndefined();
+    for (const value of ["true", "no", "0", ""]) {
+      process.env.UNIFI_NETWORK_STARTUP_CHECK = value;
+      expect(loadConfig().skipStartupCheck).toBeUndefined();
+    }
+  });
+
+  it.each(["false", "FALSE"])("skips the startup check when UNIFI_NETWORK_STARTUP_CHECK is %s", (value) => {
+    process.env.UNIFI_NETWORK_STARTUP_CHECK = value;
+    expect(loadConfig().skipStartupCheck).toBe(true);
   });
 
   // ── readOnly boolean parsing ───────────────────────────────────────
