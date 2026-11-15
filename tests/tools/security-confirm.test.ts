@@ -316,6 +316,38 @@ describe("confirmation for reorders that move an ALLOW ahead of a BLOCK", () => 
       expect(paths).toEqual(["/sites/s1/acl-rules/ordering", "/sites/s1/acl-rules?offset=0&limit=200"]);
     });
 
+    it("skips a listed entry without an ID instead of failing the check", async () => {
+      controller({
+        "/sites/s1/acl-rules/ordering": { orderedAclRuleIds: ["block", "allow"] },
+        "/sites/s1/acl-rules?offset=0&limit=200": page([{ name: "no id", action: "ALLOW" }, { id: "block", ...acl("BLOCK") }, { id: "allow", ...acl("ALLOW") }]),
+      });
+      const result = await reorder(["allow", "block"]);
+      expect(result.content[0].text).toContain("confirmation");
+    });
+
+    it("says what could not be read when the rule list fails", async () => {
+      controller({
+        "/sites/s1/acl-rules/ordering": { orderedAclRuleIds: ["block", "allow"] },
+        "/sites/s1/acl-rules?offset=0&limit=200": { unexpected: true },
+      });
+      const result = await reorder(["allow", "block"]);
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/the rules this reorder moves could not be read/);
+      expect(mockFn(client, "put")).not.toHaveBeenCalled();
+    });
+
+    it("refuses to judge a moved rule the ordering has but the list does not", async () => {
+      // Deleted between the two reads: the ordering still names it, the list does not.
+      controller({
+        "/sites/s1/acl-rules/ordering": { orderedAclRuleIds: ["block", "ghost"] },
+        "/sites/s1/acl-rules?offset=0&limit=200": page([{ id: "block", ...acl("BLOCK") }]),
+      });
+      const result = await reorder(["ghost", "block"]);
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/no rule with ID "ghost"/);
+      expect(mockFn(client, "put")).not.toHaveBeenCalled();
+    });
+
     it("reads no rules for a reorder that moves nothing past anything", async () => {
       await reorder(["block", "allow", "allow2", "offblock"]);
       expect(mockFn(client, "get").mock.calls.map(([path]) => path)).toEqual(["/sites/s1/acl-rules/ordering"]);

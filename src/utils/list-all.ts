@@ -18,13 +18,3 @@ export async function listAll<T extends z.ZodType>(client: NetworkClient, path: 
   // A list that does not end cannot be checked, which must not pass.
   throw new Error(`the list did not end after ${MAX_PAGES} pages`);
 }
-
-/**
- * A firewall policy or ACL rule as a list returns it, typed only as far as a
- * reorder check reads it: which rule, whether it is on, and its action.
- */
-export const ListedRule = z.object({
-  id: z.string(),
-  enabled: z.unknown().optional(),
-  action: z.unknown().optional(),
-}).loose();

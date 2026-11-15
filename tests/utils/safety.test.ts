@@ -101,11 +101,12 @@ describe("reorderOpens rule lookups", () => {
     expect(await reorderOpens(["Rule-B", "rule-a"], ["rule-A", "RULE-B"], effects)).toBe(true);
   });
 
-  it("counts a moved rule the list does not show both ways", async () => {
-    // "gone" is missing from the list: it could let traffic through or block it.
+  it("refuses a moved rule the list does not have, instead of guessing its effect", async () => {
+    // A typo or a rule deleted meanwhile: say so, as the old per-rule 404 did.
     const effects = () => Promise.resolve(new Map([["a", allow], ["b", allow]]));
-    expect(await reorderOpens(["gone", "a"], ["a", "gone"], effects)).toBe(true);
-    expect(await reorderOpens(["b", "gone"], ["gone", "b"], effects)).toBe(false);
+    await expect(reorderOpens(["gone", "a"], ["a", "gone"], effects)).rejects.toThrow(/no rule with ID "gone"/);
+    // Even when another pass already decides the answer.
+    await expect(reorderOpens(["b", "a", "gone"], ["gone", "a", "b"], effects)).rejects.toThrow(/no rule with ID "gone"/);
   });
 
   it("rejects with the error of a failed read", async () => {

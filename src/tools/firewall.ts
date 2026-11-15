@@ -14,6 +14,7 @@ import {
   confirmDestructive,
   requireConfirmationIf,
   reorderOpens,
+  listedEffects,
 } from "../utils/safety.js";
 import {
   asObject,
@@ -31,7 +32,6 @@ import {
   writeResult,
 } from "../utils/output-schemas.js";
 import { resourceId } from "../utils/params.js";
-import { listAll, ListedRule } from "../utils/list-all.js";
 import { DEFAULT_WAN_POLICY, WanExposure, wanRefusal, type WanPolicy } from "../utils/wan-exposure.js";
 
 // Firewall policy request-body fields, from the 11.0.83 POST/PUT schemas.
@@ -602,11 +602,10 @@ export function registerFirewallTools(
           evaluationOrder(current.orderedFirewallPolicyIds),
           evaluationOrder(orderedFirewallPolicyIds),
           async () => {
-            const policies = await listAll(client, `/sites/${siteId}/firewall/policies`, ListedRule);
-            const effects = new Map(policies.map((policy) => {
+            const effects = await listedEffects(client, `/sites/${siteId}/firewall/policies`, (policy) => {
               const active = policy.enabled !== false;
-              return [policy.id, { letsThrough: active && letsThrough(policy), blocks: active && !letsThrough(policy) }];
-            }));
+              return { letsThrough: active && letsThrough(policy), blocks: active && !letsThrough(policy) };
+            });
             // The system-defined policies are not in the ordering by ID, so their
             // actions are unknown: moving anything across them counts both ways.
             return effects.set(SYSTEM_DEFINED, { letsThrough: true, blocks: true });
