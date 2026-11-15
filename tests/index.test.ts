@@ -34,6 +34,8 @@ describe("startup", () => {
     process.env.UNIFI_NETWORK_HOST = "192.0.2.1";
     process.env.UNIFI_NETWORK_API_KEY = "test-api-key-fixture";
     process.env.UNIFI_NETWORK_WRITE_LOG = logPath;
+    // An opt-out inherited from the shell would skip the check under test.
+    delete process.env.UNIFI_NETWORK_STARTUP_CHECK;
     errorMock = vi.spyOn(console, "error").mockImplementation(vi.fn());
     connect = vi.spyOn(McpServer.prototype, "connect").mockResolvedValue(undefined);
     vi.mocked(openWriteLog).mockClear();
@@ -79,17 +81,25 @@ describe("startup", () => {
       expect(checkConnection.mock.invocationCallOrder[0]).toBeLessThan(connect.mock.invocationCallOrder[0]);
     });
 
-    it("exits with the reason, never connecting, when the console cannot be used", async () => {
+    it("exits with the reason once it is written, never connecting, when the console cannot be used", async () => {
       const exit = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+      let written: { message: string; done: () => void } | undefined;
+      vi.spyOn(process.stderr, "write").mockImplementation(((chunk: string, done: () => void) => {
+        written = { message: chunk, done };
+        return true;
+      }) as typeof process.stderr.write);
       checkConnection.mockRejectedValue(
         new TypeError("fetch failed", { cause: Object.assign(new Error("self-signed certificate"), { code: "DEPTH_ZERO_SELF_SIGNED_CERT" }) })
       );
       await import("../src/index.js");
-      await vi.waitFor(() => { expect(exit).toHaveBeenCalledWith(1); });
-      const message = String(errorMock.mock.calls.find(([line]: unknown[]) => String(line).startsWith("Cannot connect"))?.[0]);
-      expect(message).toContain("Cannot connect to the UniFi console at 192.0.2.1: fetch failed (DEPTH_ZERO_SELF_SIGNED_CERT)");
-      expect(message).toContain("UNIFI_NETWORK_CA_CERT");
-      expect(message).toContain("UNIFI_NETWORK_STARTUP_CHECK=false");
+      await vi.waitFor(() => { expect(written).toBeDefined(); });
+      expect(written?.message).toContain("Cannot connect to the UniFi console at 192.0.2.1: fetch failed (DEPTH_ZERO_SELF_SIGNED_CERT)");
+      expect(written?.message).toContain("UNIFI_NETWORK_CA_CERT");
+      expect(written?.message).toContain("UNIFI_NETWORK_STARTUP_CHECK=false");
+      // Not before the write has drained.
+      expect(exit).not.toHaveBeenCalled();
+      written?.done();
+      expect(exit).toHaveBeenCalledWith(1);
       expect(connect).not.toHaveBeenCalled();
     });
 

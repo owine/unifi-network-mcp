@@ -28,11 +28,14 @@ async function main() {
     try {
       await client.checkConnection();
     } catch (err) {
-      console.error(
+      // Exit from the write's callback: stderr to a pipe is asynchronous on
+      // macOS, and exiting first could drop the only explanation the host logs.
+      process.stderr.write(
         `Cannot connect to the UniFi console at ${config.host}: ${describeError(err)}. ` +
-        "Fix the setting the error names and restart, or set UNIFI_NETWORK_STARTUP_CHECK=false to start without this check."
+        "Fix the setting the error names and restart, or set UNIFI_NETWORK_STARTUP_CHECK=false to start without this check.\n",
+        () => process.exit(1)
       );
-      return process.exit(1);
+      return;
     }
   }
 

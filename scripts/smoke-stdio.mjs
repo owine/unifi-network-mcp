@@ -49,7 +49,12 @@ async function expectStartupFailure() {
   const dropper = createServer((socket) => socket.destroy());
   await new Promise((resolve) => dropper.listen(0, "127.0.0.1", resolve));
   const client = new Client({ name: "smoke", version: "0.0.0" });
-  const failing = transport({ UNIFI_NETWORK_HOST: `127.0.0.1:${dropper.address().port}` }, "pipe");
+  // The check is set on explicitly, so an opt-out inherited from the shell
+  // cannot make this pass for the wrong reason.
+  const failing = transport({
+    UNIFI_NETWORK_HOST: `127.0.0.1:${dropper.address().port}`,
+    UNIFI_NETWORK_STARTUP_CHECK: "true",
+  }, "pipe");
   let log = "";
   failing.stderr?.on("data", (chunk) => { log += chunk; });
   try {

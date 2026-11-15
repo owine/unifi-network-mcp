@@ -321,6 +321,15 @@ describe("NetworkClient", () => {
       );
     });
 
+    it.each([
+      ["an HTML page", "<html>Welcome</html>", "text/html"],
+      ["JSON without applicationVersion", '{"status":"ok"}', "application/json"],
+      ["a non-string applicationVersion", '{"applicationVersion":11}', "application/json"],
+    ])("rejects a 2xx answer that is %s", async (_label, body, contentType) => {
+      fetchMock.mockResolvedValue(mockResponse(body, { contentType }));
+      await expect(new NetworkClient(makeConfig()).checkConnection()).rejects.toThrow(/not with UniFi Network application info/);
+    });
+
     it("rejects with the HTTP status when the console refuses the key", async () => {
       fetchMock.mockResolvedValue(mockResponse('{"message":"Unauthorized"}', { ok: false, status: 401 }));
       await expect(new NetworkClient(makeConfig()).checkConnection()).rejects.toThrow(/HTTP 401: Unauthorized/);

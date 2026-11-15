@@ -223,13 +223,19 @@ export class NetworkClient {
    */
   async checkConnection(): Promise<void> {
     const timeout = AbortSignal.timeout(STARTUP_TIMEOUT_MS);
+    let info: unknown;
     try {
-      await withCallSignal(timeout, () => this.get("/info"));
+      info = await withCallSignal(timeout, () => this.get("/info"));
     } catch (err) {
       if (timeout.aborted) {
         throw new Error(`the console did not respond within ${STARTUP_TIMEOUT_MS / 1000}s`, { cause: err });
       }
       throw err;
+    }
+    // Any 2xx passes send(), so a proxy or another web server at the host
+    // would otherwise pass too, and every tool call would then fail.
+    if (!info || typeof info !== "object" || !("applicationVersion" in info) || typeof info.applicationVersion !== "string") {
+      throw new Error("the host answered, but not with UniFi Network application info; check UNIFI_NETWORK_HOST names the console");
     }
   }
 

@@ -406,7 +406,7 @@ Configuration errors, and a console the server cannot use at startup, go to the 
 | `UNIFI_NETWORK_CA_CERT must name a PEM file containing a certificate` | The file has no `BEGIN CERTIFICATE` block; re-run the `openssl` command above. |
 | `…cannot be combined with UNIFI_NETWORK_VERIFY_SSL=false` or `TLS verification cannot be disabled for api.ui.com` | Unset `UNIFI_NETWORK_VERIFY_SSL`. |
 | `Ignoring UNIFI_NETWORK_CONSOLE_ID` (log line) | The console ID only applies with `UNIFI_NETWORK_HOST=api.ui.com`. |
-| `Cannot connect to the UniFi console at …` (log line) | The startup check could not read the console; the rest of the line is one of the errors below. Fix it and restart the server, or set `UNIFI_NETWORK_STARTUP_CHECK=false` to start anyway. |
+| `Cannot connect to the UniFi console at …` (log line) | The startup check could not read the console; the rest of the line is one of the errors below, or `the host answered, but not with UniFi Network application info` when something other than the console answered at `UNIFI_NETWORK_HOST`. Fix it and restart the server, or set `UNIFI_NETWORK_STARTUP_CHECK=false` to start anyway. |
 | `fetch failed (DEPTH_ZERO_SELF_SIGNED_CERT)` or another certificate code | The console's certificate did not verify. Save it to `UNIFI_NETWORK_CA_CERT`; if you already did, the console has a new certificate, so save it again. |
 | `fetch failed (ECONNREFUSED)`, `(ENOTFOUND)` or a connect timeout | Wrong or unreachable host. `UNIFI_NETWORK_HOST` is a bare IP or hostname, without `https://`. |
 | `HTTP 401` / `HTTP 403` | The key is wrong or revoked, or its admin lacks the rights (a View Only key cannot write). |
