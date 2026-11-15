@@ -285,12 +285,23 @@ describe("NetworkClient", () => {
     });
 
     it("asks the model to wait when a 429 has no usable Retry-After", async () => {
-      for (const headers of [{}, { "retry-after": "soon" }] as Record<string, string>[]) {
+      // "1.5", "-5" and "2026 x" are not delay-seconds; V8's lenient Date.parse
+      // would read the first two as 2001 dates ("retry after 0s"). An absurd
+      // delay is no guidance either.
+      const unusable = ["soon", "1.5", "-5", "2026 x", "86401", "999999999999999999999", "Sun, 15 Nov 2126 12:00:30 GMT"];
+      for (const headers of [{}, ...unusable.map((value) => ({ "retry-after": value }))] as Record<string, string>[]) {
         fetchMock.mockResolvedValue(mockResponse("", { ok: false, status: 429, headers }));
         await expect(client.post("/sites/s1/networks", {})).rejects.toThrow(
           /^HTTP 429: The console is rate-limiting requests; wait before retrying\.$/
         );
       }
+    });
+
+    it("joins a body that ends in punctuation to the hint with one period", async () => {
+      fetchMock.mockResolvedValue(mockResponse(JSON.stringify({ message: "Too many requests." }), { ok: false, status: 429, headers: { "retry-after": "3" } }));
+      await expect(client.get("/sites")).rejects.toThrow(
+        /^HTTP 429: Too many requests\. The console is rate-limiting requests; retry after 3s\.$/
+      );
     });
 
     it("adds no rate-limit hint to other errors", async () => {
