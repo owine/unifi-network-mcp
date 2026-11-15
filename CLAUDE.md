@@ -131,7 +131,7 @@ Cross-cutting suites check every tool at once: `tests/tools/safety-compliance.te
 
 ## API version bumps
 
-Aligned with UniFi Network API **11.0.83**. Tool descriptions and `src/utils/output-schemas.ts` are verified against that version; a few notes still cite an older version where that endpoint has not been re-verified live since.
+Aligned with UniFi Network API **11.1.47**. Tool descriptions and `src/utils/output-schemas.ts` are verified against that version; a few notes still cite an older version where that endpoint has not been re-verified live since.
 
 For updating tools to match a new UniFi Network API version, follow the skill at `~/.claude/skills/unifi-api-update/SKILL.md`.
 
