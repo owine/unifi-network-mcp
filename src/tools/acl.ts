@@ -14,6 +14,7 @@ import {
   confirmDestructive,
   requireConfirmationIf,
   reorderOpens,
+  listedEffects,
 } from "../utils/safety.js";
 import {
   listAclRulesOutputSchema,
@@ -346,12 +347,12 @@ export function registerAclTools(
         const body = { orderedAclRuleIds };
         const current = asObject(await client.get(path), "the current ACL rule ordering");
         const before = Array.isArray(current.orderedAclRuleIds) ? current.orderedAclRuleIds.filter((id) => typeof id === "string") : [];
-        const opens = await reorderOpens(before, orderedAclRuleIds, async (id) => {
-          const rule = asObject(await client.get(`/sites/${siteId}/acl-rules/${id}`), "an ACL rule");
-          // A disabled rule neither lets anything through nor blocks it.
-          const active = rule.enabled !== false;
-          return { letsThrough: active && rule.action === "ALLOW", blocks: active && rule.action === "BLOCK" };
-        });
+        const opens = await reorderOpens(before, orderedAclRuleIds, () =>
+          listedEffects(client, `/sites/${siteId}/acl-rules`, (rule) => {
+            // A disabled rule neither lets anything through nor blocks it.
+            const active = rule.enabled !== false;
+            return { letsThrough: active && rule.action === "ALLOW", blocks: active && rule.action === "BLOCK" };
+          }));
         const opening = opens ? "This moves an ALLOW rule ahead of a BLOCK rule it used to follow" : undefined;
         const guard = requireConfirmationIf(opening, confirm, dryRun);
         if (guard) return guard;

@@ -259,7 +259,10 @@ describe("confirmation for reorders that move an ALLOW ahead of a BLOCK", () => 
   let client: NetworkClient;
   let handlers: Map<string, (...args: any[]) => any>;
 
-  // Each GET answered by path: the current order, then the rules it moves past one another.
+  // A list page holding every rule.
+  const page = (data: unknown[]) => ({ offset: 0, limit: 200, count: data.length, totalCount: data.length, data });
+
+  // Each GET answered by path: the current order, then the list of rules.
   function controller(resources: Record<string, unknown>) {
     mockFn(client, "get").mockImplementation((path: string) =>
       path in resources ? Promise.resolve(resources[path]) : Promise.reject(new Error(`HTTP 404: no ${path}`)));
@@ -279,10 +282,12 @@ describe("confirmation for reorders that move an ALLOW ahead of a BLOCK", () => 
     beforeEach(() => {
       controller({
         "/sites/s1/acl-rules/ordering": { orderedAclRuleIds: ["block", "allow", "allow2", "offblock"] },
-        "/sites/s1/acl-rules/block": acl("BLOCK"),
-        "/sites/s1/acl-rules/allow": acl("ALLOW"),
-        "/sites/s1/acl-rules/allow2": acl("ALLOW"),
-        "/sites/s1/acl-rules/offblock": acl("BLOCK", false),
+        "/sites/s1/acl-rules?offset=0&limit=200": page([
+          { id: "block", ...acl("BLOCK") },
+          { id: "allow", ...acl("ALLOW") },
+          { id: "allow2", ...acl("ALLOW") },
+          { id: "offblock", ...acl("BLOCK", false) },
+        ]),
       });
     });
     const reorder = (ids: string[], extra: Record<string, unknown> = {}) =>
@@ -305,6 +310,49 @@ describe("confirmation for reorders that move an ALLOW ahead of a BLOCK", () => 
       expect(result.structuredContent).toMatchObject({ dryRun: true, confirmationRequired: expect.stringContaining("ALLOW rule ahead of a BLOCK") });
     });
 
+    it("reads the rules with one list request, not one GET per rule", async () => {
+      await reorder(["allow2", "allow", "block", "offblock"], { confirm: true });
+      const paths = mockFn(client, "get").mock.calls.map(([path]) => path);
+      expect(paths).toEqual(["/sites/s1/acl-rules/ordering", "/sites/s1/acl-rules?offset=0&limit=200"]);
+    });
+
+    it("skips a listed entry without an ID instead of failing the check", async () => {
+      controller({
+        "/sites/s1/acl-rules/ordering": { orderedAclRuleIds: ["block", "allow"] },
+        "/sites/s1/acl-rules?offset=0&limit=200": page([{ name: "no id", action: "ALLOW" }, { id: "block", ...acl("BLOCK") }, { id: "allow", ...acl("ALLOW") }]),
+      });
+      const result = await reorder(["allow", "block"]);
+      expect(result.content[0].text).toContain("confirmation");
+    });
+
+    it("says what could not be read when the rule list fails", async () => {
+      controller({
+        "/sites/s1/acl-rules/ordering": { orderedAclRuleIds: ["block", "allow"] },
+        "/sites/s1/acl-rules?offset=0&limit=200": { unexpected: true },
+      });
+      const result = await reorder(["allow", "block"]);
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/the rules this reorder moves could not be read/);
+      expect(mockFn(client, "put")).not.toHaveBeenCalled();
+    });
+
+    it("refuses to judge a moved rule the ordering has but the list does not", async () => {
+      // Deleted between the two reads: the ordering still names it, the list does not.
+      controller({
+        "/sites/s1/acl-rules/ordering": { orderedAclRuleIds: ["block", "ghost"] },
+        "/sites/s1/acl-rules?offset=0&limit=200": page([{ id: "block", ...acl("BLOCK") }]),
+      });
+      const result = await reorder(["ghost", "block"]);
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/no rule with ID "ghost"/);
+      expect(mockFn(client, "put")).not.toHaveBeenCalled();
+    });
+
+    it("reads no rules for a reorder that moves nothing past anything", async () => {
+      await reorder(["block", "allow", "allow2", "offblock"]);
+      expect(mockFn(client, "get").mock.calls.map(([path]) => path)).toEqual(["/sites/s1/acl-rules/ordering"]);
+    });
+
     it.each([
       ["an ALLOW past an ALLOW", ["block", "allow2", "allow", "offblock"]],
       ["a BLOCK moved earlier", ["block", "offblock", "allow", "allow2"]],
@@ -323,9 +371,11 @@ describe("confirmation for reorders that move an ALLOW ahead of a BLOCK", () => 
     beforeEach(() => {
       controller({
         [orderingPath]: { orderedFirewallPolicyIds: { beforeSystemDefined: ["block", "block2"], afterSystemDefined: ["allow"] } },
-        "/sites/s1/firewall/policies/block": policy("BLOCK"),
-        "/sites/s1/firewall/policies/block2": policy("REJECT"),
-        "/sites/s1/firewall/policies/allow": policy("ALLOW"),
+        "/sites/s1/firewall/policies?offset=0&limit=200": page([
+          { ...policy("BLOCK"), id: "block" },
+          { ...policy("REJECT"), id: "block2" },
+          { ...policy("ALLOW"), id: "allow" },
+        ]),
       });
     });
     const reorder = (beforeSystemDefined: string[], afterSystemDefined: string[]) =>

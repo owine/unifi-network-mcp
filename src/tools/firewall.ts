@@ -14,6 +14,7 @@ import {
   confirmDestructive,
   requireConfirmationIf,
   reorderOpens,
+  listedEffects,
 } from "../utils/safety.js";
 import {
   asObject,
@@ -600,13 +601,14 @@ export function registerFirewallTools(
         const opens = await reorderOpens(
           evaluationOrder(current.orderedFirewallPolicyIds),
           evaluationOrder(orderedFirewallPolicyIds),
-          async (id) => {
-            // The system-defined policies are not listed, so their actions are
-            // unknown: moving anything across them counts both ways.
-            if (id === SYSTEM_DEFINED) return { letsThrough: true, blocks: true };
-            const policy = asObject(await client.get(`/sites/${siteId}/firewall/policies/${id}`), "a firewall policy");
-            const active = policy.enabled !== false;
-            return { letsThrough: active && letsThrough(policy), blocks: active && !letsThrough(policy) };
+          async () => {
+            const effects = await listedEffects(client, `/sites/${siteId}/firewall/policies`, (policy) => {
+              const active = policy.enabled !== false;
+              return { letsThrough: active && letsThrough(policy), blocks: active && !letsThrough(policy) };
+            });
+            // The system-defined policies are not in the ordering by ID, so their
+            // actions are unknown: moving anything across them counts both ways.
+            return effects.set(SYSTEM_DEFINED, { letsThrough: true, blocks: true });
           }
         );
         const opening = opens ? "This moves a firewall policy that lets traffic through ahead of one that blocks it" : undefined;

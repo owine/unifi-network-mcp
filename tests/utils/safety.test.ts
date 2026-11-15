@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   READ_ONLY,
   WRITE,
@@ -6,6 +6,7 @@ import {
   DESTRUCTIVE,
   formatDryRun,
   requireConfirmation,
+  reorderOpens,
 } from "../../src/utils/safety.js";
 
 describe("formatDryRun text", () => {
@@ -78,5 +79,37 @@ describe("requireConfirmation", () => {
     const result = requireConfirmation(undefined, "remove device");
     expect(result).not.toBeNull();
     expect(result!.isError).toBe(true);
+  });
+});
+
+describe("reorderOpens rule lookups", () => {
+  const allow = { letsThrough: true, blocks: false };
+  const block = { letsThrough: false, blocks: true };
+
+  it("reads the rules once, and only when the reorder moves rules past one another", async () => {
+    const effects = vi.fn(() => Promise.resolve(new Map([["a", allow], ["b", block]])));
+    expect(await reorderOpens(["b", "a"], ["a", "b"], effects)).toBe(true);
+    expect(effects).toHaveBeenCalledTimes(1);
+
+    effects.mockClear();
+    expect(await reorderOpens(["b", "a"], ["b", "a"], effects)).toBe(false);
+    expect(effects).not.toHaveBeenCalled();
+  });
+
+  it("matches rule IDs without case", async () => {
+    const effects = () => Promise.resolve(new Map([["RULE-A", allow], ["rule-b", block]]));
+    expect(await reorderOpens(["Rule-B", "rule-a"], ["rule-A", "RULE-B"], effects)).toBe(true);
+  });
+
+  it("refuses a moved rule the list does not have, instead of guessing its effect", async () => {
+    // A typo or a rule deleted meanwhile: say so, as the old per-rule 404 did.
+    const effects = () => Promise.resolve(new Map([["a", allow], ["b", allow]]));
+    await expect(reorderOpens(["gone", "a"], ["a", "gone"], effects)).rejects.toThrow(/no rule with ID "gone"/);
+    // Even when another pass already decides the answer.
+    await expect(reorderOpens(["b", "a", "gone"], ["gone", "a", "b"], effects)).rejects.toThrow(/no rule with ID "gone"/);
+  });
+
+  it("rejects with the error of a failed read", async () => {
+    await expect(reorderOpens(["b", "a"], ["a", "b"], () => Promise.reject(new Error("HTTP 500: boom")))).rejects.toThrow("HTTP 500: boom");
   });
 });

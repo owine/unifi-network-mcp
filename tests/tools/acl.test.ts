@@ -578,8 +578,11 @@ describe("registerAclTools", () => {
       it("should return success when client.put succeeds", async () => {
         const mockData = { success: true };
         mockFn(client, "put").mockResolvedValue(mockData);
-        // The current order, read to judge the reorder: the same rules, rotated.
-        mockFn(client, "get").mockResolvedValue({ orderedAclRuleIds: ["rule3", "rule1", "rule2"] });
+        // The current order, read to judge the reorder: the same rules, rotated,
+        // then the rule list, read because the rotation moves rules past rule3.
+        mockFn(client, "get").mockImplementation((path: string) => Promise.resolve(path.endsWith("/ordering")
+          ? { orderedAclRuleIds: ["rule3", "rule1", "rule2"] }
+          : { totalCount: 3, data: ["rule1", "rule2", "rule3"].map((id) => ({ id, enabled: true, action: "BLOCK" })) }));
 
         const handler = handlers.get("unifi_reorder_acl_rules");
         const orderedIds = ["rule1", "rule2", "rule3"];

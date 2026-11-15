@@ -1,6 +1,9 @@
 import { z } from "zod";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { NetworkClient } from "../client.js";
 import { noteRefusal } from "../write-log.js";
+import { listAll } from "./list-all.js";
+import { errorMessage } from "./responses.js";
 
 /** The confirm input of a DESTRUCTIVE tool. */
 export const confirmDestructive = () =>
@@ -78,15 +81,41 @@ export interface RuleEffect {
 }
 
 /**
+ * A firewall policy or ACL rule as a list returns it, typed only as far as a
+ * reorder check reads it. An entry without an ID cannot be in an ordering, so
+ * it is skipped rather than failing the check.
+ */
+const ListedRule = z.object({
+  id: z.string().optional(),
+  enabled: z.unknown().optional(),
+  action: z.unknown().optional(),
+}).loose();
+
+/** Every rule of a list by ID, with its effect, for reorderOpens. */
+export async function listedEffects(
+  client: NetworkClient,
+  path: string,
+  effectOf: (rule: z.infer<typeof ListedRule>) => RuleEffect
+): Promise<Map<string, RuleEffect>> {
+  const rules = await listAll(client, path, ListedRule).catch((err: unknown) => {
+    throw new Error(`the rules this reorder moves could not be read, so whether it opens access is unknown (${errorMessage(err)})`, { cause: err });
+  });
+  return new Map(rules.flatMap((rule) => rule.id === undefined ? [] : [[rule.id, effectOf(rule)] as const]));
+}
+
+/**
  * Whether a reorder opens access: whether it moves a rule that lets traffic
  * through ahead of one that blocks, which it used to follow. Only rules in
- * both orders are compared, and effect is asked only about the rules a
- * reorder actually moves past one another. IDs are compared without case.
+ * both orders are compared. effects reads every rule's effect at once (one
+ * list read, not a GET per rule, which a large reshuffle would turn into a
+ * burst of hundreds), and is called only when the reorder moves rules past
+ * one another. A moved rule it does not return (deleted since the ordering
+ * was read) is refused rather than guessed. IDs are compared without case.
  */
 export async function reorderOpens(
   before: readonly string[],
   after: readonly string[],
-  effect: (id: string) => Promise<RuleEffect>
+  effects: () => Promise<ReadonlyMap<string, RuleEffect>>
 ): Promise<boolean> {
   const rank = new Map(before.map((id, index) => [id.toLowerCase(), index]));
   const passes: [string, string][] = [];
@@ -96,9 +125,16 @@ export async function reorderOpens(
       if (was !== undefined && other !== undefined && was > other) passes.push([ahead, behind]);
     }
   });
-  const ids = [...new Set(passes.flat())];
-  const effects = new Map(await Promise.all(ids.map(async (id) => [id, await effect(id)] as const)));
-  return passes.some(([ahead, behind]) => effects.get(ahead)?.letsThrough === true && effects.get(behind)?.blocks === true);
+  if (passes.length === 0) return false;
+  const known = new Map([...(await effects())].map(([id, effect]) => [id.toLowerCase(), effect]));
+  // Every moved rule is checked first, so the answer never rests on a guess.
+  for (const id of new Set(passes.flat())) {
+    if (!known.has(id.toLowerCase())) {
+      throw new Error(`no rule with ID ${JSON.stringify(id)} is in this site's list, though the current ordering names it; read the ordering again`);
+    }
+  }
+  return passes.some(([ahead, behind]) =>
+    known.get(ahead.toLowerCase())?.letsThrough === true && known.get(behind.toLowerCase())?.blocks === true);
 }
 
 export function requireConfirmation(

@@ -79,6 +79,7 @@ src/
     query.ts          # buildQuery() for pagination/filter params
     safety.ts         # Tool annotations, formatDryRun(), requireConfirmation()
     full-put.ts       # mergeForPut() read-merge-write for full-replacement PUTs
+    list-all.ts       # listAll() — every page of a list, for checks that read a whole collection (WAN exposure, reorders)
     secrets.ts        # redactSecrets() / restoreRedacted() for WiFi passphrases
     params.ts         # resourceId() / siteReference() — allowlisted schemas for values interpolated into paths
     pick.ts           # pick() — copies a classic record's allowlisted fields; the one place that decides what leaves one
