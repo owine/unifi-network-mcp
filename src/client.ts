@@ -90,6 +90,35 @@ function describeErrorBody(text: string): string {
   return capped(text);
 }
 
+/**
+ * What the model should do about a 429, or undefined for any other status.
+ * Neither the Integration API docs nor a burst against a UDM (11.1.47) showed
+ * a rate limit, so nothing retries here: the model is told how long to wait
+ * and decides for itself.
+ */
+function rateLimitHint(response: Response): string | undefined {
+  if (response.status !== 429) return undefined;
+  const wait = retryAfterSeconds(response.headers.get("retry-after"));
+  return `The console is rate-limiting requests; ${wait === undefined ? "wait before retrying" : `retry after ${String(wait)}s`}.`;
+}
+
+// A longer wait than this is no guidance for a model in a conversation.
+const MAX_RETRY_AFTER_SECONDS = 86_400;
+// RFC 9110 IMF-fixdate. Date.parse alone is too lenient: V8 reads "1.5" as a
+// date in 2001, which would come out as "retry after 0s".
+const HTTP_DATE = /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/;
+
+/** Retry-After as whole seconds from now (delay-seconds or an HTTP date), or undefined if unusable. */
+function retryAfterSeconds(value: string | null): number | undefined {
+  const trimmed = value?.trim() ?? "";
+  const seconds = /^\d+$/.test(trimmed)
+    ? Number(trimmed)
+    : HTTP_DATE.test(trimmed)
+      ? Math.max(0, Math.ceil((Date.parse(trimmed) - Date.now()) / 1000))
+      : undefined;
+  return seconds !== undefined && seconds <= MAX_RETRY_AFTER_SECONDS ? seconds : undefined;
+}
+
 function capped(text: string): string {
   const collapsed = text.replace(/\s+/g, " ").trim();
   return collapsed.length > ERROR_BODY_LIMIT ? `${collapsed.slice(0, ERROR_BODY_LIMIT)}…` : collapsed;
@@ -190,7 +219,11 @@ export class NetworkClient {
 
     if (method !== "GET") noteWriteStatus(response.status);
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${describeErrorBody(await response.text())}`);
+      const body = describeErrorBody(await response.text());
+      const hint = rateLimitHint(response);
+      // One period between the body and the hint, whatever the body ends with.
+      const detail = hint === undefined ? body : [body.replace(/[.!?\s]+$/, ""), hint].filter((part) => part).join(". ");
+      throw new Error(`HTTP ${String(response.status)}: ${detail}`);
     }
 
     const contentType = response.headers.get("content-type") ?? "";
@@ -331,7 +364,9 @@ export class NetworkClient {
       // Drain before throwing: an unread body pins the socket until GC, so a
       // run of failures (say, a mis-scoped API key) would leak connections.
       await response.body?.cancel();
-      throw new Error(`${kind.name} returned HTTP ${response.status}; verify API-key access and controller support. ${kind.notEmpty}`);
+      const hint = rateLimitHint(response);
+      const advice = hint === undefined ? "; verify API-key access and controller support." : `. ${hint}`;
+      throw new Error(`${kind.name} returned HTTP ${String(response.status)}${advice} ${kind.notEmpty}`);
     }
     if (!response.headers.get("content-type")?.includes("application/json")) {
       await response.body?.cancel();

@@ -411,6 +411,7 @@ Configuration errors, and a console the server cannot use at startup, go to the 
 | `fetch failed (ECONNREFUSED)`, `(ENOTFOUND)` or a connect timeout | Wrong or unreachable host. `UNIFI_NETWORK_HOST` is a bare IP or hostname, without `https://`. |
 | `HTTP 401` / `HTTP 403` | The key is wrong or revoked, or its admin lacks the rights (a View Only key cannot write). |
 | `HTTP 404` | A wrong `siteId` or resource ID, or an endpoint this Network version lacks (check `unifi_get_info`). |
+| `The console is rate-limiting requests` (after `HTTP 429`, on any route) | The console refused the request as too frequent. Wait as long as the message says (or a little while, when it gives no delay) before retrying. |
 | `the console did not respond within …` (startup) or `UniFi controller did not respond within …` | The console is slow, or something drops traffic to it (at startup, often a wrong IP). For a write, check whether it was applied before retrying. |
 | `This action requires explicit confirmation: …` | Expected: the change needs `confirm: true`, and the agent should ask you first. |
 | `Use an ID returned by a list or get tool` | The agent passed a name or malformed ID. |
@@ -421,8 +422,8 @@ Configuration errors, and a console the server cannot use at startup, go to the 
 | A write tool is missing, or `Tool … not found` | `UNIFI_NETWORK_WRITE_TOOLS` does not name it or its group. |
 | `cannot use UNIFI_NETWORK_WRITE_LOG (…)` | The path is a symlink, not a regular file, hard-linked elsewhere, or writable by others (`chmod 600` it), or its directory cannot be created. |
 | No write tools listed | Read-only is the default. Set `UNIFI_NETWORK_READ_ONLY=false` (only `false` counts; any other value stays read-only) and restart the host. If it is set, check `UNIFI_NETWORK_WRITE_TOOLS` is not `none` or empty. |
-| `Controller history returned HTTP …`, `non-JSON data` or `an empty body` | This console or key cannot use the history routes (see [Retained client connections](#retained-client-connections)). It is not an empty history. |
-| `Classic controller API returned HTTP …`, `non-JSON data` or `malformed JSON` | This console or key cannot read the classic controller API (see [Classic controller reads](#classic-controller-reads)). It is not an empty result. |
+| `Controller history returned HTTP …` (other than 429), `non-JSON data` or `an empty body` | This console or key cannot use the history routes (see [Retained client connections](#retained-client-connections)). It is not an empty history. |
+| `Classic controller API returned HTTP …` (other than 429), `non-JSON data` or `malformed JSON` | This console or key cannot read the classic controller API (see [Classic controller reads](#classic-controller-reads)). It is not an empty result. |
 | `Use the site's internalReference …` | History, classic-API and exposure tools take `internalReference` (often `default`) from `unifi_list_sites`, not the UUID. |
 
 ## Development

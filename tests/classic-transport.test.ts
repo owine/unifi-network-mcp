@@ -43,6 +43,14 @@ describe("classic controller transport", () => {
     await expect(attempt).rejects.not.toThrow(FAKE);
   });
 
+  it("reports a 429 as rate limiting, not as an API-key problem", async () => {
+    fetchMock.mockResolvedValue(new Response("", { status: 429, headers: { "Retry-After": "12" } }));
+    const attempt = new NetworkClient(config).getClassic("default", "networkconf");
+    await expect(attempt).rejects.toThrow("Classic controller API returned HTTP 429. The console is rate-limiting requests; retry after 12s.");
+    await expect(attempt).rejects.toThrow("not an empty result");
+    await expect(attempt).rejects.not.toThrow("API-key");
+  });
+
   it("rejects legacy errors wrapped in HTTP 200", async () => {
     fetchMock.mockResolvedValue(response({ meta: { rc: "error", msg: "api.err.NoPermission" }, data: [] }));
     await expect(new NetworkClient(config).getClassic("default", "firewallgroup")).rejects.toThrow("meta.rc");
