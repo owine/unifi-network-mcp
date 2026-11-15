@@ -72,6 +72,28 @@ describe("output schemas", () => {
     expect(() => schema.parse(sample)).not.toThrow();
   });
 
+  it("device detail keeps txPowerMode on AP radios (live 11.1.47)", () => {
+    // Captured live from a U7-Pro-Wall on 11.1.47 (ids replaced). txPowerMode
+    // is undocumented and was not returned on 11.0.83.
+    const schema = z.object(getDeviceOutputSchema);
+    const sample = {
+      id: "ap1",
+      model: "U7-Pro-Wall",
+      features: { accessPoint: {} },
+      interfaces: {
+        radios: [
+          { wlanStandard: "802.11be", frequencyGHz: 2.4, txPowerMode: "MEDIUM", channelWidthMHz: 20, channel: 1 },
+          { wlanStandard: "802.11be", frequencyGHz: 6, txPowerMode: "MEDIUM", channelWidthMHz: 160, channel: 69 },
+        ],
+      },
+    };
+    const parsed = schema.parse(sample);
+    expect(parsed.interfaces?.radios?.[0]?.txPowerMode).toBe("MEDIUM");
+    expect(
+      schema.safeParse({ id: "ap1", interfaces: { radios: [{ txPowerMode: 3 }] } }).success
+    ).toBe(false);
+  });
+
   it("list devices accepts capability-tag string arrays for features/interfaces", () => {
     const schema = z.object(listDevicesOutputSchema);
     const sample = {
