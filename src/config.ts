@@ -44,6 +44,10 @@ const configSchema = z.object({
     .boolean()
     .default(true)
     .describe("When true, only read-only tools are registered"),
+  skipStartupCheck: z
+    .literal(true)
+    .optional()
+    .describe("When true, the server starts without first reading /info to check the console can be used"),
   writeTools: z.string()
     .transform((value, ctx) => {
       const { tools, unknown } = parseWriteTools(value);
@@ -109,6 +113,8 @@ export function loadConfig(): Config {
       process.env.UNIFI_NETWORK_VERIFY_SSL?.toLowerCase() !== "false",
     readOnly:
       process.env.UNIFI_NETWORK_READ_ONLY?.toLowerCase() !== "false",
+    ...(process.env.UNIFI_NETWORK_STARTUP_CHECK?.toLowerCase() === "false"
+      ? { skipStartupCheck: true } : {}),
     ...(caCert !== undefined ? { caCert } : {}),
     ...(process.env.UNIFI_NETWORK_ALLOW_WAN_EXPOSURE?.toLowerCase() === "true"
       ? { allowWanExposure: true } : {}),

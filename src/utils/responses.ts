@@ -23,18 +23,25 @@ export function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-export function formatError(err: unknown) {
+/**
+ * The message of a failed request, with the reason fetch keeps in cause: fetch
+ * reports every network failure as "fetch failed" and keeps the reason
+ * (ECONNREFUSED, ENOTFOUND, a certificate error) there.
+ */
+export function describeError(err: unknown): string {
   let message = errorMessage(err);
-  // fetch reports every network failure as "fetch failed" and keeps the reason
-  // (ECONNREFUSED, ENOTFOUND, a certificate error) in cause.
   const cause = err instanceof Error ? err.cause : undefined;
   const code = cause instanceof Error && "code" in cause && typeof cause.code === "string" ? cause.code : undefined;
   if (code) {
     message += ` (${code})`;
     message += tlsHint(code);
   }
+  return message;
+}
+
+export function formatError(err: unknown) {
   return {
-    content: [{ type: "text" as const, text: `Error: ${message}` }],
+    content: [{ type: "text" as const, text: `Error: ${describeError(err)}` }],
     isError: true,
   };
 }

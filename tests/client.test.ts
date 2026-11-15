@@ -309,6 +309,57 @@ describe("NetworkClient", () => {
     });
   });
 
+  // ── Startup check ─────────────────────────────────────────────────
+
+  describe("checkConnection", () => {
+    it("reads /info and resolves when the console answers", async () => {
+      fetchMock.mockResolvedValue(mockResponse('{"applicationVersion":"11.0.83"}'));
+      await new NetworkClient(makeConfig()).checkConnection();
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://192.168.1.1/proxy/network/integration/v1/info",
+        expect.objectContaining({ method: "GET" })
+      );
+    });
+
+    it.each([
+      ["an HTML page", "<html>Welcome</html>", "text/html"],
+      ["JSON without applicationVersion", '{"status":"ok"}', "application/json"],
+      ["a non-string applicationVersion", '{"applicationVersion":11}', "application/json"],
+    ])("rejects a 2xx answer that is %s", async (_label, body, contentType) => {
+      fetchMock.mockResolvedValue(mockResponse(body, { contentType }));
+      await expect(new NetworkClient(makeConfig()).checkConnection()).rejects.toThrow(/not with UniFi Network application info/);
+    });
+
+    it("rejects with the HTTP status when the console refuses the key", async () => {
+      fetchMock.mockResolvedValue(mockResponse('{"message":"Unauthorized"}', { ok: false, status: 401 }));
+      await expect(new NetworkClient(makeConfig()).checkConnection()).rejects.toThrow(/HTTP 401: Unauthorized/);
+    });
+
+    it("rejects with the network failure, keeping its cause", async () => {
+      const refused = new TypeError("fetch failed", { cause: Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }) });
+      fetchMock.mockRejectedValue(refused);
+      await expect(new NetworkClient(makeConfig()).checkConnection()).rejects.toBe(refused);
+    });
+
+    it("gives up after its own shorter timeout", async () => {
+      const timers = new Map<number, AbortController>();
+      vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) => {
+        const controller = new AbortController();
+        timers.set(ms, controller);
+        return controller.signal;
+      });
+      fetchMock.mockImplementation((_url: string, options: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          options.signal?.addEventListener("abort", () => { reject(options.signal?.reason as DOMException); });
+        }));
+      const pending = new NetworkClient(makeConfig()).checkConnection();
+      await vi.waitFor(() => { expect(fetchMock).toHaveBeenCalled(); });
+      timers.get(10_000)?.abort(new DOMException("timed out", "TimeoutError"));
+      await expect(pending).rejects.toThrow("the console did not respond within 10s");
+      vi.restoreAllMocks();
+    });
+  });
+
   // ── Path guard ────────────────────────────────────────────────────
 
   describe("path guard", () => {
