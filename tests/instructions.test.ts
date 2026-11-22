@@ -6,6 +6,14 @@ describe("serverInstructions", () => {
     expect(serverInstructions(true)).toContain("unifi_list_sites");
   });
 
+  it("gives the MAC address form and quote escaping filters need", () => {
+    // A filter on an upper-case MAC matches nothing, which reads as absence.
+    for (const text of [serverInstructions(true), serverInstructions(false)]) {
+      expect(text).toContain("aa:bb:cc:dd:ee:ff");
+      expect(text).toContain("name.eq('Bob''s iPhone')");
+    }
+  });
+
   it("says write tools are absent in read-only mode", () => {
     const text = serverInstructions(true);
     expect(text).toMatch(/read-only/i);
