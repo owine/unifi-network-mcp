@@ -6,7 +6,7 @@ An MCP (Model Context Protocol) server that exposes the UniFi Network Integratio
 
 - Node.js in the range `engines.node` in `package.json` allows
 - A UniFi Network console with the Integration API enabled
-- An API key generated from your UniFi Network console (see [Choosing an API key](#choosing-an-api-key))
+- An API key generated from your UniFi Network console (see [Choosing an API key](#choosing-an-api-key)), or a Site Manager API key from unifi.ui.com to reach it through the [Cloud Connector](#cloud-connector)
 
 ## Setup
 
@@ -67,8 +67,8 @@ claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-net
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `UNIFI_NETWORK_HOST` | Yes | — | IP or hostname of your UniFi Network console, without `https://` |
-| `UNIFI_NETWORK_API_KEY` | Yes | — | API key from Network integration settings |
+| `UNIFI_NETWORK_HOST` | Yes | — | IP or hostname of your UniFi Network console, without `https://`; `api.ui.com` for the [Cloud Connector](#cloud-connector) |
+| `UNIFI_NETWORK_API_KEY` | Yes | — | API key from the console's Network integration settings; through the [Cloud Connector](#cloud-connector), a Site Manager API key from unifi.ui.com instead |
 | `UNIFI_NETWORK_CA_CERT` | No | — | Absolute path to a PEM file with the console's certificate, to verify a self-signed console without turning verification off (see below) |
 | `UNIFI_NETWORK_VERIFY_SSL` | No | `true` | Set to `false` to skip TLS certificate verification. Not allowed with `api.ui.com` or together with `UNIFI_NETWORK_CA_CERT` |
 | `UNIFI_NETWORK_READ_ONLY` | No | `true` | Set to `false` to enable write/mutating tools (read-only by default) |
