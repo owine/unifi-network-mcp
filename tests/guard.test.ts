@@ -75,7 +75,7 @@ const overrides: Record<string, Record<string, unknown>> = {
 
 /** A value for every required input: the first candidate the field accepts. */
 function generatedInput(schema: Record<string, unknown>): Record<string, unknown> {
-  const candidates: unknown[] = ["id1", 1, true, ["id1"], {}, [{ type: "PORT_NUMBER", value: 1 }]];
+  const candidates: unknown[] = ["id1", "00:11:22:33:44:55", 1, true, ["id1"], {}, [{ type: "PORT_NUMBER", value: 1 }]];
   return Object.fromEntries(
     Object.entries(schema as Record<string, z.ZodType>)
       .filter(([, field]) => !field.safeParse(undefined).success)

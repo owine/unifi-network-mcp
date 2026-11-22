@@ -11,7 +11,7 @@ import {
   listPendingDevicesOutputSchema,
   writeResult,
 } from "../utils/output-schemas.js";
-import { resourceId } from "../utils/params.js";
+import { macAddress as macAddressParam, normalizeMac, resourceId } from "../utils/params.js";
 // Adopt echoes the adopted device — reuse the device detail schema.
 const adoptDeviceOutputSchema = getDeviceOutputSchema;
 
@@ -141,7 +141,7 @@ export function registerDeviceTools(
       description: "Adopt a pending device into a site by MAC address. The device must already appear in unifi_list_pending_devices. Idempotency: not safe to retry — re-adopting may error or duplicate.",
       inputSchema: {
         siteId: resourceId().describe("Site ID"),
-        macAddress: z.string().describe("MAC address of the device"),
+        macAddress: macAddressParam().describe("MAC address of the device, as unifi_list_pending_devices returns it"),
         // Required by the API; kept optional here and defaulted to false below
         // so callers need not pass it explicitly.
         ignoreDeviceLimit: z.boolean().optional().describe("Ignore device limit when adopting (required by the API; sent as false when omitted)"),
@@ -152,7 +152,7 @@ export function registerDeviceTools(
     },
     async ({ siteId, macAddress, ignoreDeviceLimit, dryRun }) => {
       const body = {
-        macAddress,
+        macAddress: normalizeMac(macAddress),
         ignoreDeviceLimit: ignoreDeviceLimit ?? false,
       };
 

@@ -10,6 +10,20 @@ export function resourceId() {
 }
 
 /**
+ * A MAC address, colon- or hyphen-separated in either case. Pass it through
+ * normalizeMac() before sending: the API writes MACs lowercase and
+ * colon-separated.
+ */
+export function macAddress() {
+  return z.string().regex(/^[\da-f]{2}([:-])[\da-f]{2}(\1[\da-f]{2}){4}$/i, "Use a MAC address like aa:bb:cc:dd:ee:ff");
+}
+
+/** A MAC address accepted by macAddress(), in the API's form: aa:bb:cc:dd:ee:ff. */
+export function normalizeMac(mac: string): string {
+  return mac.toLowerCase().replaceAll("-", ":");
+}
+
+/**
  * A site's internalReference (often default), which the controller routes
  * outside the Integration API take in place of the site UUID.
  */
