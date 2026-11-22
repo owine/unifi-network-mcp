@@ -309,21 +309,25 @@ describe("registerDeviceTools", () => {
         mockFn(client, "post").mockResolvedValue({ id: "dev1" });
         const handler = server.handlers.get("unifi_adopt_device");
 
-        for (const macAddress of ["00:1A:2B:3C:4D:5E", "00-1A-2B-3C-4D-5E"]) {
+        const cases = [
+          ["00:1A:2B:3C:4D:5E", "00:1a:2b:3c:4d:5e"],
+          ["F0-9F-C2-AA-BB-CC", "f0:9f:c2:aa:bb:cc"],
+          ["74:ac:b9:01:02:03", "74:ac:b9:01:02:03"],
+        ];
+        for (const [macAddress, sent] of cases) {
           await handler({ siteId: "site1", macAddress });
           expect(mockFn(client, "post")).toHaveBeenLastCalledWith(
             "/sites/site1/devices",
-            { macAddress: "00:1a:2b:3c:4d:5e", ignoreDeviceLimit: false }
+            { macAddress: sent, ignoreDeviceLimit: false }
           );
+          const preview = await handler({ siteId: "site1", macAddress, dryRun: true });
+          expect(JSON.parse(preview.content[0].text).wouldExecute.body.macAddress).toBe(sent);
         }
-
-        const preview = await handler({ siteId: "site1", macAddress: "00-1A-2B-3C-4D-5E", dryRun: true });
-        expect(JSON.parse(preview.content[0].text).wouldExecute.body.macAddress).toBe("00:1a:2b:3c:4d:5e");
       });
 
       it("rejects a value that is not a MAC address", () => {
         const schema = parseInputSchema(server.configs, "unifi_adopt_device");
-        for (const macAddress of ["", "Office AP", "00:11:22:33:44", "00:11:22:33:44:55:66", "00:11-22:33:44:55", "0g:11:22:33:44:55"]) {
+        for (const macAddress of ["", "Office AP", "00:11:22:33:44", "00:11:22:33:44:55:66", "00:11-22:33:44:55", "0g:11:22:33:44:55", "00:11:22:33:44:55\n", "00:11:22:33:44:55\r\n", " 00:11:22:33:44:55"]) {
           expect(schema.safeParse({ siteId: "site1", macAddress }).success).toBe(false);
         }
       });
