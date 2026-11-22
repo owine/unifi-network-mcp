@@ -413,6 +413,7 @@ Configuration errors, and a console the server cannot use at startup, go to the 
 | `HTTP 404` | A wrong `siteId` or resource ID, or an endpoint this Network version lacks (check `unifi_get_info`). |
 | `The console is rate-limiting requests` (after `HTTP 429`, on any route) | The console refused the request as too frequent. Wait as long as the message says (or a little while, when it gives no delay) before retrying. |
 | `the console did not respond within …` (startup) or `UniFi controller did not respond within …` | The console is slow, or something drops traffic to it (at startup, often a wrong IP). For a write, check whether it was applied before retrying. |
+| `HTTP 408`, `HTTP 502` or `HTTP 504` on a write, with `… may still have been applied` | A gateway gave up waiting for the console, possibly after passing the request on: the Cloud Connector allows 25 seconds per request. Check whether the change was made before retrying. |
 | `This action requires explicit confirmation: …` | Expected: the change needs `confirm: true`, and the agent should ask you first. |
 | `Use an ID returned by a list or get tool` | The agent passed a name or malformed ID. |
 | `Request refused by the request guard: …` | The server would only send a request on its allowlist; this one was not, or belongs to a write tool `UNIFI_NETWORK_WRITE_TOOLS` does not enable. Nothing was sent. If a tool you did not modify hits this, please open an issue. |

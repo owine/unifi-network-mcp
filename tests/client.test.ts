@@ -304,6 +304,27 @@ describe("NetworkClient", () => {
       );
     });
 
+    it("reports a write a gateway gave up on as an unknown outcome", async () => {
+      // The Cloud Connector answers 408 after 25s, once it has passed the
+      // request on; a 502 or 504 from a proxy is just as unclear.
+      for (const status of [408, 502, 504]) {
+        fetchMock.mockResolvedValue(mockResponse(JSON.stringify({ code: "timeout", message: "request timed out" }), { ok: false, status }));
+        await expect(client.post("/sites/s1/hotspot/vouchers", {})).rejects.toThrow(
+          new RegExp(`^HTTP ${String(status)}: request timed out \\(timeout\\)\\. The POST may still have been applied; check the resource before retrying\\.$`)
+        );
+      }
+    });
+
+    it("tells a read a gateway gave up on nothing about write outcomes", async () => {
+      fetchMock.mockResolvedValue(mockResponse("Gateway Timeout", { ok: false, status: 504, contentType: "text/plain" }));
+      await expect(client.get("/sites")).rejects.toThrow(/^HTTP 504: Gateway Timeout$/);
+    });
+
+    it("adds no outcome hint to a write the console itself rejected", async () => {
+      fetchMock.mockResolvedValue(mockResponse(JSON.stringify({ message: "Invalid body" }), { ok: false, status: 400 }));
+      await expect(client.put("/sites/s1/networks/n1", {})).rejects.toThrow(/^HTTP 400: Invalid body$/);
+    });
+
     it("adds no rate-limit hint to other errors", async () => {
       fetchMock.mockResolvedValue(mockResponse("Service Unavailable", { ok: false, status: 503, headers: { "retry-after": "5" } }));
       await expect(client.get("/sites")).rejects.toThrow(/^HTTP 503: Service Unavailable$/);
