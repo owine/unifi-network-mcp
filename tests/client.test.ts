@@ -266,6 +266,16 @@ describe("NetworkClient", () => {
       );
     });
 
+    it("reports the trace ID of a Site Manager or Cloud Connector error", async () => {
+      fetchMock.mockResolvedValue(mockResponse(JSON.stringify({
+        code: "forbidden", httpStatusCode: 403, message: "no access to console",
+        traceId: "a7dc15e0eb4527142d7823515b15f87d",
+      }), { ok: false, status: 403 }));
+      await expect(client.get("/sites")).rejects.toThrow(
+        /^HTTP 403: no access to console \(forbidden; trace a7dc15e0eb4527142d7823515b15f87d\)$/
+      );
+    });
+
     it("says when the console rate-limits a request, with its Retry-After delay", async () => {
       fetchMock.mockResolvedValue(mockResponse("Too Many Requests", { ok: false, status: 429, contentType: "text/plain", headers: { "retry-after": "7" } }));
       await expect(client.get("/sites")).rejects.toThrow(

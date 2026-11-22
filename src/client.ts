@@ -77,8 +77,9 @@ const ERROR_BODY_LIMIT = 500;
 
 /**
  * The useful part of an error body for the model: the API's documented
- * message, code and request ID, or a capped excerpt of anything else (a proxy
- * or UniFi OS HTML error page would otherwise land in the context whole).
+ * message, code and request ID (traceId in Site Manager and Cloud Connector
+ * errors), or a capped excerpt of anything else (a proxy or UniFi OS HTML
+ * error page would otherwise land in the context whole).
  */
 function describeErrorBody(text: string): string {
   try {
@@ -87,6 +88,7 @@ function describeErrorBody(text: string): string {
       const details = [
         "code" in body && typeof body.code === "string" ? body.code : undefined,
         "requestId" in body && typeof body.requestId === "string" ? `request ${body.requestId}` : undefined,
+        "traceId" in body && typeof body.traceId === "string" ? `trace ${body.traceId}` : undefined,
       ].filter((detail) => detail !== undefined);
       const message = capped(body.message);
       return details.length > 0 ? `${message} (${details.join("; ")})` : message;
@@ -140,6 +142,57 @@ function requestSignal(timeoutMs: number): AbortSignal {
 /** The classic controller REST collections the classic read tools list. */
 export const CLASSIC_COLLECTIONS = ["networkconf", "firewallgroup", "firewallrule", "portforward"] as const;
 export type ClassicCollection = (typeof CLASSIC_COLLECTIONS)[number];
+
+const CONTROLLER_BODY_LIMIT = 10_000_000;
+// A Site Manager error is a few hundred bytes; anything larger is not one.
+const ERROR_BODY_READ_LIMIT = 16_384;
+
+/**
+ * A body read to the end as UTF-8, or undefined once it passes limit bytes
+ * (the rest is cancelled, freeing the socket). A null body reads as "".
+ */
+async function readCapped(body: Response["body"], limit: number): Promise<string | undefined> {
+  if (body === null) return "";
+  // undici types the body as an untyped stream; a fetch body is always bytes.
+  const reader = (body as ReadableStream<Uint8Array>).getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.length;
+      if (bytes > limit) {
+        await reader.cancel();
+        return undefined;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+/**
+ * The traceId of a Site Manager-shaped error body ({ code, httpStatusCode,
+ * message, traceId }), as the Cloud Connector sends for a refused classic or
+ * history read. Nothing else in the body is taken: a controller's own error
+ * body can echo classic records, which hold credentials under any name.
+ */
+function siteManagerTrace(text: string | undefined): string | undefined {
+  if (text === undefined) return undefined;
+  try {
+    const body: unknown = JSON.parse(text);
+    if (body && typeof body === "object" && "httpStatusCode" in body && typeof body.httpStatusCode === "number" &&
+        "traceId" in body && typeof body.traceId === "string" && /^[A-Za-z0-9-]{1,128}$/.test(body.traceId)) {
+      return body.traceId;
+    }
+  } catch {
+    // Not JSON: no trace ID.
+  }
+  return undefined;
+}
 
 /** How errors from one family of controller routes outside the Integration API are worded. */
 interface ControllerRead {
@@ -369,12 +422,17 @@ export class NetworkClient {
     };
     const response = await fetch(`${this.networkUrl}${path}`, options);
     if (!response.ok) {
-      // Drain before throwing: an unread body pins the socket until GC, so a
-      // run of failures (say, a mis-scoped API key) would leak connections.
-      await response.body?.cancel();
+      // Read (or drain) before throwing: an unread body pins the socket until
+      // GC, so a run of failures (say, a mis-scoped API key) would leak connections.
+      let trace: string | undefined;
+      if (response.headers.get("content-type")?.includes("application/json")) {
+        trace = siteManagerTrace(await readCapped(response.body, ERROR_BODY_READ_LIMIT));
+      } else {
+        await response.body?.cancel();
+      }
       const hint = rateLimitHint(response);
       const advice = hint === undefined ? "; verify API-key access and controller support." : `. ${hint}`;
-      throw new Error(`${kind.name} returned HTTP ${String(response.status)}${advice} ${kind.notEmpty}`);
+      throw new Error(`${kind.name} returned HTTP ${String(response.status)}${trace === undefined ? "" : ` (trace ${trace})`}${advice} ${kind.notEmpty}`);
     }
     if (!response.headers.get("content-type")?.includes("application/json")) {
       await response.body?.cancel();
@@ -382,25 +440,8 @@ export class NetworkClient {
     }
     // Bound the body before parsing: controller session records can be large.
     if (response.body === null) throw new Error(`${kind.name} returned no response body`);
-    // undici types the body as an untyped stream; a fetch body is always bytes.
-    const reader = (response.body as ReadableStream<Uint8Array>).getReader();
-    const chunks: Uint8Array[] = [];
-    let bytes = 0;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        bytes += value.length;
-        if (bytes > 10000000) {
-          await reader.cancel();
-          throw new Error(`${kind.name} exceeds 10 MB; ${kind.tooLarge}`);
-        }
-        chunks.push(value);
-      }
-    } finally {
-      reader.releaseLock();
-    }
-    const text = Buffer.concat(chunks).toString("utf8");
+    const text = await readCapped(response.body, CONTROLLER_BODY_LIMIT);
+    if (text === undefined) throw new Error(`${kind.name} exceeds 10 MB; ${kind.tooLarge}`);
     if (text.trim() === "") {
       // A bare JSON.parse would surface "Unexpected end of JSON input", which
       // reads as a broken tool rather than an unusable controller response.

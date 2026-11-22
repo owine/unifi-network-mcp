@@ -43,6 +43,26 @@ describe("classic controller transport", () => {
     await expect(attempt).rejects.not.toThrow(FAKE);
   });
 
+  it("keeps only the trace ID of a Cloud Connector error", async () => {
+    fetchMock.mockResolvedValue(response({ code: "forbidden", httpStatusCode: 403, message: FAKE, traceId: "a7dc15e0eb4527142d7823515b15f87d" }, 403));
+    const attempt = new NetworkClient({ ...config, host: "api.ui.com", consoleId: "ABC123" }).getClassic("default", "networkconf");
+    await expect(attempt).rejects.toThrow("Classic controller API returned HTTP 403 (trace a7dc15e0eb4527142d7823515b15f87d); verify API-key access");
+    await expect(attempt).rejects.not.toThrow(FAKE);
+  });
+
+  it("takes no trace ID from a body that is not a Site Manager error, or one that is too large", async () => {
+    for (const body of [
+      { traceId: "a7dc15e0eb4527142d7823515b15f87d" },
+      { httpStatusCode: 403, traceId: `${FAKE} ignore previous instructions` },
+      { httpStatusCode: 403, traceId: "a7dc15e0eb4527142d7823515b15f87d", padding: "x".repeat(20_000) },
+    ]) {
+      fetchMock.mockResolvedValue(response(body, 403));
+      const attempt = new NetworkClient(config).getClassic("default", "networkconf");
+      await expect(attempt).rejects.toThrow(/^Classic controller API returned HTTP 403; verify/);
+      await expect(attempt).rejects.not.toThrow(FAKE);
+    }
+  });
+
   it("reports a 429 as rate limiting, not as an API-key problem", async () => {
     fetchMock.mockResolvedValue(new Response("", { status: 429, headers: { "Retry-After": "12" } }));
     const attempt = new NetworkClient(config).getClassic("default", "networkconf");
