@@ -6,7 +6,7 @@ An MCP (Model Context Protocol) server that exposes the UniFi Network Integratio
 
 - Node.js in the range `engines.node` in `package.json` allows
 - A UniFi Network console with the Integration API enabled
-- An API key generated from your UniFi Network console (see [Choosing an API key](#choosing-an-api-key))
+- An API key generated from your UniFi Network console (see [Choosing an API key](#choosing-an-api-key)), or a Site Manager API key from unifi.ui.com to reach it through the [Cloud Connector](#cloud-connector)
 
 ## Setup
 
@@ -67,8 +67,8 @@ claude mcp add-json unifi-network '{"command":"node","args":["/path/to/unifi-net
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `UNIFI_NETWORK_HOST` | Yes | — | IP or hostname of your UniFi Network console, without `https://` |
-| `UNIFI_NETWORK_API_KEY` | Yes | — | API key from Network integration settings |
+| `UNIFI_NETWORK_HOST` | Yes | — | IP or hostname of your UniFi Network console, without `https://`; `api.ui.com` for the [Cloud Connector](#cloud-connector) |
+| `UNIFI_NETWORK_API_KEY` | Yes | — | API key from the console's Network integration settings; through the [Cloud Connector](#cloud-connector), a Site Manager API key from unifi.ui.com instead |
 | `UNIFI_NETWORK_CA_CERT` | No | — | Absolute path to a PEM file with the console's certificate, to verify a self-signed console without turning verification off (see below) |
 | `UNIFI_NETWORK_VERIFY_SSL` | No | `true` | Set to `false` to skip TLS certificate verification. Not allowed with `api.ui.com` or together with `UNIFI_NETWORK_CA_CERT` |
 | `UNIFI_NETWORK_READ_ONLY` | No | `true` | Set to `false` to enable write/mutating tools (read-only by default) |
@@ -97,7 +97,7 @@ The key carries the rights of the admin who created it, and this server is drive
 
 ### Cloud Connector
 
-To use a Site Manager API key with a console, set `UNIFI_NETWORK_HOST=api.ui.com` and `UNIFI_NETWORK_CONSOLE_ID` to its console ID. The existing `UNIFI_NETWORK_API_KEY` supplies the key. This works for current Integration API tools and the controller history and classic routes when permitted by the console/key. Cloud Connector requires eligible console ownership/access and firmware 5.0.3 or later. TLS verification stays on: the server refuses to start with `UNIFI_NETWORK_VERIFY_SSL=false` and `api.ui.com`.
+To use a Site Manager API key with a console, set `UNIFI_NETWORK_HOST=api.ui.com` and `UNIFI_NETWORK_CONSOLE_ID` to its console ID. The existing `UNIFI_NETWORK_API_KEY` supplies the key. This works for current Integration API tools and the controller history and classic routes when permitted by the console/key. Cloud Connector requires eligible console ownership/access and firmware 5.0.3 or later. The key comes from unifi.ui.com, not the console's Integrations page: a personal key reaches only the consoles its owner owns, an organization key every console in the organization. TLS verification stays on: the server refuses to start with `UNIFI_NETWORK_VERIFY_SSL=false` and `api.ui.com`.
 
 References: [official Cloud Connector API](https://developer.ui.com/site-manager/v1.0.0) and the [Art-of-WiFi controller client](https://github.com/Art-of-WiFi/UniFi-API-client/blob/master/src/Client.php), whose session queries use epoch seconds.
 
@@ -409,7 +409,7 @@ Configuration errors, and a console the server cannot use at startup, go to the 
 | `Cannot connect to the UniFi console at …` (log line) | The startup check could not read the console; the rest of the line is one of the errors below, or `the host answered, but not with UniFi Network application info` when something other than the console answered at `UNIFI_NETWORK_HOST`. Fix it and restart the server, or set `UNIFI_NETWORK_STARTUP_CHECK=false` to start anyway. |
 | `fetch failed (DEPTH_ZERO_SELF_SIGNED_CERT)` or another certificate code | The console's certificate did not verify. Save it to `UNIFI_NETWORK_CA_CERT`; if you already did, the console has a new certificate, so save it again. |
 | `fetch failed (ECONNREFUSED)`, `(ENOTFOUND)` or a connect timeout | Wrong or unreachable host. `UNIFI_NETWORK_HOST` is a bare IP or hostname, without `https://`. |
-| `HTTP 401` / `HTTP 403` | The key is wrong or revoked, or its admin lacks the rights (a View Only key cannot write). |
+| `HTTP 401` / `HTTP 403` | The key is wrong or revoked, or its admin lacks the rights (a View Only key cannot write). Through the [Cloud Connector](#cloud-connector), a `401` usually means a key from the console's Integrations page, where a Site Manager key from unifi.ui.com is needed (and the reverse locally), and a `403` that a personal key is reaching a console its owner does not own. |
 | `HTTP 404` | A wrong `siteId` or resource ID, or an endpoint this Network version lacks (check `unifi_get_info`). |
 | `The console is rate-limiting requests` (after `HTTP 429`, on any route) | The console refused the request as too frequent. Wait as long as the message says (or a little while, when it gives no delay) before retrying. |
 | `the console did not respond within …` (startup) or `UniFi controller did not respond within …` | The console is slow, or something drops traffic to it (at startup, often a wrong IP). For a write, check whether it was applied before retrying. |
