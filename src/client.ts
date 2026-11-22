@@ -37,6 +37,15 @@ function retryClosedSocket<T>(send: () => Promise<T>): Promise<T> {
   });
 }
 
+function unknownOutcome(method: string): string {
+  return `The ${method} may still have been applied; check the resource before retrying.`;
+}
+
+// Statuses a gateway sends when it gave up waiting on the console, possibly
+// after passing the request on: the Cloud Connector answers 408 after 25s
+// (sooner than REQUEST_TIMEOUT_MS fires), and a proxy 502 or 504 is as unclear.
+const GATEWAY_GAVE_UP: readonly number[] = [408, 502, 504];
+
 /**
  * A request that failed in flight, worded so the model knows whether retrying
  * is safe: a timed-out or cut-off write may already have been applied, and
@@ -44,9 +53,7 @@ function retryClosedSocket<T>(send: () => Promise<T>): Promise<T> {
  * body, so this applies to the whole exchange, not only to fetch().
  */
 function inFlightError(read: boolean, method: string, timeoutMs: number, err: unknown): unknown {
-  const hint = read
-    ? "Retry when the console responds."
-    : `The ${method} may still have been applied; check the resource before retrying.`;
+  const hint = read ? "Retry when the console responds." : unknownOutcome(method);
   if (err instanceof DOMException && err.name === "TimeoutError") {
     return new Error(`UniFi controller did not respond within ${timeoutMs / 1000}s. ${hint}`, { cause: err });
   }
@@ -220,7 +227,8 @@ export class NetworkClient {
     if (method !== "GET") noteWriteStatus(response.status);
     if (!response.ok) {
       const body = describeErrorBody(await response.text());
-      const hint = rateLimitHint(response);
+      const hint = rateLimitHint(response) ??
+        (method !== "GET" && GATEWAY_GAVE_UP.includes(response.status) ? unknownOutcome(method) : undefined);
       // One period between the body and the hint, whatever the body ends with.
       const detail = hint === undefined ? body : [body.replace(/[.!?\s]+$/, ""), hint].filter((part) => part).join(". ");
       throw new Error(`HTTP ${String(response.status)}: ${detail}`);
