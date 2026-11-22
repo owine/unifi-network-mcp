@@ -70,8 +70,9 @@ const ERROR_BODY_LIMIT = 500;
 
 /**
  * The useful part of an error body for the model: the API's documented
- * message, code and request ID, or a capped excerpt of anything else (a proxy
- * or UniFi OS HTML error page would otherwise land in the context whole).
+ * message, code and request ID (traceId in Site Manager and Cloud Connector
+ * errors), or a capped excerpt of anything else (a proxy or UniFi OS HTML
+ * error page would otherwise land in the context whole).
  */
 function describeErrorBody(text: string): string {
   try {
@@ -80,6 +81,7 @@ function describeErrorBody(text: string): string {
       const details = [
         "code" in body && typeof body.code === "string" ? body.code : undefined,
         "requestId" in body && typeof body.requestId === "string" ? `request ${body.requestId}` : undefined,
+        "traceId" in body && typeof body.traceId === "string" ? `trace ${body.traceId}` : undefined,
       ].filter((detail) => detail !== undefined);
       const message = capped(body.message);
       return details.length > 0 ? `${message} (${details.join("; ")})` : message;
